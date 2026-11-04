@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- connect-src: explicit allowlist of built-in BYOK provider origins ONLY.
+     No wildcards. Custom user endpoints are NOT covered by this static CSP and
+     will be blocked by the browser — tracked as a known limitation in
+     KNOWN-ISSUES.md (a static page cannot grant per-user CSP exceptions). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://openrouter.ai https://api.deepseek.com https://api.anthropic.com https://generativelanguage.googleapis.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<title>AI Study Tools — {{brand}}</title>
+<meta name="description" content="Turn your study notes into flashcards, quizzes, study plans and summaries with AI — using your own API key. Five private, bring-your-own-key workflows that run entirely in your browser: chat with your notes, generate flashcards, build quizzes, plan your study days, and rewrite notes." />
+<link rel="canonical" href="https://studypilot.pages.dev/ai-workflows/" />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/">My Study Space</a>
+      <a href="/ai-chat/">AI Chat</a>
+      <a href="/ai-workflows/" aria-current="page">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/">My Study Space</a>
+    <a href="/ai-chat/">AI Chat</a>
+    <a href="/ai-workflows/" aria-current="page">AI Tools</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+
+<main id="main" class="wrap section">
+  <p class="eyebrow">Optional · Bring your own key</p>
+  <h1>AI Study Tools</h1>
+  <p class="muted" style="max-width: 680px;">
+    Five AI workflows built on your notes and files — chat with your study
+    materials, generate flashcards, build practice quizzes, draft a study plan
+    from your syllabus tracker, and rewrite notes. Free tools stay free; this
+    is an opt-in extra that uses <em>your</em> API key with the AI provider of
+    <em>your</em> choice.
+  </p>
+
+  <div class="banner warn" role="note" aria-label="Important disclosures">
+    <strong>Before you use these tools, know this:</strong>
+    <ul style="margin: 0.5rem 0 0; padding-left: 1.2rem;">
+      <li>Your prompts go <strong>directly from this browser to the provider you choose</strong>. There is no server in between — your prompts and your key are never seen by us.</li>
+      <li>The provider you choose <strong>receives everything you send</strong>, including your notes and files.</li>
+      <li><strong>Nothing is sent anywhere until you press Send.</strong> Every tab shows you exactly what will be sent and an estimated cost first.</li>
+      <li><strong>API billing is separate</strong> from any consumer AI subscription — you pay the provider's API rates.</li>
+    </ul>
+  </div>
+
+  <section class="card" aria-labelledby="tools-h" style="margin-bottom: 1.2rem;">
+    <h2 id="tools-h" style="margin-top: 0;">What you can do here</h2>
+    <ul style="margin: 0; padding-left: 1.2rem;">
+      <li><strong>Context Chat</strong> — ask questions answered only from the notes and files you select.</li>
+      <li><strong>Flashcards</strong> — generate question/answer cards from a note or pasted text, review them, and save decks.</li>
+      <li><strong>Quiz</strong> — generate multiple-choice and short-answer quizzes, take them, and track your scores.</li>
+      <li><strong>Study Planner</strong> — draft a day-by-day plan from your syllabus tracker coverage, then open it in the timetable generator.</li>
+      <li><strong>Notes Assistant</strong> — summarize, expand, simplify, or extract key points from any note, with preview before anything changes.</li>
+    </ul>
+  </section>
+
+  <!-- ======================= PROVIDER BAR ======================= -->
+  <section class="card" aria-labelledby="prov-h" style="margin-bottom: 1.2rem;">
+    <h2 id="prov-h" style="margin-top: 0;">AI provider</h2>
+    <div id="provEmpty" class="empty" hidden>
+      <p><strong>No provider configured yet.</strong></p>
+      <p>Add a provider in AI Chat first — your key stays in your browser.</p>
+      <p><a class="btn btn-primary" href="/ai-chat/#providers">Add a provider in AI Chat</a></p>
+    </div>
+    <div id="provBar" hidden>
+      <div class="field">
+        <label for="provSelect">Provider</label>
+        <select id="provSelect"></select>
+      </div>
+      <div class="field">
+        <label for="provModel">Model</label>
+        <input type="text" id="provModel" list="modelDatalist" autocomplete="off" placeholder="e.g. gpt-4o-mini" />
+        <datalist id="modelDatalist"></datalist>
+        <p class="hint">Pick a discovered model or type any model ID your provider offers.</p>
+      </div>
+      <p><span id="provKeyBadge"></span> <a href="/ai-chat/#providers">Manage providers &amp; keys →</a></p>
+      <p class="hint">Prompts go directly from your browser to your chosen provider; estimated cost shown before every send. <a href="/privacy/">Privacy details</a>.</p>
+    </div>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="AI study tools">
+    <button type="button" role="tab" id="tabCtx" aria-selected="true" aria-controls="panelCtx">Context Chat</button>
+    <button type="button" role="tab" id="tabCards" aria-selected="false" aria-controls="panelCards">Flashcards</button>
+    <button type="button" role="tab" id="tabQuiz" aria-selected="false" aria-controls="panelQuiz">Quiz</button>
+    <button type="button" role="tab" id="tabPlan" aria-selected="false" aria-controls="panelPlan">Study Planner</button>
+    <button type="button" role="tab" id="tabNotes" aria-selected="false" aria-controls="panelNotes">Notes Assistant</button>
+  </div>
+
+  <!-- ======================= TAB 1: CONTEXT CHAT ======================= -->
+  <section id="panelCtx" role="tabpanel" aria-labelledby="tabCtx">
+    <div class="card" style="margin-bottom: 1rem;">
+      <h2 style="margin-top: 0;">Study materials</h2>
+      <p class="hint">Select up to 20 notes or files. The model answers <strong>only</strong> from what you select.</p>
+      <div id="ctxNoMaterials" class="empty" hidden>
+        <p><strong>No notes or text files yet.</strong></p>
+        <p>Add notes or upload files in My Study Space first.</p>
+        <p><a class="btn btn-primary" href="/study-space/">Open My Study Space</a></p>
+      </div>
+      <fieldset style="border: 0; padding: 0; margin: 0 0 1rem;">
+        <legend style="font-weight: 700; padding: 0; margin-bottom: 0.5rem;">Notes</legend>
+        <div id="ctxNotes" style="display: grid; gap: 0.5rem;"></div>
+      </fieldset>
+      <fieldset style="border: 0; padding: 0; margin: 0;">
+        <legend style="font-weight: 700; padding: 0; margin-bottom: 0.5rem;">Files</legend>
+        <div id="ctxFiles" style="display: grid; gap: 0.5rem;"></div>
+      </fieldset>
+    </div>
+
+    <div class="card" style="margin-bottom: 1rem;" aria-labelledby="ctx-prev-h">
+      <h2 id="ctx-prev-h" style="margin-top: 0;">What will be sent</h2>
+      <div id="ctxPreview" role="status" aria-live="polite">
+        <p class="hint">Select notes or files above to see exactly what will be sent.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label for="ctxQuestion">Your question</label>
+        <textarea id="ctxQuestion" rows="3" placeholder="Ask about the selected materials…"></textarea>
+        <p class="hint">Tip: Ctrl+Enter sends.</p>
+      </div>
+      <div class="field">
+        <label for="maxTokCtx">Max output tokens</label>
+        <input type="number" id="maxTokCtx" value="2000" min="100" max="8000" />
+      </div>
+      <p class="hint" id="costCtx" aria-live="polite"></p>
+      <div class="btn-row left">
+        <button type="button" class="btn btn-primary" id="ctxSend" disabled>Send</button>
+        <button type="button" class="btn btn-ghost" id="ctxStop" hidden>Stop</button>
+      </div>
+      <div id="ctxOutput" class="card" style="margin-top: 1rem; background: var(--bg-soft);" hidden></div>
+    </div>
+  </section>
+
+  <!-- ======================= TAB 2: FLASHCARDS ======================= -->
+  <section id="panelCards" role="tabpanel" aria-labelledby="tabCards" hidden>
+    <div class="card" style="margin-bottom: 1rem;">
+      <h2 style="margin-top: 0;">Source material</h2>
+      <div class="field">
+        <label for="cardNote">From a note</label>
+        <select id="cardNote"></select>
+      </div>
+      <div class="field">
+        <label for="cardPaste">Or paste text</label>
+        <textarea id="cardPaste" rows="5" placeholder="Paste study material here — pasted text takes priority over the note above."></textarea>
+      </div>
+      <div class="field">
+        <label for="cardCount">Number of cards (1–50)</label>
+        <input type="number" id="cardCount" value="12" min="1" max="50" />
+      </div>
+      <div class="field">
+        <label for="maxTokCards">Max output tokens</label>
+        <input type="number" id="maxTokCards" value="2000" min="100" max="8000" />
+      </div>
+      <p class="hint" id="costCards" aria-live="polite"></p>
+      <div class="btn-row left">
+        <button type="button" class="btn btn-primary" id="cardGen">Generate flashcards</button>
+        <button type="button" class="btn btn-ghost" id="cardStop" hidden>Stop</button>
+      </div>
+      <div id="cardsStatus" style="margin-top: 1rem;" hidden></div>
+    </div>
+
+    <div class="card" id="cardsReview" style="margin-bottom: 1rem;" hidden>
+      <h2 style="margin-top: 0;">Review</h2>
+      <p class="hint" id="cardCounter"></p>
+      <div id="cardStage" role="button" tabindex="0" aria-label="Flashcard — activate to flip" style="cursor: pointer;"></div>
+      <p><span id="cardKnownBadge" class="badge"></span></p>
+      <div class="btn-row left">
+        <button type="button" class="btn btn-ghost btn-sm" id="btnCardFlip">Flip</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnCardPrev">← Previous</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnCardNext">Next →</button>
+        <button type="button" class="btn btn-sm" id="btnKnown">Known</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="btnUnknown">Unknown</button>
+      </div>
+      <div class="field" style="margin-top: 1rem;">
+        <label for="deckName">Deck name</label>
+        <input type="text" id="deckName" maxlength="80" placeholder="e.g. Biology — Cell structure" />
+      </div>
+      <div class="btn-row left">
+        <button type="button" class="btn btn-primary btn-sm" id="btnSaveDeck">Save deck</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top: 0;">Saved decks</h2>
+      <div id="deckList"></div>
+    </div>
+  </section>
+
+  <!-- ======================= TAB 3: QUIZ ======================= -->
+  <section id="panelQuiz" role="tabpanel" aria-labelledby="tabQuiz" hidden>
+    <div class="card" style="margin-bottom: 1rem;">
+      <h2 style="margin-top: 0;">Source material</h2>
+      <div class="field">
+        <label for="quizNote">From a note</label>
+        <select id="quizNote"></select>
+      </div>
+      <div class="field">
+        <label for="quizPaste">Or paste text</label>
+        <textarea id="quizPaste" rows="5" placeholder="Paste study material here — pasted text takes priority over the note above."></textarea>
+      </div>
+      <div class="field">
+        <label for="quizMcq">Multiple-choice questions (0–20)</label>
+        <input type="number" id="quizMcq" value="5" min="0" max="20" />
+      </div>
+      <div class="field">
+        <label for="quizShort">Short-answer questions (0–10)</label>
+        <input type="number" id="quizShort" value="3" min="0" max="10" />
+      </div>
+      <div class="field">
+        <label for="maxTokQuiz">Max output tokens</label>
+        <input type="number" id="maxTokQuiz" value="3000" min="100" max="8000" />
+      </div>
+      <p class="hint" id="costQuiz" aria-live="polite"></p>
+      <div class="btn-row left">
+        <button type="button" class="btn btn-primary" id="quizGen">Generate quiz</button>
+        <button type="button" class="btn btn-ghost" id="quizStop" hidden>Stop</button>
+      </div>
+      <div id="quizStatus" style="margin-top: 1rem;" hidden></div>
+    </div>
+
+    <div id="quizTakeWrap" hidden>
+      <div class="card" style="margin-bottom: 1rem;">
+        <h2 style="margin-top: 0;" id="quizTakeTitle">Quiz</h2>
+        <div id="quizTake" style="display: grid; gap: 1rem;"></div>
+        <div class="btn-row left" style="margin-top: 1rem;">
+          <button type="button" class="btn btn-primary" id="quizSubmit">Submit answers</button>
+        </div>
+      </div>
+      <div class="card" id="quizResultsWrap" style="margin-bottom: 1rem;" hidden>
+        <h2 style="margin-top: 0;">Results</h2>
+        <p id="quizScoreLine" style="font-size: 1.3rem; font-weight: 800;"></p>
+        <div id="quizResults" style="display: grid; gap: 0.8rem;"></div>
+        <div class="field" style="margin-top: 1rem;">
+          <label for="attemptName">Attempt name</label>
+          <input type="text" id="attemptName" maxlength="80" />
+        </div>
+        <div class="btn-row left">
+          <button type="button" class="btn btn-primary btn-sm" id="btnSaveAttempt">Save attempt</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top: 0;">Attempt history</h2>
+      <div id="attemptList"></div>
+    </div>
+  </section>
+
+  <!-- ======================= TAB 4: STUDY PLANNER ======================= -->
+  <section id="panelPlan" role="tabpanel" aria-labelledby="tabPlan" hidden>
+    <div id="planNoSubjects" class="empty" hidden>
+      <p><strong>No subjects in your syllabus tracker yet.</strong></p>
+      <p>Add subjects with exam dates in the Syllabus Tracker first.</p>
+      <p><a class="btn btn-primary" href="/tools/syllabus-tracker/">Open Syllabus Tracker</a></p>
+    </div>
+
+    <div id="planForm" hidden>
+      <div class="card" style="margin-bottom: 1rem;">
+        <h2 style="margin-top: 0;">Subjects</h2>
+        <p class="hint">Tick the subjects to include and set their priority (1 = highest).</p>
+        <div id="planSubjects" style="display: grid; gap: 0.6rem;"></div>
+        <div class="field" style="margin-top: 1rem;">
+          <label for="planDaily">Study minutes per day</label>
+          <input type="number" id="planDaily" value="120" min="1" max="960" />
+        </div>
+        <div class="field">
+          <label for="planHorizon">Plan horizon (days, 1–60)</label>
+          <input type="number" id="planHorizon" value="14" min="1" max="60" />
+        </div>
+        <div class="field">
+          <label for="maxTokPlan">Max output tokens</label>
+          <input type="number" id="maxTokPlan" value="2500" min="100" max="8000" />
+        </div>
+        <p class="hint" id="costPlan" aria-live="polite"></p>
+        <div id="planErrors" role="alert"></div>
+        <div class="btn-row left">
+          <button type="button" class="btn btn-primary" id="planGen">Generate plan</button>
+          <button type="button" class="btn btn-ghost" id="planStop" hidden>Stop</button>
+        </div>
+      </div>
+
+      <div id="planOut" class="card" style="margin-bottom: 1rem;" hidden></div>
+
+      <div id="planDraftWrap" class="card" hidden>
+        <h2 style="margin-top: 0;">Review &amp; edit your plan</h2>
+        <p class="hint">Edit freely below. The timetable handoff uses your subject list above — not this text.</p>
+        <div class="field">
+          <label for="planDraft">Plan draft</label>
+          <textarea id="planDraft" rows="12"></textarea>
+        </div>
+        <div class="btn-row left">
+          <button type="button" class="btn btn-primary btn-sm" id="btnSavePlanNote">Save as note</button>
+          <button type="button" class="btn btn-sm" id="btnOpenTimetable">Open in timetable generator</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= TAB 5: NOTES ASSISTANT ======================= -->
+  <section id="panelNotes" role="tabpanel" aria-labelledby="tabNotes" hidden>
+    <div class="card" style="margin-bottom: 1rem;">
+      <h2 style="margin-top: 0;">Choose a note</h2>
+      <div class="field">
+        <label for="noteActionNote">Note</label>
+        <select id="noteActionNote"></select>
+        <p class="hint" id="noteActionMeta"></p>
+      </div>
+      <div class="field">
+        <label for="noteActionPreviewText">Preview (first 500 characters)</label>
+        <div id="noteActionPreviewText" class="card" style="background: var(--bg-soft); max-height: 10rem; overflow: auto; white-space: pre-wrap;"></div>
+      </div>
+      <div class="btn-row left" role="group" aria-label="Note actions">
+        <button type="button" class="btn btn-sm" data-naction="summarize">Summarize</button>
+        <button type="button" class="btn btn-sm" data-naction="expand">Expand with examples</button>
+        <button type="button" class="btn btn-sm" data-naction="simplify">Simplify the language</button>
+        <button type="button" class="btn btn-sm" data-naction="keypoints">Extract key points</button>
+      </div>
+      <div class="field" style="margin-top: 1rem;">
+        <label for="maxTokNotes">Max output tokens</label>
+        <input type="number" id="maxTokNotes" value="1500" min="100" max="8000" />
+      </div>
+      <p class="hint" id="costNotes" aria-live="polite"></p>
+      <div class="btn-row left">
+        <button type="button" class="btn btn-ghost" id="noteActStop" hidden>Stop</button>
+      </div>
+    </div>
+
+    <div id="noteActOut" class="card" style="margin-bottom: 1rem;" hidden></div>
+
+    <div id="noteActActions" class="card" hidden>
+      <h2 style="margin-top: 0;">Apply to your note</h2>
+      <p class="hint">Review the output above. Nothing changes until you confirm.</p>
+      <div class="btn-row left">
+        <button type="button" class="btn btn-primary btn-sm" id="btnReplaceNote">Replace note</button>
+        <button type="button" class="btn btn-sm" id="btnAppendNote">Append to note</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <p><span data-brand="name"></span> — <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/aiworkflows.js"></script>
+</body>
+</html>

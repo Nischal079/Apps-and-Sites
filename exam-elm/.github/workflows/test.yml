@@ -1,0 +1,18 @@
+# StudyPilot — run the zero-dependency Node test suite on every push and PR.
+# No dependencies to install: the suite is plain Node ES modules.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run test suite
+        run: node website/tests/run.js

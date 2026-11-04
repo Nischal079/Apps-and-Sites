@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<title>AI workflows: what each one sends — {{brand}} methodology</title>
+<meta name="description" content="The five AI workflows — context chat, flashcards, quiz, planner, notes assistant — what each sends to the provider, the what-will-be-sent preview guarantee, output sanitization, and where generated decks, quizzes and plans are stored." />
+<link rel="canonical" href="https://studypilot.pages.dev/methodology/ai-workflows/" />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/">My Study Space</a>
+      <a href="/ai-chat/">AI Chat</a>
+      <a href="/ai-workflows/">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/">My Study Space</a>
+    <a href="/ai-chat/">AI Chat</a>
+    <a href="/ai-workflows/">AI Tools</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap prose">
+      <p class="eyebrow">Methodology</p>
+      <h1>AI workflows: what each one sends, and the preview guarantee</h1>
+      <p>This is the trust contract behind <a href="/ai-workflows/">AI Tools</a>. The five workflows are thin clients over the same BYOK engine as <a href="/methodology/ai-chat/">AI chat</a> — same keys, same direct-to-provider calls, same cost estimates, same timeouts and retries. Everything below is <em>in addition</em> to that contract.</p>
+
+      <h2>The non-negotiable rules</h2>
+      <ul>
+        <li><strong>Nothing is transmitted automatically.</strong> Each workflow shows a &ldquo;what will be sent&rdquo; preview <em>before</em> Send, with a cost estimate. Pressing Send is the only way data leaves your browser.</li>
+        <li><strong>The preview is not an approximation.</strong> The preview pane and the Send button are built by the <em>same code path</em> that assembles the request — you see exactly the text that will be sent, character for character. What you preview is what is sent.</li>
+        <li><strong>Model output is never trusted.</strong> Every AI response is rendered through an escape-first Markdown renderer: your text (and the model&rsquo;s) is HTML-escaped <em>before</em> any Markdown syntax is applied, so a malicious or broken response can&rsquo;t inject scripts or markup. Parsers extract plain strings only — they never produce HTML.</li>
+        <li><strong>No keys, no endpoints, no network calls</strong> exist in the workflow logic itself. It assembles prompts, parses output, and scores quizzes locally; the only network call is the user-approved Send through the shared chat engine.</li>
+      </ul>
+
+      <h2>The five workflows — what each sends</h2>
+
+      <h3>1. Context chat (chat with your study space)</h3>
+      <p>You tick the notes/files to include. The workflow assembles a payload from <em>only your selections</em>: your question plus the selected items&rsquo; text, subject to context-window guardrails — <strong>at most 20 items, 8,000 characters per item, 24,000 characters total</strong> — with per-item truncation noted in the preview. Nothing else from your study space is included. Output token budget: 2,000.</p>
+
+      <h3>2. Flashcards from notes</h3>
+      <p>Sends your chosen note/file text plus an instruction to return question/answer pairs. The returned pairs are parsed locally into cards; only pairs with both a front and a back are kept. You review and edit the deck before saving it.</p>
+
+      <h3>3. Quiz from notes</h3>
+      <p>Sends your chosen note/file text plus an instruction to return multiple-choice and short-answer questions (defaults: 5 MCQ + 3 short). Scoring runs <strong>locally</strong>: MCQ is auto-scored against the parsed answers; short answers are shown for self-check and are not machine-graded. The attempt (score, answers, timestamp) is saved locally — see storage below.</p>
+
+      <h3>4. Planner from syllabus tracking</h3>
+      <p>Sends a <em>summary</em> of your tracker state — subject names, coverage percentages, weakest topics, days remaining — plus your daily minutes and horizon. It does <strong>not</strong> send your full notes or files. The model returns a draft study schedule, which is validated locally (subjects must exist, minutes must be positive) and converted into a real timetable you can then adjust and save in the <a href="/tools/timetable/">timetable generator</a>.</p>
+
+      <h3>5. Notes assistant (summarize / expand / simplify / key points)</h3>
+      <p>Sends the note text you selected plus the action instruction. The result is shown as a <strong>preview that never mutates your note</strong> — you explicitly choose to replace, append, or discard. Your original note is untouched until you decide.</p>
+
+      <h2>Where generated content is stored</h2>
+      <ul>
+        <li><strong>Flashcard decks</strong> and <strong>quiz attempts</strong> live in your browser&rsquo;s IndexedDB, inside the existing <code>kv</code> store (<code>flashdecks:v1</code>, <code>quizattempts:v1</code>) — the same storage as your notes, under the same <a href="/methodology/study-space/">Study Space data rules</a>. No new database version was needed.</li>
+        <li>Decks are capped at 500 cards; quiz attempts keep the most recent 200. Both are included in backup export/import.</li>
+        <li>Planner drafts are <em>not</em> stored until you save them as a timetable — a draft you abandon leaves no trace.</li>
+        <li>Context-chat messages are part of AI chat history (see <a href="/methodology/ai-chat/">AI chat methodology</a>) — local only.</li>
+      </ul>
+
+      <h2>Output token budgets</h2>
+      <p>Each workflow caps the model&rsquo;s response length (worst-case cost basis for the pre-send estimate): context chat 2,000, flashcards 2,000, quiz 3,000, planner 2,500, notes assistant 1,500 tokens. Smaller responses cost less — the estimate always shows the ceiling.</p>
+
+      <p><a href="/methodology/">&larr; Back to methodology overview</a></p>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+    <p>Your data stays in your browser. No accounts, no tracking, no servers.</p>
+    <p>&copy; 2026 <span data-brand="name"></span>. All rights reserved.</p>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/site.js"></script>
+</body>
+</html>

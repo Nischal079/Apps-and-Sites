@@ -1,0 +1,1105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="StudyPilot — free study timetable generator, grade calculator, syllabus tracker and exam countdown planner for high-school and university students worldwide. No signup. Private by design." />
+    <link rel="icon" href="data:," />
+    <title>StudyPilot — Study smarter. Prepare better. Achieve more.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <style>
+      :root{
+        --bg:#f6f8f6;
+        --surface:#ffffff;
+        --surface-2:#eef3ef;
+        --surface-3:#e3ece5;
+        --ink:#10201a;
+        --ink-2:#24382f;
+        --muted:#54665d;
+        --line:#d8e2da;
+        --primary:#0b7563;
+        --primary-dark:#085c4e;
+        --primary-ink:#ffffff;
+        --primary-soft:#dff2ec;
+        --accent:#c47a12;
+        --accent-soft:#fbeed3;
+        --accent-ink:#5c3a05;
+        --danger:#b3372c;
+        --ok:#0b7563;
+        --shadow:0 18px 40px rgba(16,42,33,.10);
+        --shadow-sm:0 6px 18px rgba(16,42,33,.08);
+        --radius:18px;
+      }
+      @media (prefers-color-scheme: dark){
+        :root{
+          --bg:#0a120f;
+          --surface:#111c17;
+          --surface-2:#16241e;
+          --surface-3:#1d2f27;
+          --ink:#e8f2ec;
+          --ink-2:#cfe0d6;
+          --muted:#9db3a7;
+          --line:#26382f;
+          --primary:#2fbf9f;
+          --primary-dark:#2fbf9f;
+          --primary-ink:#06231b;
+          --primary-soft:#14352b;
+          --accent:#e5a83e;
+          --accent-soft:#3a2c10;
+          --accent-ink:#f6d491;
+          --shadow:0 18px 40px rgba(0,0,0,.45);
+          --shadow-sm:0 6px 18px rgba(0,0,0,.35);
+        }
+      }
+      *{box-sizing:border-box}
+      html{scroll-behavior:smooth}
+      @media (prefers-reduced-motion: reduce){
+        html{scroll-behavior:auto}
+        *{animation:none!important;transition:none!important}
+      }
+      body{
+        margin:0;background:var(--bg);color:var(--ink);
+        font-family:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+        font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased;
+      }
+      .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+      a{color:var(--primary);text-underline-offset:3px}
+      a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{
+        outline:3px solid var(--accent);outline-offset:2px;border-radius:6px;
+      }
+      .skip{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+      .skip:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.65rem 1.1rem;margin:0;overflow:visible;clip:auto;clip-path:none;white-space:normal;background:var(--ink);color:var(--bg);z-index:300;border-radius:10px;font-weight:700;text-decoration:none}
+      .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+      h1,h2,h3{line-height:1.15;letter-spacing:-.02em;margin:0}
+      h2{font-size:clamp(1.7rem,4.5vw,2.5rem);font-weight:800}
+      h3{font-size:1.15rem;font-weight:800}
+      p{margin:0}
+      .section{padding:72px 0 8px}
+      .section-head{max-width:720px;margin-bottom:30px}
+      .section-head p{color:var(--muted);margin-top:12px;font-size:1.05rem}
+      .kicker{font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--primary);margin-bottom:12px}
+
+      /* ---------- Nav ---------- */
+      header.site{
+        position:sticky;top:0;z-index:100;background:color-mix(in srgb,var(--bg) 88%,transparent);
+        backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+      }
+      .nav{display:flex;align-items:center;gap:14px;padding:12px 0}
+      .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-weight:800;font-size:1.15rem;letter-spacing:-.02em}
+      .brand-mark{width:34px;height:34px;border-radius:10px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center;flex:none}
+      .brand-mark svg{width:20px;height:20px}
+      .nav-links{display:none;gap:4px;margin-left:auto}
+      .nav-links a{color:var(--ink-2);text-decoration:none;font-weight:600;font-size:.95rem;padding:.5rem .8rem;border-radius:10px}
+      .nav-links a:hover{background:var(--surface-2)}
+      .nav-cta{margin-left:auto}
+      @media(min-width:820px){.nav-links{display:flex}.nav-cta{margin-left:8px}.menu-btn{display:none}}
+      .menu-btn{margin-left:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.5rem .7rem;cursor:pointer;color:var(--ink);display:grid;place-items:center}
+      .mobile-menu{display:none;border-top:1px solid var(--line);padding:10px 0 16px}
+      .mobile-menu.open{display:block}
+      .mobile-menu a{display:block;padding:.6rem .4rem;color:var(--ink);text-decoration:none;font-weight:600}
+      @media(min-width:820px){.menu-btn{display:none}}
+      .btn{
+        display:inline-flex;align-items:center;gap:.5rem;border-radius:12px;border:1px solid transparent;
+        padding:.72rem 1.25rem;font:inherit;font-weight:700;font-size:.98rem;cursor:pointer;text-decoration:none;
+        transition:transform .12s ease,background .12s ease;
+      }
+      .btn:active{transform:translateY(1px)}
+      .btn-primary{background:var(--primary);color:var(--primary-ink)}
+      .btn-primary:hover{background:var(--primary-dark)}
+      .btn-ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+      .btn-ghost:hover{background:var(--surface-2)}
+      .btn-sm{padding:.5rem .95rem;font-size:.9rem;border-radius:10px}
+
+      /* ---------- Hero ---------- */
+      .hero{padding:52px 0 30px}
+      .hero-grid{display:grid;gap:40px}
+      @media(min-width:960px){.hero-grid{grid-template-columns:1.05fr .95fr;align-items:center}}
+      .hero-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+      .pill{display:inline-flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.32rem .8rem;font-size:.83rem;font-weight:700;color:var(--ink-2)}
+      .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);flex:none}
+      .pill.amber{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
+      .hero h1{font-size:clamp(2.5rem,7vw,4rem);font-weight:800}
+      .hero h1 .brandname{color:var(--primary)}
+      .tagline{font-size:clamp(1.25rem,3.4vw,1.65rem);font-weight:700;color:var(--ink-2);margin-top:10px;letter-spacing:-.01em}
+      .hero-sub{color:var(--muted);font-size:1.08rem;margin-top:16px;max-width:34rem}
+      .hero-ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+      .hero-note{margin-top:16px;font-size:.9rem;color:var(--muted);display:flex;align-items:center;gap:.45rem}
+      /* dashboard mock */
+      .mock{background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:20px}
+      .mock-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+      .mock-head .t{font-weight:800;font-size:.98rem}
+      .mock-head .live{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--primary);background:var(--primary-soft);padding:.25rem .6rem;border-radius:999px;font-weight:600}
+      .mock-count{display:flex;align-items:center;gap:16px;background:var(--surface-2);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+      .ring{width:64px;height:64px;flex:none}
+      .ring .num{font:600 15px "IBM Plex Mono",monospace;fill:var(--ink)}
+      .ring .lbl{font:600 7.5px "IBM Plex Mono",monospace;fill:var(--muted);letter-spacing:.08em}
+      .mock-count .big{font-size:1.05rem;font-weight:800;line-height:1.3}
+      .mock-count .small{color:var(--muted);font-size:.86rem}
+      .mock-row{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-top:1px solid var(--line);font-size:.92rem}
+      .mock-row:first-of-type{border-top:none}
+      .mock-row .when{font-family:"IBM Plex Mono",monospace;font-size:.78rem;color:var(--muted)}
+      .bar{height:8px;border-radius:99px;background:var(--surface-3);overflow:hidden;margin-top:6px}
+      .bar > i{display:block;height:100%;background:var(--primary);border-radius:99px}
+      .bar.amber > i{background:var(--accent)}
+      .mock-label{display:flex;justify-content:space-between;font-size:.86rem;font-weight:700;margin-top:12px}
+      .mock-label span:last-child{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-weight:600}
+
+      /* ---------- Trust strip ---------- */
+      .trust{margin-top:44px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+      @media(min-width:820px){.trust{grid-template-columns:repeat(4,1fr)}}
+      .trust div{padding:18px 20px;border-top:1px solid var(--line)}
+      .trust div:nth-child(-n+2){border-top:none}
+      @media(min-width:820px){.trust div{border-top:none;border-left:1px solid var(--line)}.trust div:first-child{border-left:none}}
+      @media(max-width:819px){.trust div:nth-child(even){border-left:1px solid var(--line)}}
+      .trust .v{font-weight:800;font-size:1.02rem;display:flex;gap:.5rem;align-items:center}
+      .trust .v svg{width:19px;height:19px;color:var(--primary);flex:none}
+      .trust .d{color:var(--muted);font-size:.88rem;margin-top:3px}
+
+      /* ---------- Tool cards ---------- */
+      .tools-grid{display:grid;gap:22px}
+      @media(min-width:900px){.tools-grid{grid-template-columns:1fr 1fr}}
+      .tool{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column}
+      .tool-top{display:flex;gap:14px;align-items:flex-start}
+      .tool-icon{width:48px;height:48px;border-radius:14px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;flex:none}
+      .tool-icon svg{width:26px;height:26px}
+      .tool-icon.amber{background:var(--accent-soft);color:var(--accent)}
+      .tool h3{font-size:1.22rem}
+      .tool .desc{color:var(--muted);font-size:.96rem;margin-top:10px}
+      .tool ul.feats{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:6px}
+      .tool ul.feats li{display:flex;gap:.55rem;font-size:.92rem;color:var(--ink-2)}
+      .tool ul.feats svg{width:17px;height:17px;color:var(--primary);flex:none;margin-top:3px}
+      .status{margin-left:auto;flex:none;font-family:"IBM Plex Mono",monospace;font-size:.68rem;font-weight:600;letter-spacing:.06em;padding:.3rem .6rem;border-radius:999px;background:var(--accent-soft);color:var(--accent-ink)}
+      .demo{margin-top:20px;border-top:1px dashed var(--line);padding-top:18px}
+      .demo-label{font-family:"IBM Plex Mono",monospace;font-size:.72rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+      .field{display:grid;gap:6px;margin-bottom:12px}
+      .field label{font-size:.86rem;font-weight:700}
+      .field .hint{font-size:.8rem;color:var(--muted);font-weight:500}
+      input[type="text"],input[type="number"],input[type="date"],input[type="time"],select{
+        font:inherit;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);
+        border-radius:10px;padding:.58rem .75rem;width:100%;
+      }
+      input[type="range"]{width:100%;accent-color:var(--primary)}
+      .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .result{margin-top:14px;background:var(--surface-2);border-radius:14px;padding:14px 16px;font-size:.95rem;display:none}
+      .result.show{display:block}
+      .result .headline{font-weight:800;font-size:1.12rem}
+      .result p{color:var(--muted);font-size:.9rem;margin-top:4px}
+      .chips{display:flex;flex-wrap:wrap;gap:8px}
+      .chip{font:inherit;font-size:.88rem;font-weight:700;border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:999px;padding:.42rem .85rem;cursor:pointer}
+      .chip[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--primary-ink)}
+      .plan-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+      .plan-list li{display:flex;gap:.7rem;align-items:baseline;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:.55rem .8rem;font-size:.92rem}
+      .plan-list .tm{font-family:"IBM Plex Mono",monospace;font-size:.78rem;color:var(--primary);font-weight:600;flex:none}
+      .grade-row{display:grid;grid-template-columns:1fr 104px 74px;gap:8px;margin-bottom:8px}
+      .grade-row input,.grade-row select{padding:.5rem .6rem;font-size:.9rem}
+      .topic-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+      .topic{width:100%;text-align:left;font:inherit;display:flex;align-items:center;gap:.7rem;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:.65rem .85rem;cursor:pointer;color:var(--ink)}
+      .topic .box{width:22px;height:22px;border-radius:7px;border:2px solid var(--muted);flex:none;display:grid;place-items:center;color:transparent}
+      .topic .box svg{width:14px;height:14px}
+      .topic[aria-pressed="true"] .box{background:var(--primary);border-color:var(--primary);color:#fff}
+      .topic[aria-pressed="true"] .tname{color:var(--muted);text-decoration:line-through}
+      .topic .tname{font-weight:600;font-size:.94rem}
+      .topic .tmeta{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:var(--muted);flex:none}
+      .count-big{display:flex;align-items:baseline;gap:10px}
+      .count-big .n{font-size:2.6rem;font-weight:800;letter-spacing:-.03em;line-height:1}
+      .count-big .u{color:var(--muted);font-weight:700}
+
+      /* ---------- Who / Why ---------- */
+      .who-grid{display:grid;gap:18px}
+      @media(min-width:820px){.who-grid{grid-template-columns:1fr 1fr}}
+      .who-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+      .who-card h3{margin-bottom:8px}
+      .who-card p{color:var(--muted);font-size:.96rem}
+      .who-card ul{margin:14px 0 0;padding-left:1.1rem;color:var(--ink-2);font-size:.94rem;display:grid;gap:5px}
+      .systems{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px}
+      .systems h3{margin-bottom:6px}
+      .systems p{color:var(--muted);font-size:.94rem;margin-bottom:14px}
+      .sys-chips{display:flex;flex-wrap:wrap;gap:8px}
+      .sys-chip{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:.45rem .8rem;font-size:.88rem;font-weight:700}
+      .sys-chip small{display:block;font-weight:600;color:var(--muted);font-size:.74rem}
+      .why-grid{display:grid;gap:16px}
+      @media(min-width:640px){.why-grid{grid-template-columns:1fr 1fr}}
+      @media(min-width:1020px){.why-grid{grid-template-columns:repeat(3,1fr)}}
+      .why{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+      .why svg{width:24px;height:24px;color:var(--primary);margin-bottom:12px}
+      .why h3{font-size:1.02rem;margin-bottom:6px}
+      .why p{color:var(--muted);font-size:.92rem}
+      .steps{display:grid;gap:16px}
+      @media(min-width:820px){.steps{grid-template-columns:repeat(3,1fr)}}
+      .step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+      .step .n{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--primary);font-size:.85rem}
+      .step h3{margin:8px 0 6px}
+      .step p{color:var(--muted);font-size:.93rem}
+
+      /* ---------- Blueprint ---------- */
+      .blueprint{background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+      .tabs{display:flex;gap:4px;flex-wrap:wrap;padding:12px 12px 0}
+      .tab{font:inherit;font-weight:700;font-size:.92rem;white-space:nowrap;background:transparent;border:none;border-bottom:3px solid transparent;color:var(--muted);padding:.6rem .9rem;cursor:pointer}
+      .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--primary)}
+      .panel{display:none;padding:24px}
+      .panel.active{display:block}
+      .panel h3{margin-bottom:10px}
+      .panel p{color:var(--muted);font-size:.95rem;max-width:46rem}
+      .spec-table{width:100%;border-collapse:collapse;margin-top:16px;font-size:.92rem}
+      .spec-table th,.spec-table td{text-align:left;padding:.65rem .8rem;border-top:1px solid var(--line);vertical-align:top}
+      .spec-table th{font-weight:800;color:var(--ink);width:32%}
+      .spec-table td{color:var(--ink-2)}
+      .stack-grid{display:grid;gap:14px;margin-top:16px}
+      @media(min-width:760px){.stack-grid{grid-template-columns:1fr 1fr}}
+      .stack-item{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+      .stack-item .k{font-family:"IBM Plex Mono",monospace;font-size:.74rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--primary)}
+      .stack-item .v{font-weight:800;margin-top:4px}
+      .stack-item p{font-size:.88rem;margin-top:4px}
+      .tree{font-family:"IBM Plex Mono",monospace;font-size:.86rem;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:16px;overflow-x:auto;white-space:pre;color:var(--ink-2);line-height:1.75}
+      .mile{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:0}
+      .mile li{display:grid;grid-template-columns:86px 1fr;gap:16px;padding:14px 0;border-top:1px solid var(--line)}
+      .mile li:first-child{border-top:none}
+      .mile .wk{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:.82rem;color:var(--primary)}
+      .mile .mt{font-weight:800}
+      .mile p{font-size:.9rem}
+      .check-list{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+      .check-list li{display:flex;gap:.6rem;font-size:.94rem;color:var(--ink-2)}
+      .check-list svg{width:18px;height:18px;color:var(--primary);flex:none;margin-top:3px}
+
+      /* ---------- FAQ ---------- */
+      details{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:10px}
+      summary{font-weight:800;cursor:pointer;font-size:1rem}
+      details p{color:var(--muted);font-size:.94rem;margin-top:8px}
+
+      /* ---------- Footer / dialogs ---------- */
+      footer.site{margin-top:80px;border-top:1px solid var(--line);background:var(--surface)}
+      .foot{display:grid;gap:28px;padding:40px 0 14px}
+      @media(min-width:820px){.foot{grid-template-columns:1.4fr 1fr 1fr 1fr}}
+      .foot h4{margin:0 0 12px;font-size:.95rem}
+      .foot ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+      .foot a,.foot button.linklike{color:var(--muted);text-decoration:none;font-size:.93rem;background:none;border:none;font:inherit;padding:0;cursor:pointer;text-align:left}
+      .foot a:hover,.foot button.linklike:hover{color:var(--primary)}
+      .foot .about-blurb{color:var(--muted);font-size:.93rem;margin-top:10px;max-width:22rem}
+      .foot-base{border-top:1px solid var(--line);padding:16px 0 26px;display:flex;flex-wrap:wrap;gap:8px 20px;color:var(--muted);font-size:.86rem}
+      dialog{border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--ink);max-width:620px;width:calc(100% - 32px);padding:0;box-shadow:var(--shadow)}
+      dialog::backdrop{background:rgba(5,15,11,.55)}
+      .dialog-body{padding:28px;max-height:75vh;overflow:auto}
+      .dialog-body h3{font-size:1.35rem;margin-bottom:12px;padding-right:36px}
+      .dialog-body p,.dialog-body li{color:var(--ink-2);font-size:.96rem}
+      .dialog-body p{margin-bottom:12px}
+      .dialog-body ul{margin:0 0 12px;padding-left:1.15rem;display:grid;gap:6px}
+      .dialog-close{position:absolute;top:14px;right:14px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:1rem;line-height:1}
+      .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#tools">Skip to the tools</a>
+
+    <header class="site">
+      <div class="wrap">
+        <nav class="nav" aria-label="Main">
+          <a class="brand" href="#top" aria-label="StudyPilot home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg>
+            </span>
+            StudyPilot
+          </a>
+          <div class="nav-links">
+            <a href="#tools">Tools</a>
+            <a href="#who">Who it's for</a>
+            <a href="#why">Why StudyPilot</a>
+            <a href="#blueprint">Blueprint</a>
+            <a href="#faq">FAQ</a>
+          </div>
+          <a class="btn btn-primary btn-sm nav-cta" href="#tools">Start free</a>
+          <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+        </nav>
+        <div class="mobile-menu" id="mobileMenu">
+          <a href="#tools">Tools</a>
+          <a href="#who">Who it's for</a>
+          <a href="#why">Why StudyPilot</a>
+          <a href="#blueprint">Blueprint</a>
+          <a href="#faq">FAQ</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- ============ HERO ============ -->
+      <section class="hero">
+        <div class="wrap hero-grid">
+          <div>
+            <div class="hero-badges">
+              <span class="pill"><span class="dot"></span> Free core tools</span>
+              <span class="pill"><span class="dot"></span> No signup</span>
+              <span class="pill amber">For students worldwide</span>
+            </div>
+            <h1><span class="brandname">StudyPilot</span> — your free study toolkit.</h1>
+            <p class="tagline">Study smarter. Prepare better. Achieve more.</p>
+            <p class="hero-sub">StudyPilot helps high-school and university students organize their academic lives, prepare for exams, and track their progress — with four simple tools that work with your grading system, wherever you study.</p>
+            <div class="hero-ctas">
+              <a class="btn btn-primary" href="#tools">Explore the four tools
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+              <a class="btn btn-ghost" href="#how">How it works</a>
+            </div>
+            <p class="hero-note">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              Your data stays on your device. Nothing to install, nothing to pay.
+            </p>
+          </div>
+
+          <div class="mock" aria-hidden="true">
+            <div class="mock-head">
+              <span class="t">My exam dashboard</span>
+              <span class="live">EXAMPLE</span>
+            </div>
+            <div class="mock-count">
+              <svg class="ring" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="27" fill="none" stroke="var(--surface-3)" stroke-width="7"/>
+                <circle cx="32" cy="32" r="27" fill="none" stroke="var(--primary)" stroke-width="7" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="61" transform="rotate(-90 32 32)"/>
+                <text class="num" x="32" y="33" text-anchor="middle">18</text>
+                <text class="lbl" x="32" y="44" text-anchor="middle">DAYS LEFT</text>
+              </svg>
+              <div>
+                <p class="big">Biology final — on track</p>
+                <p class="small">Countdown planner keeps every exam date in one place.</p>
+              </div>
+            </div>
+            <div class="mock-row"><span><strong>09:00</strong> &nbsp;Maths — algebra revision</span><span class="when">50 min</span></div>
+            <div class="mock-row"><span><strong>10:05</strong> &nbsp;Biology — flashcards</span><span class="when">25 min</span></div>
+            <div class="mock-row"><span><strong>11:00</strong> &nbsp;English — essay plan</span><span class="when">50 min</span></div>
+            <p class="mock-label"><span>Syllabus covered</span><span>64%</span></p>
+            <div class="bar"><i style="width:64%"></i></div>
+            <p class="mock-label"><span>Current GPA (US 4.0)</span><span>3.6</span></p>
+            <div class="bar amber"><i style="width:90%"></i></div>
+          </div>
+        </div>
+
+        <div class="wrap">
+          <div class="trust" role="list" aria-label="Why you can trust StudyPilot">
+            <div role="listitem">
+              <p class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>100% free core</p>
+              <p class="d">Every core tool is free to use — no paywall on the essentials.</p>
+            </div>
+            <div role="listitem">
+              <p class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>No account needed</p>
+              <p class="d">Open a tool and start. No registration, no email, no password.</p>
+            </div>
+            <div role="listitem">
+              <p class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Private by design</p>
+              <p class="d">Progress is stored locally on your device — not on our servers.</p>
+            </div>
+            <div role="listitem">
+              <p class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg>Your grading system</p>
+              <p class="d">US, UK, India, Nepal, Singapore and more — configured, not assumed.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TOOLS ============ -->
+      <section class="section" id="tools">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">The toolkit</p>
+            <h2>Four tools. One calmer exam season.</h2>
+            <p>Each tool below has a working mini-demo right on this page, so you can feel how the full versions will behave — fast, focused, and free.</p>
+          </div>
+
+          <div class="tools-grid">
+            <!-- Tool 1: Timetable -->
+            <article class="tool" aria-labelledby="t1-title">
+              <div class="tool-top">
+                <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg></span>
+                <div>
+                  <h3 id="t1-title">Study Timetable Generator</h3>
+                </div>
+                <span class="status">WEEK 2</span>
+              </div>
+              <p class="desc">Turn the hours you actually have into a realistic daily plan. Pick your subjects, set your available time, and get balanced study blocks with breaks built in.</p>
+              <ul class="feats">
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Adapts to school days, weekends and revision weeks</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>25- or 50-minute focus blocks with real breaks</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Printable plan for your wall or notebook</li>
+              </ul>
+              <div class="demo">
+                <p class="demo-label">Try it — mini demo</p>
+                <div class="field">
+                  <label id="tt-subjects-label">Subjects (tap to include)</label>
+                  <div class="chips" role="group" aria-labelledby="tt-subjects-label" id="ttSubjects">
+                    <button type="button" class="chip" aria-pressed="true">Maths</button>
+                    <button type="button" class="chip" aria-pressed="true">Biology</button>
+                    <button type="button" class="chip" aria-pressed="false">English</button>
+                    <button type="button" class="chip" aria-pressed="false">History</button>
+                    <button type="button" class="chip" aria-pressed="false">Physics</button>
+                  </div>
+                </div>
+                <div class="grid2">
+                  <div class="field">
+                    <label for="ttHours">Study time per day: <span id="ttHoursVal">2 hrs</span></label>
+                    <input type="range" id="ttHours" min="1" max="6" step="0.5" value="2" />
+                  </div>
+                  <div class="field">
+                    <label for="ttStart">Start time</label>
+                    <input type="time" id="ttStart" value="16:00" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="ttBlock">Focus block length</label>
+                  <select id="ttBlock">
+                    <option value="25">25 minutes (Pomodoro)</option>
+                    <option value="50" selected>50 minutes</option>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" id="ttGen">Generate my timetable</button>
+                <div class="result" id="ttResult" role="status"></div>
+              </div>
+            </article>
+
+            <!-- Tool 2: Grade calculator -->
+            <article class="tool" aria-labelledby="t2-title">
+              <div class="tool-top">
+                <span class="tool-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01"/></svg></span>
+                <div>
+                  <h3 id="t2-title">Grade Calculator</h3>
+                </div>
+                <span class="status">WEEK 2</span>
+              </div>
+              <p class="desc">Know exactly where you stand. Enter your course grades and credits, choose your education system, and see your GPA, CGPA or classification instantly.</p>
+              <ul class="feats">
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Separate, documented scales per system — never one-size-fits-all</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>"What grade do I need?" target mode in the full version</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Credit-weighted, with the formula shown</li>
+              </ul>
+              <div class="demo">
+                <p class="demo-label">Try it — mini demo</p>
+                <div class="field">
+                  <label for="gcSystem">Your grading system</label>
+                  <select id="gcSystem">
+                    <option value="us" selected>United States — GPA (4.0)</option>
+                    <option value="uk">United Kingdom — % &amp; degree class</option>
+                    <option value="in">India — CGPA (10-point)</option>
+                    <option value="np">Nepal — GPA (4.0) from %</option>
+                    <option value="sg">Singapore NTU / NUS — CAP (5.0)</option>
+                  </select>
+                  <span class="hint" id="gcHint">Letter grades weighted by credit hours.</span>
+                </div>
+                <div id="gcRows" aria-label="Courses"></div>
+                <button type="button" class="btn btn-primary btn-sm" id="gcCalc">Calculate</button>
+                <div class="result" id="gcResult" role="status"></div>
+              </div>
+            </article>
+
+            <!-- Tool 3: Syllabus tracker -->
+            <article class="tool" aria-labelledby="t3-title">
+              <div class="tool-top">
+                <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 5l1 1 2-2M4 11l1 1 2-2M4 17l1 1 2-2"/></svg></span>
+                <div>
+                  <h3 id="t3-title">Syllabus Coverage Tracker</h3>
+                </div>
+                <span class="status">WEEK 3</span>
+              </div>
+              <p class="desc">See the whole course at a glance. Break your syllabus into topics, tick them off as you master them, and spot the gaps before your teacher — or the exam — does.</p>
+              <ul class="feats">
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Per-subject progress bars and an overall coverage view</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Mark topics as learning, revising or mastered</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Progress kept on your device between visits</li>
+              </ul>
+              <div class="demo">
+                <p class="demo-label">Try it — sample syllabus (tap a topic)</p>
+                <ul class="topic-list" id="topicList">
+                  <li><button type="button" class="topic" aria-pressed="true"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tname">Limits &amp; continuity</span><span class="tmeta">CH 1</span></button></li>
+                  <li><button type="button" class="topic" aria-pressed="true"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tname">Derivatives &amp; applications</span><span class="tmeta">CH 2</span></button></li>
+                  <li><button type="button" class="topic" aria-pressed="false"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tname">Integrals</span><span class="tmeta">CH 3</span></button></li>
+                  <li><button type="button" class="topic" aria-pressed="false"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tname">Sequences &amp; series</span><span class="tmeta">CH 4</span></button></li>
+                  <li><button type="button" class="topic" aria-pressed="false"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="tname">Differential equations</span><span class="tmeta">CH 5</span></button></li>
+                </ul>
+                <p class="mock-label"><span id="topicSummary">2 of 5 topics covered</span><span id="topicPct">40%</span></p>
+                <div class="bar" role="progressbar" aria-label="Syllabus coverage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40" id="topicBar"><i style="width:40%"></i></div>
+              </div>
+            </article>
+
+            <!-- Tool 4: Countdown -->
+            <article class="tool" aria-labelledby="t4-title">
+              <div class="tool-top">
+                <span class="tool-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg></span>
+                <div>
+                  <h3 id="t4-title">Exam Countdown Planner</h3>
+                </div>
+                <span class="status">WEEK 3</span>
+              </div>
+              <p class="desc">Every exam date, one clear countdown. Add your exams and StudyPilot turns the time left into a calm, day-by-day revision plan — no last-week panic.</p>
+              <ul class="feats">
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Multiple exams, sorted by what's next</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Works in your timezone, with your date format</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Suggested daily revision load based on days remaining</li>
+              </ul>
+              <div class="demo">
+                <p class="demo-label">Try it — mini demo</p>
+                <div class="grid2">
+                  <div class="field">
+                    <label for="cdName">Exam name</label>
+                    <input type="text" id="cdName" value="Final exams" maxlength="40" />
+                  </div>
+                  <div class="field">
+                    <label for="cdDate">Exam date</label>
+                    <input type="date" id="cdDate" />
+                  </div>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" id="cdCalc">Show my countdown</button>
+                <div class="result" id="cdResult" role="status"></div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ WHO ============ -->
+      <section class="section" id="who">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">Who it helps</p>
+            <h2>Built for students, wherever they study</h2>
+            <p>StudyPilot is not tied to one country or one exam board. The tools are universal; the grading scales and calendars adapt to you.</p>
+          </div>
+          <div class="who-grid">
+            <div class="who-card">
+              <h3>High-school students</h3>
+              <p>Juggling six or more subjects, homework and board exams — with a phone as your main computer.</p>
+              <ul>
+                <li>A timetable that fits around school hours</li>
+                <li>Syllabus checklists matched to your subjects</li>
+                <li>Countdowns for term tests and final boards</li>
+              </ul>
+            </div>
+            <div class="who-card">
+              <h3>University students</h3>
+              <p>Semesters move fast and GPA matters for scholarships, placements and further study.</p>
+              <ul>
+                <li>Credit-weighted GPA / CGPA / CAP tracking</li>
+                <li>Revision plans that start weeks ahead, not days</li>
+                <li>Coverage tracking across modules and units</li>
+              </ul>
+            </div>
+          </div>
+          <div class="systems">
+            <h3>Configured for your education system</h3>
+            <p>Grading formulas are never assumed to be universal. Each system below ships as its own tested, documented configuration — and more are added based on student demand.</p>
+            <div class="sys-chips">
+              <span class="sys-chip">United States<small>GPA 4.0 · letter grades</small></span>
+              <span class="sys-chip">United Kingdom<small>% · First / 2:1 / 2:2 classes</small></span>
+              <span class="sys-chip">India<small>CGPA 10-point · CBSE / ICSE / state boards</small></span>
+              <span class="sys-chip">Nepal<small>NEB · GPA 4.0 from %</small></span>
+              <span class="sys-chip">Singapore — NTU &amp; NUS<small>CAP / GPA 5.0</small></span>
+              <span class="sys-chip">International<small>IB · % and custom scales</small></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ WHY ============ -->
+      <section class="section" id="why">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">Why StudyPilot</p>
+            <h2>Simple tools, serious principles</h2>
+            <p>Most study apps want your email, your data and eventually your money. StudyPilot is built the other way around.</p>
+          </div>
+          <div class="why-grid">
+            <div class="why">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+              <h3>Free where it counts</h3>
+              <p>The core of every tool is free — planning, calculating and tracking should never sit behind a paywall for a student.</p>
+            </div>
+            <div class="why">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11L10 22l8.5-11.5H12L13 2z"/></svg>
+              <h3>Fast on any phone</h3>
+              <p>Lightweight pages that load quickly on modest devices and slow connections. No heavy app to install.</p>
+            </div>
+            <div class="why">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <h3>Private by design</h3>
+              <p>No account means no profile of you. Your plans and progress live in your browser, on your device.</p>
+            </div>
+            <div class="why">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+              <h3>Mobile-first</h3>
+              <p>Designed for the phone in your hand first, then scaled up to tablets and laptops — not the other way round.</p>
+            </div>
+            <div class="why">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>
+              <h3>No unnecessary complexity</h3>
+              <p>Four tools that each do one job well. No feeds, no streaks guilt-trip, no features you'll never open.</p>
+            </div>
+            <div class="why">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+              <h3>Accessible to everyone</h3>
+              <p>Readable type, strong contrast, full keyboard support and screen-reader labels — built in, not bolted on.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ HOW ============ -->
+      <section class="section" id="how">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">How it works</p>
+            <h2>From overwhelmed to organized in three steps</h2>
+          </div>
+          <div class="steps">
+            <div class="step"><p class="n">STEP 1</p><h3>Pick a tool</h3><p>Choose what you need right now — a plan for today, your current GPA, your syllabus gaps, or the days left to your exam.</p></div>
+            <div class="step"><p class="n">STEP 2</p><h3>Add your details</h3><p>Enter your subjects, grades or exam dates and pick your education system. It takes under a minute, and there's no signup wall.</p></div>
+            <div class="step"><p class="n">STEP 3</p><h3>Follow the plan</h3><p>Work your timetable, tick off topics and watch the countdown shrink. Your progress is kept on your device for your next visit.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ BLUEPRINT ============ -->
+      <section class="section" id="blueprint">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">Prototype blueprint</p>
+            <h2>How StudyPilot is being built</h2>
+            <p>The plan behind this prototype: brand direction, site structure, technology, tool specifications, the 30-day build schedule, and how quality is checked.</p>
+          </div>
+          <div class="blueprint">
+            <div class="tabs" role="tablist" aria-label="Blueprint sections">
+              <button class="tab" role="tab" aria-selected="true" data-panel="p-brand" id="tab-brand">Brand &amp; stack</button>
+              <button class="tab" role="tab" aria-selected="false" data-panel="p-structure" id="tab-structure">Site structure</button>
+              <button class="tab" role="tab" aria-selected="false" data-panel="p-specs" id="tab-specs">Tool specs</button>
+              <button class="tab" role="tab" aria-selected="false" data-panel="p-plan" id="tab-plan">30-day plan</button>
+              <button class="tab" role="tab" aria-selected="false" data-panel="p-quality" id="tab-quality">Testing &amp; upkeep</button>
+            </div>
+
+            <div class="panel active" id="p-brand" role="tabpanel" aria-labelledby="tab-brand">
+              <h3>Brand direction</h3>
+              <p><strong>StudyPilot</strong> — a calm, trustworthy guide for exam season. Voice: encouraging and plain-spoken, never hype. Look: deep green and warm amber on clean neutrals, rounded shapes, generous spacing, one clear action per screen. Tagline: <em>Study smarter. Prepare better. Achieve more.</em></p>
+              <div class="stack-grid">
+                <div class="stack-item"><p class="k">Frontend</p><p class="v">Static HTML, CSS &amp; JavaScript</p><p>Framework-free pages for maximum speed and zero build complexity; each tool is a self-contained page.</p></div>
+                <div class="stack-item"><p class="k">Hosting</p><p class="v">Free static hosting + CDN</p><p>$0 infrastructure: static files served from a global CDN, HTTPS included, no server to maintain.</p></div>
+                <div class="stack-item"><p class="k">Data</p><p class="v">On-device only</p><p>Plans and progress are kept in the student's own browser storage. No database, no accounts, nothing personal collected.</p></div>
+                <div class="stack-item"><p class="k">Regional config</p><p class="v">One config file per system</p><p>Grading scales (US, UK, India, Nepal NEB, Singapore NTU/NUS…) live in small, individually tested configuration files — adding a country never touches tool logic.</p></div>
+                <div class="stack-item"><p class="k">Performance budget</p><p class="v">Fast by rule</p><p>Each page targets a lightweight load with no blocking trackers, system-friendly fonts and compressed assets.</p></div>
+                <div class="stack-item"><p class="k">Accessibility</p><p class="v">WCAG-minded from day one</p><p>Semantic markup, visible focus states, keyboard-operable controls, contrast-checked palette in light and dark modes.</p></div>
+              </div>
+            </div>
+
+            <div class="panel" id="p-structure" role="tabpanel" aria-labelledby="tab-structure">
+              <h3>Website structure</h3>
+              <p>A shallow structure — every tool is reachable from the homepage in one tap, and supporting pages carry the trust and help content.</p>
+              <div class="tree">/
+├── Home — what StudyPilot is, the four tools, who it's for
+├── /tools/
+│   ├── /timetable-generator/
+│   ├── /grade-calculator/
+│   ├── /syllabus-tracker/
+│   └── /exam-countdown/
+├── /about/ — mission and who builds StudyPilot
+├── /contact/ — support and feedback
+├── /privacy/ — privacy policy
+├── /methodology/ — how each calculation works, per system
+└── /help/ — guides and FAQs for each tool</div>
+            </div>
+
+            <div class="panel" id="p-specs" role="tabpanel" aria-labelledby="tab-specs">
+              <h3>Four-tool technical specifications</h3>
+              <table class="spec-table">
+                <tr><th scope="row">Timetable Generator</th><td>Inputs: subjects, hours available per day, school hours, block length. Logic: distributes blocks evenly, rotates subjects, inserts breaks, flags overloaded days. Output: daily + weekly view, printable.</td></tr>
+                <tr><th scope="row">Grade Calculator</th><td>Inputs: courses, grades, credits, education system. Logic: credit-weighted average using the selected system's documented scale (US 4.0, UK %, India 10-pt CGPA, Nepal 4.0, Singapore 5.0 CAP). Includes a "grade needed" target mode. Every scale is unit-tested against worked examples.</td></tr>
+                <tr><th scope="row">Syllabus Tracker</th><td>Inputs: subjects and topics (manual entry or starter templates). States: not started / learning / revising / mastered. Output: per-subject and overall coverage percentages, gap list. Stored on-device.</td></tr>
+                <tr><th scope="row">Exam Countdown</th><td>Inputs: exam name, date, optional daily study hours. Logic: timezone-safe date math (date-only, no UTC drift), days/weeks remaining, suggested daily revision load. Output: countdown dashboard for multiple exams.</td></tr>
+              </table>
+            </div>
+
+            <div class="panel" id="p-plan" role="tabpanel" aria-labelledby="tab-plan">
+              <h3>Development milestones — 30 days</h3>
+              <ul class="mile">
+                <li><span class="wk">WEEK 1</span><div><p class="mt">Architecture, brand &amp; first tool</p><p>Finalize this blueprint and brand system; build the homepage and the first working tool end-to-end.</p></div></li>
+                <li><span class="wk">WEEK 2</span><div><p class="mt">Timetable Generator + Grade Calculator</p><p>Both tools complete with all five launch grading configurations tested against worked examples.</p></div></li>
+                <li><span class="wk">WEEK 3</span><div><p class="mt">Syllabus Tracker + Exam Countdown</p><p>Remaining two tools complete, including on-device saving and timezone-safe date handling.</p></div></li>
+                <li><span class="wk">WEEK 4</span><div><p class="mt">Testing, feedback &amp; public launch</p><p>Full quality pass (see Testing tab), student feedback round, fixes, then launch. Unfinished tools never ship.</p></div></li>
+              </ul>
+            </div>
+
+            <div class="panel" id="p-quality" role="tabpanel" aria-labelledby="tab-quality">
+              <h3>Testing strategy</h3>
+              <ul class="check-list">
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Every calculation tested against hand-worked examples for each grading system</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Mobile layouts checked at small-phone width first, then tablet and desktop</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Countdowns verified across timezones and both common date formats (DD/MM and MM/DD)</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Invalid inputs (empty fields, impossible grades, past dates) handled with clear messages</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>On-device saving tested for save, reload and clear behaviour</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Keyboard-only and screen-reader pass on every tool before launch</li>
+              </ul>
+              <h3 style="margin-top:26px">Estimated ongoing maintenance</h3>
+              <p>Static hosting means near-zero upkeep: roughly <strong>0–1 hour per week</strong> — checking feedback, adding a grading configuration when students request one, and publishing an occasional study guide. No servers to patch, no database to back up, and $0 running cost on free infrastructure.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FAQ ============ -->
+      <section class="section" id="faq" style="padding-bottom:10px">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">Questions</p>
+            <h2>Quick answers</h2>
+          </div>
+          <details>
+            <summary>Is StudyPilot really free?</summary>
+            <p>Yes — the core of all four tools is free, with no mandatory registration. If premium extras are ever added later, the core tools students rely on stay free.</p>
+          </details>
+          <details>
+            <summary>Do I need to create an account?</summary>
+            <p>No. Open any tool and start using it immediately. Your plans and progress are kept in your own browser, on your own device.</p>
+          </details>
+          <details>
+            <summary>Does it work with my country's grading system?</summary>
+            <p>At launch: the US (4.0 GPA), UK (percentage and degree classes), India (10-point CGPA), Nepal (NEB 4.0 GPA) and Singapore's NTU/NUS (5.0 CAP), plus percentage-based systems generally. Each scale is separately documented on the methodology page, and new systems are added based on demand.</p>
+          </details>
+          <details>
+            <summary>What happens to my data?</summary>
+            <p>It stays with you. StudyPilot's tools run in your browser and don't send your grades, plans or progress to a server. See the privacy policy in the footer for the full picture.</p>
+          </details>
+          <details>
+            <summary>When do the full tools launch?</summary>
+            <p>On the 30-day plan in the blueprint above: timetable and grade calculator in Week 2, syllabus tracker and countdown in Week 3, and public launch in Week 4 after testing.</p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="site">
+      <div class="wrap">
+        <div class="foot">
+          <div>
+            <a class="brand" href="#top">
+              <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg></span>
+              StudyPilot
+            </a>
+            <p class="about-blurb">A free academic productivity toolkit for high-school and university students worldwide. Study smarter. Prepare better. Achieve more.</p>
+          </div>
+          <nav aria-label="Tools">
+            <h4>Tools</h4>
+            <ul>
+              <li><a href="#tools">Study Timetable Generator</a></li>
+              <li><a href="#tools">Grade Calculator</a></li>
+              <li><a href="#tools">Syllabus Coverage Tracker</a></li>
+              <li><a href="#tools">Exam Countdown Planner</a></li>
+            </ul>
+          </nav>
+          <nav aria-label="Company">
+            <h4>StudyPilot</h4>
+            <ul>
+              <li><button type="button" class="linklike" data-dialog="dlgAbout">About</button></li>
+              <li><button type="button" class="linklike" data-dialog="dlgContact">Contact</button></li>
+              <li><button type="button" class="linklike" data-dialog="dlgPrivacy">Privacy Policy</button></li>
+            </ul>
+          </nav>
+          <nav aria-label="Help and methodology">
+            <h4>Help &amp; methodology</h4>
+            <ul>
+              <li><button type="button" class="linklike" data-dialog="dlgMethod">How calculations work</button></li>
+              <li><button type="button" class="linklike" data-dialog="dlgHelp">Help &amp; guides</button></li>
+              <li><a href="#blueprint">Build blueprint</a></li>
+              <li><a href="#faq">FAQ</a></li>
+            </ul>
+          </nav>
+        </div>
+        <div class="foot-base">
+          <span>StudyPilot — homepage prototype, November 2026</span>
+          <span>Free core tools · No signup · Your data stays on your device</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ============ DIALOGS ============ -->
+    <dialog id="dlgAbout" aria-labelledby="dlgAboutT">
+      <div class="dialog-body">
+        <button class="dialog-close" data-close aria-label="Close About">✕</button>
+        <h3 id="dlgAboutT">About StudyPilot</h3>
+        <p>StudyPilot is a free academic productivity toolkit for high-school and university students worldwide. Our mission is simple: help students organize their academic lives, prepare for exams, and track their progress using tools that are genuinely easy to use.</p>
+        <p>We started from a pattern every student recognizes — the planning tools that actually help are usually locked behind accounts, paywalls or app installs. StudyPilot takes the opposite approach: free core tools, no mandatory registration, and your data kept on your own device.</p>
+        <p>The platform is global from day one. Grading systems, calendars and date formats differ around the world, so each education system is a documented, tested configuration — starting with the US, UK, India, Nepal and Singapore, and expanding based on student demand.</p>
+      </div>
+    </dialog>
+
+    <dialog id="dlgContact" aria-labelledby="dlgContactT">
+      <div class="dialog-body">
+        <button class="dialog-close" data-close aria-label="Close Contact">✕</button>
+        <h3 id="dlgContactT">Contact</h3>
+        <p>Questions, corrections to a grading scale, or a request for your country's system? Student feedback shapes what gets built next — especially requests for new education-system configurations.</p>
+        <ul>
+          <li><strong>Feedback &amp; tool requests:</strong> via the contact form that goes live with the Week 4 public launch.</li>
+          <li><strong>Grading-scale corrections:</strong> include your institution or board name and a link to its official grading table so the configuration can be verified before it's updated.</li>
+          <li><strong>Privacy questions:</strong> covered in the Privacy Policy — the short version is that your tool data never leaves your device.</li>
+        </ul>
+        <p>This homepage is a prototype, so the contact form isn't wired up yet; the full contact page ships with the launch in Week 4 of the build plan.</p>
+      </div>
+    </dialog>
+
+    <dialog id="dlgPrivacy" aria-labelledby="dlgPrivacyT">
+      <div class="dialog-body">
+        <button class="dialog-close" data-close aria-label="Close Privacy Policy">✕</button>
+        <h3 id="dlgPrivacyT">Privacy Policy — the essentials</h3>
+        <p>StudyPilot is designed to collect as little as possible. This summary reflects how the tools are built; the full policy text ships with the public launch.</p>
+        <ul>
+          <li><strong>No accounts:</strong> there is no registration, so we hold no names, emails or passwords for tool users.</li>
+          <li><strong>Your data stays on your device:</strong> timetables, grades, syllabus progress and exam dates entered into the tools are processed in your browser and kept in your browser's own storage. They are not sent to or stored on a StudyPilot server.</li>
+          <li><strong>No sale of data:</strong> personal data is never sold or shared for advertising.</li>
+          <li><strong>Clearing your data:</strong> clearing your browser's site data removes everything the tools have kept — completely, and at any time.</li>
+          <li><strong>Minimal analytics:</strong> if anonymous, aggregate usage counts are ever enabled, they will be disclosed here first, with no cross-site tracking.</li>
+        </ul>
+      </div>
+    </dialog>
+
+    <dialog id="dlgMethod" aria-labelledby="dlgMethodT">
+      <div class="dialog-body">
+        <button class="dialog-close" data-close aria-label="Close methodology">✕</button>
+        <h3 id="dlgMethodT">Methodology — how calculations work</h3>
+        <p>Grading formulas are not universal, so StudyPilot never applies one country's scale to another's grades. Each system is a separate configuration, documented here and tested against worked examples before release.</p>
+        <ul>
+          <li><strong>United States (GPA 4.0):</strong> letter grades convert to grade points (A = 4.0, B = 3.0, C = 2.0, D = 1.0, F = 0), weighted by credit hours.</li>
+          <li><strong>United Kingdom:</strong> module marks are credit-weighted percentages; degree classification follows the common bands (First ≥ 70, 2:1 ≥ 60, 2:2 ≥ 50, Third ≥ 40). Individual universities vary, and the tool says so.</li>
+          <li><strong>India (CGPA 10-point):</strong> subject grade points (10–5 scale) weighted by credits, averaged to CGPA; percentage conversion uses the board's stated formula where one exists.</li>
+          <li><strong>Nepal (NEB, GPA 4.0):</strong> percentage marks map to letter grades and grade points (A+ = 4.0 at 90+, in 10-point bands) per the NEB grading table.</li>
+          <li><strong>Singapore NTU / NUS (CAP 5.0):</strong> letter grades convert on the 5.0 scale (A+ / A = 5.0, A− = 4.5, B+ = 4.0 …), weighted by modular credits / AUs.</li>
+        </ul>
+        <p>Countdowns use date-only arithmetic in the student's own timezone, so a day is never lost or gained to UTC conversion. Timetables distribute study blocks evenly across selected subjects and always insert breaks between blocks.</p>
+      </div>
+    </dialog>
+
+    <dialog id="dlgHelp" aria-labelledby="dlgHelpT">
+      <div class="dialog-body">
+        <button class="dialog-close" data-close aria-label="Close help">✕</button>
+        <h3 id="dlgHelpT">Help &amp; guides</h3>
+        <ul>
+          <li><strong>Building a timetable that survives real life:</strong> start from the hours you truly have, not the hours you wish you had — the generator flags days that are overloaded.</li>
+          <li><strong>Reading your GPA:</strong> the calculator shows the formula it used, so you can verify the result against your institution's own table.</li>
+          <li><strong>Using the syllabus tracker:</strong> mark a topic "mastered" only after you can solve questions on it without notes — honest ticks make the coverage number useful.</li>
+          <li><strong>Countdown planning:</strong> work backwards from the exam date; the planner spreads revision evenly so the final week stays light.</li>
+        </ul>
+        <p>Full illustrated guides for each tool publish alongside the tools during the 30-day build.</p>
+      </div>
+    </dialog>
+
+    <script>
+      (function(){
+        "use strict";
+
+        /* ---------- Mobile menu ---------- */
+        var menuBtn = document.getElementById('menuBtn');
+        var mobileMenu = document.getElementById('mobileMenu');
+        menuBtn.addEventListener('click', function(){
+          var open = mobileMenu.classList.toggle('open');
+          menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          menuBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        });
+        mobileMenu.addEventListener('click', function(e){
+          if(e.target.tagName === 'A'){ mobileMenu.classList.remove('open'); menuBtn.setAttribute('aria-expanded','false'); }
+        });
+
+        /* ---------- Dialogs ---------- */
+        document.querySelectorAll('[data-dialog]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            var d = document.getElementById(btn.getAttribute('data-dialog'));
+            if(d && typeof d.showModal === 'function'){ d.showModal(); }
+          });
+        });
+        document.querySelectorAll('dialog').forEach(function(d){
+          var closeBtn = d.querySelector('[data-close]');
+          if(closeBtn){ closeBtn.addEventListener('click', function(){ d.close(); }); }
+          d.addEventListener('click', function(e){ if(e.target === d){ d.close(); } });
+        });
+
+        /* ---------- Blueprint tabs ---------- */
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+        tabs.forEach(function(tab){
+          tab.addEventListener('click', function(){
+            tabs.forEach(function(t){ t.setAttribute('aria-selected','false'); });
+            tab.setAttribute('aria-selected','true');
+            document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+            document.getElementById(tab.getAttribute('data-panel')).classList.add('active');
+          });
+        });
+
+        /* ---------- Helpers ---------- */
+        function fmtTime(mins){
+          var h = Math.floor(mins/60)%24, m = mins%60;
+          var ap = h >= 12 ? 'PM' : 'AM'; var h12 = h%12; if(h12===0) h12 = 12;
+          return h12 + ':' + (m<10?'0':'') + m + ' ' + ap;
+        }
+        function esc(s){
+          return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        /* ---------- Tool 1: Timetable ---------- */
+        var ttHours = document.getElementById('ttHours');
+        var ttHoursVal = document.getElementById('ttHoursVal');
+        ttHours.addEventListener('input', function(){
+          var v = parseFloat(ttHours.value);
+          ttHoursVal.textContent = (v === 1 ? '1 hr' : v + ' hrs');
+        });
+        document.querySelectorAll('#ttSubjects .chip').forEach(function(chip){
+          chip.addEventListener('click', function(){
+            chip.setAttribute('aria-pressed', chip.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+          });
+        });
+        document.getElementById('ttGen').addEventListener('click', function(){
+          var subjects = [];
+          document.querySelectorAll('#ttSubjects .chip').forEach(function(c){
+            if(c.getAttribute('aria-pressed') === 'true') subjects.push(c.textContent.trim());
+          });
+          var out = document.getElementById('ttResult');
+          if(subjects.length === 0){
+            out.innerHTML = '<p class="headline">Pick at least one subject</p><p>Tap a subject chip above, then generate again.</p>';
+            out.classList.add('show'); return;
+          }
+          var totalMin = Math.round(parseFloat(ttHours.value) * 60);
+          var block = parseInt(document.getElementById('ttBlock').value, 10);
+          var brk = block === 25 ? 5 : 10;
+          var startParts = (document.getElementById('ttStart').value || '16:00').split(':');
+          var t = parseInt(startParts[0],10)*60 + parseInt(startParts[1],10);
+          var rows = [], used = 0, i = 0;
+          while(used + block <= totalMin && rows.length < 12){
+            rows.push('<li><span class="tm">' + fmtTime(t) + '</span><span><strong>' + esc(subjects[i % subjects.length]) + '</strong> — focused study</span></li>');
+            t += block; used += block; i++;
+            if(used + block <= totalMin){ rows.push('<li><span class="tm">' + fmtTime(t) + '</span><span>Break — stretch, water, no phone</span></li>'); t += brk; }
+          }
+          out.innerHTML = '<p class="headline">Your plan for today</p><p>' + rows.length + ' entries · ' + esc(subjects.join(', ')) + ' · finishes ' + fmtTime(t) + '</p><ul class="plan-list">' + rows.join('') + '</ul>';
+          out.classList.add('show');
+        });
+
+        /* ---------- Tool 2: Grade calculator ---------- */
+        var SYSTEMS = {
+          us: { hint:'Letter grades weighted by credit hours.', type:'select',
+                options:[['A',4],['A-',3.7],['B+',3.3],['B',3],['B-',2.7],['C+',2.3],['C',2],['C-',1.7],['D',1],['F',0]],
+                defaults:[0,2,1], label:'GPA', scale:'out of 4.0',
+                verdict:function(v){ return v>=3.7 ? 'Excellent — Dean\u2019s-list territory.' : v>=3.0 ? 'Solid — comfortably above average.' : v>=2.0 ? 'Passing — a focused term can lift this fast.' : 'Below 2.0 — check your institution\u2019s academic-standing rules.'; } },
+          uk: { hint:'Enter each module mark as a percentage, weighted by credits.', type:'number', placeholder:'e.g. 68',
+                defaults:[68,74,59], label:'Weighted average', scale:'%',
+                verdict:function(v){ return v>=70 ? 'First-class honours band.' : v>=60 ? 'Upper second (2:1) band.' : v>=50 ? 'Lower second (2:2) band.' : v>=40 ? 'Third-class band.' : 'Below the usual 40% pass mark.'; } },
+          in: { hint:'Grade points on the 10-point scale, weighted by credits.', type:'select',
+                options:[['10 — O',10],['9 — A+',9],['8 — A',8],['7 — B+',7],['6 — B',6],['5 — C',5],['0 — Fail',0]],
+                defaults:[1,0,2], label:'CGPA', scale:'out of 10',
+                verdict:function(v){ return v>=9 ? 'Outstanding.' : v>=7.5 ? 'First class with distinction range at many universities.' : v>=6 ? 'First class range at many universities.' : 'Check your university\u2019s class boundaries — they vary.'; } },
+          np: { hint:'Enter each subject mark as a percentage; converted with the NEB 4.0 table.', type:'number', placeholder:'e.g. 85',
+                defaults:[85,78,92], label:'GPA', scale:'out of 4.0', convert:function(p){
+                  if(p>=90) return 4.0; if(p>=80) return 3.6; if(p>=70) return 3.2; if(p>=60) return 2.8;
+                  if(p>=50) return 2.4; if(p>=40) return 2.0; if(p>=35) return 1.6; return 0; },
+                verdict:function(v){ return v>=3.6 ? 'Outstanding / excellent band.' : v>=3.2 ? 'Very good band.' : v>=2.8 ? 'Good band.' : v>=2.0 ? 'Satisfactory band.' : 'Below the usual pass band — verify against the current NEB table.'; } },
+          sg: { hint:'NTU / NUS letter grades on the 5.0 CAP scale, weighted by credits / AUs.', type:'select',
+                options:[['A+',5],['A',5],['A-',4.5],['B+',4],['B',3.5],['B-',3],['C+',2.5],['C',2],['D+',1.5],['D',1],['F',0]],
+                defaults:[1,3,0], label:'CAP', scale:'out of 5.0',
+                verdict:function(v){ return v>=4.5 ? 'First-class honours CAP range at NUS / NTU.' : v>=4.0 ? 'Second-upper range.' : v>=3.5 ? 'Second-lower range.' : 'Honours class boundaries vary by cohort — treat this as a guide.'; } }
+        };
+        var gcRows = document.getElementById('gcRows');
+        var gcSystem = document.getElementById('gcSystem');
+        var COURSE_NAMES = ['Course 1','Course 2','Course 3'];
+
+        function buildGradeRows(){
+          var sys = SYSTEMS[gcSystem.value];
+          document.getElementById('gcHint').textContent = sys.hint;
+          var html = '';
+          for(var i=0;i<3;i++){
+            var gradeControl;
+            if(sys.type === 'select'){
+              var opts = '';
+              sys.options.forEach(function(o, idx){
+                opts += '<option value="' + o[1] + '"' + (sys.defaults[i] === idx ? ' selected' : '') + '>' + o[0] + '</option>';
+              });
+              gradeControl = '<select class="gc-grade" aria-label="' + COURSE_NAMES[i] + ' grade">' + opts + '</select>';
+            } else {
+              gradeControl = '<input type="number" class="gc-grade" min="0" max="100" step="any" value="' + sys.defaults[i] + '" placeholder="' + sys.placeholder + '" aria-label="' + COURSE_NAMES[i] + ' mark in percent" />';
+            }
+            html += '<div class="grade-row"><input type="text" class="gc-name" value="' + COURSE_NAMES[i] + '" aria-label="Course name" maxlength="24" />' + gradeControl + '<input type="number" class="gc-credits" min="0" step="any" value="' + (i===1?4:3) + '" aria-label="' + COURSE_NAMES[i] + ' credits" /></div>';
+          }
+          html += '<p class="hint" style="font-size:.8rem;color:var(--muted)">Columns: course · grade · credits</p>';
+          gcRows.innerHTML = html;
+          document.getElementById('gcResult').classList.remove('show');
+        }
+        gcSystem.addEventListener('change', buildGradeRows);
+        buildGradeRows();
+
+        document.getElementById('gcCalc').addEventListener('click', function(){
+          var sys = SYSTEMS[gcSystem.value];
+          var grades = gcRows.querySelectorAll('.gc-grade');
+          var credits = gcRows.querySelectorAll('.gc-credits');
+          var totalPoints = 0, totalCredits = 0, valid = true;
+          grades.forEach(function(g, i){
+            var raw = parseFloat(g.value);
+            var cr = parseFloat(credits[i].value);
+            if(isNaN(raw) || isNaN(cr) || cr <= 0){ valid = false; return; }
+            var pts = sys.convert ? sys.convert(raw) : raw;
+            totalPoints += pts * cr; totalCredits += cr;
+          });
+          var out = document.getElementById('gcResult');
+          if(!valid || totalCredits === 0){
+            out.innerHTML = '<p class="headline">Check your entries</p><p>Every course needs a grade and a credit value above zero.</p>';
+            out.classList.add('show'); return;
+          }
+          var v = totalPoints / totalCredits;
+          var shown = sys.label === 'Weighted average' ? v.toFixed(1) : v.toFixed(2);
+          out.innerHTML = '<p class="headline">' + sys.label + ': ' + shown + ' <span style="color:var(--muted);font-size:.95rem">' + sys.scale + '</span></p><p>' + sys.verdict(v) + ' Calculated across ' + totalCredits + ' credits. Full version adds more courses and a "grade needed" target mode.</p>';
+          out.classList.add('show');
+        });
+
+        /* ---------- Tool 3: Syllabus tracker ---------- */
+        var topicBtns = document.querySelectorAll('#topicList .topic');
+        function updateTopics(){
+          var done = 0;
+          topicBtns.forEach(function(b){ if(b.getAttribute('aria-pressed') === 'true') done++; });
+          var pct = Math.round(done / topicBtns.length * 100);
+          document.getElementById('topicSummary').textContent = done + ' of ' + topicBtns.length + ' topics covered';
+          document.getElementById('topicPct').textContent = pct + '%';
+          var bar = document.getElementById('topicBar');
+          bar.setAttribute('aria-valuenow', pct);
+          bar.querySelector('i').style.width = pct + '%';
+        }
+        topicBtns.forEach(function(b){
+          b.addEventListener('click', function(){
+            b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+            updateTopics();
+          });
+        });
+        updateTopics();
+
+        /* ---------- Tool 4: Countdown ---------- */
+        var cdDate = document.getElementById('cdDate');
+        var today = new Date(); var def = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 30);
+        function iso(d){ return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2); }
+        cdDate.value = iso(def);
+        cdDate.min = iso(today);
+        document.getElementById('cdCalc').addEventListener('click', function(){
+          var out = document.getElementById('cdResult');
+          var name = document.getElementById('cdName').value.trim() || 'Your exam';
+          if(!cdDate.value){
+            out.innerHTML = '<p class="headline">Pick a date</p><p>Choose your exam date above, then try again.</p>';
+            out.classList.add('show'); return;
+          }
+          var parts = cdDate.value.split('-');
+          var target = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+          var now = new Date(); var start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          var days = Math.round((target - start) / 86400000);
+          if(days < 0){
+            out.innerHTML = '<p class="headline">That date has passed</p><p>Pick a future exam date to start a countdown.</p>';
+            out.classList.add('show'); return;
+          }
+          var weeks = (days/7).toFixed(1).replace(/\.0$/,'');
+          var pretty = target.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+          var advice;
+          if(days === 0) advice = 'Exam day — you\u2019ve done the work. Sleep early, arrive early.';
+          else if(days <= 3) advice = 'Final stretch: light revision, past papers under timed conditions, no new topics.';
+          else if(days <= 14) advice = 'Revision phase: cycle every topic at least twice and drill your weakest areas daily.';
+          else advice = 'Learning phase: steady daily blocks now mean a calm final two weeks later.';
+          out.innerHTML = '<div class="count-big"><span class="n">' + days + '</span><span class="u">' + (days === 1 ? 'day to go' : 'days to go') + '</span></div>' +
+            '<p style="margin-top:8px"><strong>' + esc(name) + '</strong> · ' + pretty + ' · about ' + weeks + ' week' + (weeks === '1' ? '' : 's') + ' left.</p><p>' + advice + '</p>';
+          out.classList.add('show');
+        });
+      })();
+    </script>
+  </body>
+</html>

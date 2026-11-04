@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<!-- connect-src: explicit allowlist of built-in BYOK provider origins ONLY.
+     No wildcards. Custom user endpoints are NOT covered by this static CSP and
+     will be blocked by the browser — tracked as a known limitation in
+     KNOWN-ISSUES.md (a static page cannot grant per-user CSP exceptions). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://openrouter.ai https://api.deepseek.com https://api.anthropic.com https://generativelanguage.googleapis.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<title>AI Study Assistant — {{brand}}</title>
+<meta name="description" content="Optional AI study help with your own API key. Your key and prompts go directly to the provider you choose — nothing passes through our servers." />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/">My Study Space</a>
+      <a href="/ai-chat/" aria-current="page">AI Chat</a>
+      <a href="/ai-workflows/">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/">My Study Space</a>
+    <a href="/ai-chat/" aria-current="page">AI Chat</a>
+    <a href="/ai-workflows/">AI Tools</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+
+<main id="main" class="wrap section">
+  <p class="eyebrow">Optional · Bring your own key</p>
+  <h1>AI Study Assistant</h1>
+  <p class="muted" style="max-width: 680px;">
+    Ask study questions with an AI provider of <em>your</em> choice, using
+    <em>your</em> API key. Free tools stay free — this is an opt-in extra.
+  </p>
+
+  <div class="banner warn" role="note" aria-label="Important disclosures">
+    <strong>Before you connect a provider, know this:</strong>
+    <ul style="margin: 0.5rem 0 0; padding-left: 1.2rem;">
+      <li>Your prompts go <strong>directly from this browser to the provider you choose</strong>. There is no <span data-brand="name">ExamElm</span> server in between — we never see your prompts or your key.</li>
+      <li>The provider you choose <strong>receives everything you send</strong>, including any text you paste.</li>
+      <li>Keys are kept <strong>in this browser's memory only</strong> unless you explicitly opt into passphrase-encrypted storage. An unlocked key could be read by a malicious script, so never paste secrets into chat and keep your browser updated.</li>
+      <li><strong>API billing is separate</strong> from ChatGPT, Claude, Gemini or any other consumer subscription — you pay the provider's API rates.</li>
+      <li><strong>Nothing is sent anywhere until you press Send.</strong></li>
+    </ul>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="AI sections">
+    <button type="button" role="tab" id="tabChat" aria-selected="true" aria-controls="panelChat">Chat</button>
+    <button type="button" role="tab" id="tabProviders" aria-selected="false" aria-controls="panelProviders">Providers &amp; keys</button>
+  </div>
+
+  <!-- ============================ CHAT ============================ -->
+  <section id="panelChat" role="tabpanel" aria-labelledby="tabChat">
+    <div id="chatNeedsProvider" class="empty" hidden>
+      <p><strong>No provider configured yet.</strong></p>
+      <p>Add a provider and enter your API key to start chatting.</p>
+      <p><button type="button" class="btn btn-primary" id="gotoProvidersBtn">Set up a provider</button></p>
+    </div>
+
+    <div id="chatLayout" class="chat-layout" hidden>
+      <aside class="card chat-side" aria-label="Conversations">
+        <div class="btn-row" style="margin-bottom: 0.8rem;">
+          <button type="button" class="btn btn-primary btn-sm" id="newConvBtn">+ New chat</button>
+        </div>
+        <ul class="list" id="convList"></ul>
+      </aside>
+
+      <div class="card chat-main">
+        <div id="messages" class="chat-messages" role="log" aria-live="polite" aria-label="Conversation"></div>
+
+        <div class="composer">
+          <div class="field">
+            <label for="chatProvider">Provider</label>
+            <select id="chatProvider"></select>
+          </div>
+          <div class="field">
+            <label for="chatModel">Model</label>
+            <input type="text" id="chatModel" list="modelDatalist" autocomplete="off"
+              placeholder="e.g. gpt-4o-mini" />
+            <datalist id="modelDatalist"></datalist>
+            <p class="hint">Pick a discovered model or type any model ID your provider offers.</p>
+          </div>
+          <div class="field">
+            <label for="maxTokens">Max output tokens</label>
+            <input type="number" id="maxTokens" value="1024" min="1" max="128000" />
+          </div>
+          <div class="field">
+            <label for="promptInput">Your question</label>
+            <textarea id="promptInput" rows="3" placeholder="Ask anything about your studies…"></textarea>
+          </div>
+          <p class="hint" id="costLine" aria-live="polite"></p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-primary" id="sendBtn">Send</button>
+            <button type="button" class="btn btn-ghost" id="stopBtn" hidden>Stop</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= PROVIDERS ========================= -->
+  <section id="panelProviders" role="tabpanel" aria-labelledby="tabProviders" hidden>
+    <h2>Providers</h2>
+    <p class="muted">Add one or more AI providers. Requests go directly from your browser to the provider — there is no middleman.</p>
+    <div id="providerList"></div>
+
+    <div class="card" style="margin-top: 1.2rem;">
+      <h3 style="margin-top: 0;">Add a provider</h3>
+      <form id="addProviderForm">
+        <div class="field">
+          <label for="pvName">Display name</label>
+          <input type="text" id="pvName" maxlength="60" placeholder="My OpenRouter key" />
+        </div>
+        <div class="field">
+          <label for="pvBuiltin">Provider</label>
+          <select id="pvBuiltin"></select>
+          <p class="hint" id="pvCorsNote"></p>
+        </div>
+        <div class="field">
+          <label for="pvBaseUrl">Base URL</label>
+          <input type="url" id="pvBaseUrl" inputmode="url" placeholder="https://…" />
+          <p class="hint" id="pvKeyHelp"></p>
+        </div>
+        <div class="field">
+          <label for="pvModel">Default model ID (optional)</label>
+          <input type="text" id="pvModel" maxlength="120" autocomplete="off" placeholder="e.g. gpt-4o-mini" />
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Add provider</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card" style="margin-top: 1.2rem;">
+      <h3 style="margin-top: 0;">Encrypted key storage (optional)</h3>
+      <p class="muted">
+        By default keys live only in this tab's memory and vanish when you close it.
+        Optionally, store them on this device encrypted with a passphrase you choose.
+        <strong>Forget the passphrase and the keys are unrecoverable</strong> — there is no reset.
+      </p>
+      <p id="encStatus" class="hint" aria-live="polite"></p>
+      <div id="encSetup">
+        <div class="field">
+          <label for="encPassNew">New passphrase</label>
+          <input type="password" id="encPassNew" autocomplete="new-password" />
+        </div>
+        <div class="field">
+          <label for="encPassConfirm">Confirm passphrase</label>
+          <input type="password" id="encPassConfirm" autocomplete="new-password" />
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn" id="encStoreBtn">Encrypt &amp; store keys on this device</button>
+        </div>
+      </div>
+      <div id="encUnlock">
+        <div class="field">
+          <label for="encPassUnlock">Passphrase</label>
+          <input type="password" id="encPassUnlock" autocomplete="current-password" />
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="encUnlockBtn">Unlock keys into memory</button>
+          <button type="button" class="btn btn-ghost" id="encLockBtn">Lock (forget in-memory keys)</button>
+          <button type="button" class="btn btn-ghost" id="encWipeBtn">Delete encrypted keys</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <p><span data-brand="name"></span> — <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/aichat.js"></script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Syllabus Coverage Tracker — {{brand}}</title>
+<meta name="description" content="Free syllabus coverage tracker: list chapters and topics per subject, rate your confidence, see coverage percentages, a plain-language pace indicator, and your weakest topics ranked by exam proximity. Your data stays in your browser." />
+<link rel="canonical" href="https://studypilot.pages.dev/tools/syllabus-tracker/" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Syllabus Coverage Tracker — {{brand}}","url":"https://studypilot.pages.dev/tools/syllabus-tracker/","applicationCategory":"EducationalApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Free syllabus coverage tracker: list chapters and topics per subject, rate your confidence, see coverage percentages, a plain-language pace indicator, and your weakest topics ranked by exam proximity. Your data stays in your browser."}</script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="/tools/syllabus-tracker/#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/" aria-current="page">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/">My Study Space</a>
+      <a href="/ai-chat/">AI Chat</a>
+      <a href="/ai-workflows/">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/" aria-current="page">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/">My Study Space</a>
+    <a href="/ai-chat/">AI Chat</a>
+    <a href="/ai-workflows/">AI Tools</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+
+<main id="main" class="wrap section">
+  <p class="eyebrow">Free tool</p>
+  <h1>Syllabus Coverage Tracker</h1>
+  <p class="muted">List chapters and topics per subject, rate your confidence on each, and always know the answer to &ldquo;how much of the syllabus have I finished?&rdquo; — with a plain-language pace indicator and your weakest topics ranked by exam proximity. Everything is saved in this browser; nothing is uploaded anywhere.</p>
+
+  <p class="error" id="pageError" role="alert" hidden></p>
+  <p class="muted" id="degradedNote" hidden><span class="badge warn">Limited storage</span> Your browser wouldn&rsquo;t allow persistent storage (private mode or blocked storage), so your tracker lives in memory for this session only. Export anything important before closing the tab.</p>
+
+  <section class="card" aria-labelledby="overall-h">
+    <h2 id="overall-h">Overall coverage</h2>
+    <div id="overallBody">
+      <p class="muted">Add a subject below to start tracking.</p>
+    </div>
+  </section>
+
+  <section class="card no-print" aria-labelledby="weakest-h">
+    <h2 id="weakest-h">Weakest topics</h2>
+    <p class="muted">Ranked by exam proximity &times; low confidence — start revision where it matters most.</p>
+    <div id="weakestBody"><p class="muted">Nothing to rank yet.</p></div>
+  </section>
+
+  <section class="card no-print" aria-labelledby="addsubj-h">
+    <h2 id="addsubj-h">Add a subject</h2>
+    <div class="inline-form">
+      <div class="field">
+        <label for="subjName">Subject name</label>
+        <input type="text" id="subjName" maxlength="80" placeholder="e.g. Physics" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="subjDate">Exam date <span class="muted">(optional)</span></label>
+        <input type="date" id="subjDate" min="2000-01-01" max="2100-12-31" />
+      </div>
+      <div class="field">
+        <button class="btn btn-primary" type="button" id="addSubjectBtn">Add subject</button>
+      </div>
+    </div>
+    <p class="error" id="subjError" role="alert" hidden></p>
+  </section>
+
+  <div id="subjectsWrap" aria-live="polite"></div>
+
+  <section class="card no-print" aria-labelledby="empty-h" id="emptyCard">
+    <h2 id="empty-h">No subjects yet</h2>
+    <p class="muted">Add your first subject above — then list its chapters or topics, tap each topic&rsquo;s confidence button as you study, and watch the coverage bar move. Set an exam date to get a pace reading like &ldquo;behind: you need about 3 topics/day&rdquo;.</p>
+  </section>
+
+  <p class="muted">How coverage %, pace and weakest-topic ranking are computed — with the exact formulas — is documented on the <a href="/methodology/syllabus-tracker/">syllabus tracker methodology page</a>. Link an exam to a subject from the <a href="/tools/exam-countdown/">exam countdown planner</a> to keep dates in sync.</p>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+    <p>Your data stays in your browser. No accounts, no tracking, no servers.</p>
+    <p>&copy; 2026 <span data-brand="name"></span>. All rights reserved.</p>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/page-syllabus-tracker.js"></script>
+</body>
+</html>

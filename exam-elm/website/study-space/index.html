@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<!-- frame-src blob: is scoped to this page only: PDF previews render in a
+     sandboxed-by-CSP iframe from a locally-created object URL. Nothing leaves
+     the device; object-src stays 'none'. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; frame-src blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<title>My Study Space — {{brand}}</title>
+<meta name="description" content="My Study Space: private, in-browser notes, files, folders and saved study plans. Everything stays on your device — no signup, no servers." />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/" aria-current="page">My Study Space</a>
+    <a href="/ai-chat/">AI Chat</a>
+    <a href="/ai-workflows/">AI Tools</a>
+      <a href="/ai-chat/">AI Chat</a>
+      <a href="/ai-workflows/">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/" aria-current="page">My Study Space</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap">
+      <p class="eyebrow">Private &middot; on this device only</p>
+      <h1>My Study Space</h1>
+      <p class="muted">Your notes, files and saved plans live in this browser — no account, no servers, no tracking. Export a backup regularly: clearing browser data, private browsing or storage eviction can delete it.</p>
+
+      <div id="degradedBanner" class="banner warn" hidden>
+        <strong>Storage is limited right now.</strong> This browser (or private mode) won't keep IndexedDB data, so everything works but <em>won't persist</em> after you leave. Export a backup before you go.
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Study space sections">
+        <button type="button" data-tab-btn="notes" role="tab" aria-selected="true" class="active">Notes</button>
+        <button type="button" data-tab-btn="files" role="tab" aria-selected="false">Files</button>
+        <button type="button" data-tab-btn="timetables" role="tab" aria-selected="false">Timetables</button>
+        <button type="button" data-tab-btn="backup" role="tab" aria-selected="false">Backup</button>
+      </div>
+
+      <!-- NOTES -->
+      <section data-tab-panel="notes" role="tabpanel" aria-label="Notes">
+        <div class="ss-layout">
+          <aside class="ss-side">
+            <input id="noteSearch" class="search" type="search" placeholder="Search notes…" aria-label="Search notes" />
+            <button id="newNoteBtn" class="btn btn-primary" type="button">+ New note</button>
+            <div id="noteFolders" class="tree" aria-label="Note folders"></div>
+            <div id="noteList" class="list" aria-label="Notes"></div>
+          </aside>
+          <div id="noteEditor" aria-live="off"></div>
+        </div>
+      </section>
+
+      <!-- FILES -->
+      <section data-tab-panel="files" role="tabpanel" aria-label="Files" hidden>
+        <div class="ss-layout">
+          <aside class="ss-side">
+            <div id="dropZone" class="drop-zone">
+              <p><strong>Drop files here</strong> or</p>
+              <button id="uploadBtn" class="btn btn-primary btn-sm" type="button">Choose files</button>
+              <input id="fileInput" type="file" multiple hidden />
+              <p class="muted" style="font-size:0.85rem">PDF, images, text, Word docs — up to 50&nbsp;MB each. Stored in this browser only.</p>
+            </div>
+            <div id="fileFolders" class="tree" aria-label="File folders"></div>
+          </aside>
+          <div>
+            <input id="fileSearch" class="search" type="search" placeholder="Search files…" aria-label="Search files" style="width:100%; margin-bottom:0.8rem" />
+            <div id="fileList" class="list" aria-label="Files"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TIMETABLES -->
+      <section data-tab-panel="timetables" role="tabpanel" aria-label="Saved timetables" hidden>
+        <p class="muted">Plans you saved in the <a href="/tools/timetable/">Timetable Generator</a>. Opening one loads it back into the tool.</p>
+        <div id="timetableList" class="list" style="margin-top:0.8rem"></div>
+      </section>
+
+      <!-- BACKUP -->
+      <section data-tab-panel="backup" role="tabpanel" aria-label="Backup and storage" hidden>
+        <h2>Backup &amp; storage</h2>
+        <div class="card" style="padding:1.1rem; margin-bottom:1rem">
+          <h3 style="margin-top:0">Storage usage</h3>
+          <p id="backupCounts" class="muted"></p>
+          <div class="usage" role="img" aria-label="Storage usage">
+            <div class="usage-track"><div id="usageBar" class="usage-fill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></div>
+          </div>
+          <p id="usageText" class="muted"></p>
+          <p id="persistStatus" class="muted"></p>
+          <div class="btn-row">
+            <button id="persistBtn" class="btn btn-ghost btn-sm" type="button">Request persistent storage</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:1.1rem; margin-bottom:1rem">
+          <h3 style="margin-top:0">Export backup</h3>
+          <p class="muted">Downloads one JSON file with everything: notes, files, folders, saved timetables. Keep it somewhere safe — it's the only copy outside this browser.</p>
+          <button id="exportBtn" class="btn btn-primary" type="button">Download full backup</button>
+        </div>
+
+        <div class="card" style="padding:1.1rem; margin-bottom:1rem">
+          <h3 style="margin-top:0">Import backup</h3>
+          <p class="muted">Restore from a backup file. <strong>Merge</strong> keeps your current data and only adds what's new. <strong>Replace</strong> deletes everything first — export your current data before doing that.</p>
+          <div style="display:flex; gap:1.2rem; flex-wrap:wrap; margin:0.6rem 0">
+            <label><input type="radio" name="importMode" value="merge" checked /> Merge (safe default)</label>
+            <label><input type="radio" name="importMode" value="replace" /> Replace everything</label>
+          </div>
+          <label style="display:block; margin:0.6rem 0"><input type="checkbox" id="confirmReplace" /> I understand Replace deletes all current data</label>
+          <div class="btn-row">
+            <button id="importBtn" class="btn btn-ghost" type="button">Choose backup file…</button>
+            <input id="importFile" type="file" accept="application/json,.json" hidden />
+          </div>
+          <p id="importResult" class="muted" style="margin-top:0.7rem" hidden></p>
+        </div>
+
+        <div class="banner warn">
+          <strong>Keep your data safe.</strong> Your study space lives in this browser's storage. It can be lost if you clear browser data, use private/incognito windows, or if the browser evicts it under storage pressure. Export a backup regularly — especially before clearing anything.
+        </div>
+      </section>
+
+      <!-- FOLDERS -->
+      <section class="ss-section" aria-label="Folders">
+        <h2>Folders</h2>
+        <p class="muted">Organize notes and files. Folders can nest inside each other. A folder can only be deleted when it's empty — move its contents out first.</p>
+        <div class="inline-form">
+          <input id="newFolderName" type="text" placeholder="New folder name" maxlength="80" aria-label="New folder name" />
+          <button id="createFolderBtn" class="btn btn-primary btn-sm" type="button">Create folder</button>
+        </div>
+        <div id="folderManager"></div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<!-- File preview -->
+<div id="previewModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="previewTitle"></h2>
+      <button id="previewClose" class="icon-btn" type="button" aria-label="Close preview">&times;</button>
+    </div>
+    <div id="previewBody" class="modal-body"></div>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="wrap">
+    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+    <p>Your data stays in your browser. No accounts, no tracking, no servers.</p>
+    <p>&copy; 2026 <span data-brand="name"></span>. All rights reserved.</p>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/page-studyspace.js"></script>
+</body>
+</html>

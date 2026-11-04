@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<title>{{brand}} — Privacy Policy</title>
+<meta name="description" content="Privacy policy: your data never leaves your browser. No accounts, no analytics at launch, local storage only." />
+<link rel="canonical" href="https://studypilot.pages.dev/privacy/" />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/">My Study Space</a>
+    <a href="/ai-chat/">AI Chat</a>
+    <a href="/ai-workflows/">AI Tools</a>
+      <a href="/ai-chat/">AI Chat</a>
+      <a href="/ai-workflows/">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/">My Study Space</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap prose">
+      <p class="eyebrow">Privacy</p>
+      <h1>Privacy Policy</h1>
+      <p><strong>The short version: your data never leaves your browser.</strong> <span data-brand="name"></span> is a static website. There is no server receiving your subjects, grades, or plans, because there is no server to receive them.</p>
+      <h2>What is stored, and where</h2>
+      <ul>
+        <li><strong>Tool data</strong> (subjects, exam dates, grades, syllabus topics, saved timetables) is kept in your browser &mdash; <code>localStorage</code> for small preferences, <code>IndexedDB</code> for larger data &mdash; under namespaced keys. It lives on your device only.</li>
+        <li><strong>Study space files and notes</strong> are stored in <code>IndexedDB</code>, also on your device only. Files you upload are never transmitted anywhere; previews are generated locally in your browser.</li>
+        <li><strong>Theme preference</strong> is stored locally so the site remembers light or dark mode.</li>
+      </ul>
+      <p>Clearing your browser&rsquo;s site data deletes everything. You can export a full backup of your study space as a JSON file at any time from <a href="/study-space/">My Study Space</a> &rarr; Backup &mdash; that file is yours to keep wherever you like, so back it up regularly.</p>
+      <h2>Share links</h2>
+      <p>Timetables can be shared as a read-only link. The plan&rsquo;s state is encoded in the URL hash itself — nothing is uploaded anywhere. That also means <strong>anyone who has the link can read what it contains</strong>, so treat a share link like a document and only send it to people you trust.</p>
+      <h2>Analytics</h2>
+      <p>There are no analytics at launch. No tracking pixels, no third-party scripts, no fingerprinting. If a privacy-respecting analytics option is ever added, this page will say so first.</p>
+      <h2>AI features (bring your own key)</h2>
+      <p>Optional AI features work on a bring-your-own-key basis: you supply your own API key for the AI provider you choose. Requests go <strong>directly from your browser to that provider</strong> — there is no <span data-brand="name">ExamElm</span> server in between. We never see your prompts, and we never see your key on any server. AI features are always opt-in, and <strong>nothing is transmitted anywhere until you press Send</strong>.</p>
+      <ul>
+        <li><strong>What the provider receives:</strong> every prompt you submit, plus any text you paste into the chat. Providers do not receive the rest of your Study Space unless you explicitly include it.</li>
+        <li><strong>Key storage:</strong> keys are kept in your browser's memory by default and vanish when the tab closes. You may optionally store them on your device encrypted with a passphrase you choose (PBKDF2 + AES-GCM); plaintext keys are never written to disk. If you forget the passphrase, the stored keys are unrecoverable.</li>
+        <li><strong>Key exposure risk:</strong> an unlocked key in your browser could be read by a malicious script. This is why the site uses a strict Content Security Policy, sanitizes rendered content, and loads no third-party scripts — and why you should keep your browser updated and never paste secrets into chat.</li>
+        <li><strong>Billing:</strong> API usage is billed by your chosen provider at their API rates, which are <strong>separate from</strong> ChatGPT, Claude, Gemini, or any other consumer subscription you may hold. The chat shows an estimated maximum cost before you send.</li>
+      </ul>
+      <h2>Offline use</h2>
+      <p>A service worker caches the site&rsquo;s own files on your device so the tools keep working with poor or no connectivity. The cache never leaves your device.</p>
+      <h2>Changes</h2>
+      <p>If this policy changes, the new version will be published here with an updated date. Last updated: 2026-11-04.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/" aria-current="page">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+    <p>Your data stays in your browser. No accounts, no tracking, no servers.</p>
+    <p>&copy; 2026 <span data-brand="name"></span>. All rights reserved.</p>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/site.js"></script>
+</body>
+</html>

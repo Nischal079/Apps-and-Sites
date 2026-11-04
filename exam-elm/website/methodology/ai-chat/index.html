@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<title>AI chat: keys, data sent, and limits — {{brand}} methodology</title>
+<meta name="description" content="How AI chat works: bring-your-own-key, what is sent to the provider on Send, what is never sent, per-provider direct browser access notes, cost estimates, timeouts and retries. No hype, plain language." />
+<link rel="canonical" href="https://studypilot.pages.dev/methodology/ai-chat/" />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/">My Study Space</a>
+      <a href="/ai-chat/">AI Chat</a>
+      <a href="/ai-workflows/">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/">My Study Space</a>
+    <a href="/ai-chat/">AI Chat</a>
+    <a href="/ai-workflows/">AI Tools</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap prose">
+      <p class="eyebrow">Methodology</p>
+      <h1>AI chat: keys, what&rsquo;s sent, and the limits</h1>
+      <p>This is the trust contract behind <a href="/ai-chat/">AI chat</a>. There is no AI built into this site — the chat page is a bring-your-own-key (BYOK) client: it calls the AI provider you choose with <em>your</em> key, directly from your browser. There is no <span data-brand="name"></span> server in the middle; there isn&rsquo;t one to put there.</p>
+
+      <h2>Your key: where it lives</h2>
+      <ul>
+        <li><strong>In memory, by default.</strong> Paste a key and it lives only in the page&rsquo;s memory. Close the tab and it&rsquo;s gone — it never touches disk.</li>
+        <li><strong>Optional encrypted storage.</strong> If you choose to save a key, it is encrypted with a key derived from <em>your passphrase</em> — PBKDF2 with 210,000 iterations and SHA-256, a random 16-byte salt, AES-GCM 256-bit with a random 12-byte IV — and only the encrypted blob is stored. The passphrase is never stored; a wrong passphrase fails closed with an error, and plaintext keys are never written to disk, logs, or URLs.</li>
+        <li><strong>Deletion purges both.</strong> Deleting a key removes it from memory and deletes any encrypted copy, with a confirmation step.</li>
+        <li><strong>Keys travel only in request headers</strong> (<code>Authorization: Bearer</code>, <code>x-api-key</code>, or <code>x-goog-api-key</code> depending on the provider) — never in URLs, never in logs.</li>
+      </ul>
+
+      <h2>What is sent when you press Send — and what is never sent</h2>
+      <ul>
+        <li><strong>On Send, the provider receives:</strong> your messages (the conversation you see on screen), the model id, and the generation parameters (maximum output tokens, streaming on/off). That&rsquo;s the entire payload.</li>
+        <li><strong>Never sent:</strong> nothing leaves your browser until you press Send — typing, drafting, and switching models transmit nothing. Your API key is sent as a header to the provider only; it is not embedded in any URL. Nothing is sent to <span data-brand="name"></span> because there is nowhere to send it to.</li>
+        <li><strong>Model listing:</strong> the &ldquo;refresh models&rdquo; button makes one GET to the provider&rsquo;s model-list endpoint (with your key as a header) so you can pick from real model ids.</li>
+        <li><strong>Responses stream in</strong> as server-sent events, chunk by chunk, so you see the answer as it&rsquo;s generated. Cancel stops the stream; a hung request can&rsquo;t wedge the page because cancellation doesn&rsquo;t rely on the network layer honoring the abort.</li>
+      </ul>
+
+      <h2>Provider access notes — honest, not promotional</h2>
+      <p>Your browser can only call providers that allow it (CORS). The page states each provider&rsquo;s status plainly:</p>
+      <table class="data">
+        <thead><tr><th scope="col">Provider</th><th scope="col">Direct browser access</th></tr></thead>
+        <tbody>
+          <tr><td>OpenRouter</td><td><strong>Supported.</strong> Explicitly allows direct browser requests.</td></tr>
+          <tr><td>Anthropic Claude</td><td><strong>Supported via header.</strong> The app sends Anthropic&rsquo;s required browser-access header automatically.</td></tr>
+          <tr><td>DeepSeek</td><td><strong>Unverified.</strong> Press Test connection first — if the browser blocks it, use a relay.</td></tr>
+          <tr><td>Google Gemini</td><td><strong>Unverified.</strong> Key-header requests are reported to work; verify with Test connection. The key goes in a header, never the URL.</td></tr>
+          <tr><td>OpenAI</td><td><strong>Blocked.</strong> OpenAI&rsquo;s API sends no CORS headers, so browsers refuse the call. Use a custom endpoint pointed at your own local relay, or another provider.</td></tr>
+          <tr><td>Custom endpoint</td><td><strong>Unverified.</strong> Your own OpenAI-compatible relay. <span class="badge warn">KNOWN LIMITATION</span> The page&rsquo;s Content Security Policy currently allowlists only the built-in provider domains, so a custom domain is blocked by the browser until a future update.</td></tr>
+        </tbody>
+      </table>
+      <p>The CSP itself is a deliberate allowlist: <code>connect-src</code> permits <code>'self'</code> plus the five built-in provider origins, and nothing else. No wildcards.</p>
+
+      <h2>Cost estimates</h2>
+      <ul>
+        <li>Before sending, the page shows an <strong>estimate</strong> of the request&rsquo;s cost: prompt tokens &approx; 4 characters per token, multiplied by the provider&rsquo;s published per-token price, plus the full output-token budget at the output price. It assumes you use the whole output budget — the worst case, not a promise.</li>
+        <li>Prices are approximate public list prices (USD per million tokens) captured 2026-11-04; providers change them. Every figure is labeled an estimate and the page links the provider&rsquo;s pricing page.</li>
+        <li>Unknown models return &ldquo;unknown&rdquo; instead of an invented number — the page never guesses a price.</li>
+      </ul>
+
+      <h2>Timeouts, retries, errors</h2>
+      <ul>
+        <li><strong>Timeout:</strong> 60 seconds. A slower provider aborts the request with a plain-language message instead of hanging.</li>
+        <li><strong>Retries:</strong> up to 2 automatic retries, <em>only</em> on rate-limit (HTTP 429), honoring the provider&rsquo;s <code>Retry-After</code> header (capped at 120 s; otherwise an increasing backoff). Other errors are shown immediately, never retried.</li>
+        <li><strong>Error codes:</strong> invalid key (401), rate limited (429), model not found (404), rejected request (400), CORS/network blocked (plain guidance, key not exposed), timeout, and cancelled — each with a plain-language explanation and a next step.</li>
+      </ul>
+
+      <h2>Where conversations are kept</h2>
+      <p>Chat history is saved in your browser&rsquo;s IndexedDB (<code>conversations</code> store), inside <a href="/methodology/study-space/">Study Space storage</a> — local to your device, included in backups, and never sent anywhere except to the provider when you press Send. Deleting a conversation removes it from your device.</p>
+
+      <p><a href="/methodology/">&larr; Back to methodology overview</a></p>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+    <p>Your data stays in your browser. No accounts, no tracking, no servers.</p>
+    <p>&copy; 2026 <span data-brand="name"></span>. All rights reserved.</p>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+# StudyPilot — Task List
+Last updated: 2026-11-04 (direction approved: StudyPilot, global, 4 tools, 30-day plan)
+
+## Phase 1 — Market Validation ✅ COMPLETE (2026-11-04)
+- [x] Research: 30 recurring student problems (sourced), real questions from Reddit/forums/communities, underserved needs, 15 competitor analyses
+- [x] Free-tool/downloadable opportunities; keyword demand vs competition (25 keywords, 15 tools, 18 long-tails)
+- [x] Top 5 business opportunities with demand evidence, competitors, costs, monetization, risks → files/business-plan-phase1.md
+- [x] Nepal payments verification (eSewa/Khalti/IME Pay, Payoneer/Wise, Paddle/Gumroad/etc., ad networks)
+- [x] Pivot research (Nepal exam-prep) + alternative models scan + final scoring of 9 candidates
+- [x] Presented to Nischal → direction approved: StudyPilot, GLOBAL (not South-Asia-first)
+
+## Build v0.1 — Master Execution Order (kicked off 2026-11-04)
+Authoritative spec: user's MASTER DEVELOPMENT EXECUTION ORDER + files/architecture.md. Each phase: build, test, commit, report. Brand: "StudyPilot" working name CENTRALIZED in one config/strings file (rename = one line); rename decision (ExamElm recommended) stays open, not blocking dev.
+
+### Phase 0 — Inspect & foundations
+- [ ] Inspect website/ + website/reference/prototype.html; preserve working demo logic (timetable algorithm, grade calc)
+- [ ] Project structure: assets/css, assets/js, config/regions, per-tool dirs, pages
+- [ ] Shared foundations: storage.js (versioned IndexedDB), regions.js, design-system CSS, CSP + SEO meta, PWA manifest + service worker
+
+### Phase 1 — Website shell
+- [ ] Responsive nav + homepage (hero, what/who/tools/why, 4 tool cards, trust strip, footer)
+- [ ] About, Contact, Privacy, Methodology, Guides index
+- [ ] SEO metadata, offline fallback
+
+### Phase 2 — Timetable Generator (FIRST TOOL)
+- [ ] Full implementation per order §3A (subjects/priorities, exam dates, sessions/breaks, spaced repetition, hour-cap enforcement, local save, print, .ics export, URL-hash sharing) + automated tests + mobile verified
+
+### Phase 3 — My Study Space ✅ COMPLETE (2026-11-04)
+- [x] Notes: create/edit/delete, debounced autosave (800ms), full-text search with ranking, markdown toolbar + safe preview (markdown.js escapes-before-formatting; no heavy editor lib)
+- [x] Files: upload via input + drag-and-drop (50MB cap), blobs in IndexedDB, preview — images/PDF (page-scoped `frame-src blob:`)/TXT natively, DOCX via dependency-free zip+inflate text extraction (docx.js) with download fallback; download + delete
+- [x] Folders: create/rename/move/delete, nested tree, notes+files organized; delete blocked unless empty (never silently discards); cannot move into self/descendant
+- [x] Saved timetables: list/load-via-deep-link (`#plan=` hash round-trip into timetable tool)/delete from the timetables store
+- [x] Search across note bodies + file names + cached TXT/DOCX text
+- [x] Backup: JSON export (blobs→base64) + validated import (merge default, replace requires explicit confirm + export-first nudge), storage usage via navigator.storage.estimate(), persistent-storage request, quota/degraded handling, data-loss warnings
+- [x] UI: 4 tabs (Notes/Files/Timetables/Backup) + folder manager, mobile-first, design-system CSS, empty states, plain-language errors, noindex kept
+- [x] Tests: 17 new (40/40 green), node --check clean, link/CSP/brand/external-resource/ID audits clean; sw.js precache + v2 bump; privacy page wording corrected
+- [x] Visual QA outstanding — flagged in KNOWN-ISSUES.md (environmentally blocked, needs human eyes)
+
+### Phase 4 — BYOK foundation + AI chat ✅ COMPLETE (2026-11-04)
+- [x] Adapter architecture (assets/js/ai/): OpenAICompatibleAdapter (OpenAI/OpenRouter/DeepSeek/OmniRoute/custom) + AnthropicAdapter (messages API, anthropic-version + dangerous-direct-browser-access headers, system extraction) + GeminiAdapter (x-goog-api-key header, never in URL; assistant→model role mapping); normalized requests/responses/streaming/errors; AIError codes (invalid-key/rate-limited/model-not-found/bad-request/cors-blocked/network/timeout/aborted)
+- [x] Provider management UI (/ai-chat/ Providers tab): add multiple configs (builtin select with honest per-provider CORS notes), model discovery where supported + manual model-ID entry, set default, edit, remove (purges keys); Test-connection button (cheap models-list call) is the CORS verification path — never claims unverified browser access
+- [x] Credential security: keys in memory by default, never persisted; optional passphrase-encrypted IndexedDB storage (PBKDF2 210k + AES-GCM via Web Crypto); persisted configs provably key-free (test asserts); full wipe with confirmation; wrong-passphrase fails closed; requests direct browser→provider, key in headers only
+- [x] Chat UI: conversation list (conversations store) with delete, streaming with stop/cancel, regenerate, copy (+fallback), per-conversation provider/model/max-tokens, save-assistant-reply-as-note (notes store), configurable output-token limit, pre-send cost estimate with approximate pricing table, 60s timeout, auto-retry with backoff honoring Retry-After
+- [x] Disclosures: in-UI warning banner + expanded privacy page section (provider receipt, key storage, XSS risk, separate billing, nothing sent until Send)
+- [x] Tests: 32 new (72/72 green), node --check clean; CSP extended per provider origin (explicit allowlist, no wildcards) on ai-chat page; sw.js v3 precache; nav on all pages; TESTING.md + KNOWN-ISSUES.md updated
+- [x] Visual QA outstanding — flagged in KNOWN-ISSUES.md (environmentally blocked, needs human eyes)
+
+### Phase 5 — Grade Calculator ✅ COMPLETE (2026-11-04)
+- [x] 8 region configs authored from files/regional-grading.md — every trap honored, every UNVERIFIED flag labeled estimate-only or omitted: us.json (4 scale presets: college-board / tenths-default / thirds / A+4.33; weighted bumps user-adjustable; retake replace-vs-average), uk.json (classification bands + 4 UKSCQA year-weighting presets + borderline 2pp override; GCSE/A-level grade-orders reference-only), in-cbse.json (×9.5 LEGACY-ONLY pre-2018 gate; 10 CGPA=95% labeled indicative), in-icse.json (English-forced best-of-5/best-of-4), in-vtu.json (scheme picker MANDATORY: 2021+ ×10 vs 2015–18 (CGPA−0.75)×10), in-mumbai.json (Engineering piecewise 7.1×+12 / 7.4×+12, ceiling; general faculties NOT shipped — coefficient conflict), np-neb.json (8-band table, credit-hour weighting, dual pass thresholds, NG rules; GPA→% estimate-only), sg-nus-ntu.json (5.0 table, NUS + NTU pre-AY2024/25 S/U + NTU FGO presets, honours bands; no Wikipedia % bands)
+- [x] Schema extended minimally per review: scale_type += gpa_10, rounding.mode += ceiling (MU); machine-readable conversion params added (VTU scheme.linear, MU formula.pieces, CBSE legacy_conversion.linear, NEB percentage_estimate.linear) — page wiring consumes config data, not hard-coded values
+- [x] assets/js/grade.js — pure engine: computeGPA (weighted, exclusions, zero-credit skip, plain-language errors), requiredFinal (needed/impossible+maxPossible/alreadyMet), convertLinear/convertPiecewise, cbseLegacyToPct, estimateGpaToPct, bandFor, weightedYearMark, applyBestOfN, applyRetakeMode, roundValue
+- [x] tools/grade-calculator/ — full tool page replacing "coming soon" placeholder (region presets, course rows, per-course exclusion, US bumps/retakes, UK year marks, VTU/MU/CBSE/ICSE converters, NEB estimator, final-needed panel, formula+source+estimate badges on every result, localStorage drafts); noindex removed; no hard-coded brand; esc() throughout
+- [x] methodology/grade-calculator/ — trust-contract page: every formula, trap, estimate label, source links; linked from methodology/index.html
+- [x] Tests: 41 new (120/120 green, run twice) — known-answer vectors per region incl. VTU both schemes, MU piecewise boundaries, NEB bands, NUS 5.0, UK classification, required-final all 3 outcomes, invalid inputs, config↔engine machine-param agreement, all 9 configs validate
+- [x] Static audits: CSP all pages, 0 missing links, 0 fetched external resources, IDs 43/43 + 2/2 present, innerHTML review clean (esc()/static), node --check clean, regions.js fetch made root-relative (+ removed <base> workaround), methodology nav dup link fixed
+- [x] sw.js precache extended (grade.js + 8 configs + methodology subpage), cache bumped to studypilot-v4
+- [x] Visual QA outstanding — flagged in KNOWN-ISSUES.md (environmentally blocked, needs human eyes)
+
+### Phase 6 — Syllabus Tracker + Exam Countdown ✅ (2026-11-04)
+- [x] Tracker: subjects/topics, confidence, completion %, pace, weakest topics (146/146 tests green)
+- [x] Countdown: multi-exam, days remaining (timezone-safe date math), prep-time estimates, check-on-load reminders (no backend scheduling)
+- [x] Methodology pages: methodology/syllabus-tracker/, methodology/exam-countdown/; noindex removed from both tool pages
+
+### Phase 7 — AI document workflows (incremental, after BYOK solid)
+- [x] Chat with explicitly selected notes/files (live "what will be sent" preview, send gated, saved to conversations) — ai-workflows tab 1
+- [x] Flashcard generator (parse → flip review → known/unknown → decks in kv `flashdecks:v1` → JSON export) — tab 2
+- [x] Quiz generator (MCQ + short → instant scoring → attempts in kv `quizattempts:v1`) — tab 3
+- [x] AI study planner (tracker summary → streaming plan → editable draft → save-as-note / structured `#plan=` handoff to timetable) — tab 4
+- [x] Notes assistant (summarize/expand/simplify/key-points → preview → Replace/Append behind explicit confirm, never auto-mutates) — tab 5
+- [x] Cross-cutting: cost estimate before every send, streaming cancel via Phase 4 engine, output only through safe markdown renderer, per-tab token limits, zero auto-transmission
+- [x] Tests: website/tests/aiworkflows.test.js (37 tests) — 183/183 green, zero real API calls; 2 lib bugs found + fixed (summarizeTracker topicName/percent)
+- [x] Drive-by fixes: aichat.js unimported adapterFor() → ReferenceError (fixed to adapterForConfig); [hidden] overridden by .btn display (fixed globally)
+
+### Phase 8 — Hardening & launch ✅ COMPLETE (2026-11-04)
+- [x] Fixed architecture-review must-fix items: region schema fields (phase 5), SEO/crawlable tool pages (static copy + sitemap 18 URLs + canonicals + JSON-LD), CSP on all 21 pages, import sanitization (innerHTML audit), PWA update story (v7 + toast)
+- [x] **Site-wide CSP fix:** 19/21 pages had inline `<script type="module">` dead under `script-src 'self'` — extracted to `site.js` + 5 page controllers; zero inline scripts remain; csp.test.js regression (64 tests)
+- [x] Methodology pages per tool: 7 subpages (timetable, grade-calculator, syllabus-tracker, exam-countdown, ai-chat, ai-workflows, study-space)
+- [x] Security review: ~97 innerHTML sites clean, secret grep clean, key-storage semantics re-verified; GitHub Action added (.github/workflows/test.yml)
+- [x] Offline: sw.js v7 precache verified vs disk (zero 404-at-install); performance: no page over 150KB first-load
+- [x] Brand-centralization sweep: .ics PRODID/UID, backup strings, titles, body copy — rename checklist documented
+- [x] No unfinished tools public (zero "coming soon" tool placeholders); **files/launch-checklist.md** written — shippable now vs needs-human (visual QA, real-provider smoke tests, deploy, rename decision)
+- [x] Tests: 261/261 green (11 files), run twice, stable

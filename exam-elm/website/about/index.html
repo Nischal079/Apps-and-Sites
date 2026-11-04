@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<title>{{brand}} — About</title>
+<meta name="description" content="About: a free, private, global-first toolkit of study productivity tools for students. No signup, no tracking." />
+<link rel="canonical" href="https://studypilot.pages.dev/about/" />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/">My Study Space</a>
+    <a href="/ai-chat/">AI Chat</a>
+    <a href="/ai-workflows/">AI Tools</a>
+      <a href="/ai-chat/">AI Chat</a>
+      <a href="/ai-workflows/">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/" aria-current="page">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/">My Study Space</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/" aria-current="page">About</a>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap prose">
+      <p class="eyebrow">About</p>
+      <h1>About <span data-brand="name"></span></h1>
+      <p><span data-brand="name"></span> is an independent project with one goal: give every student, anywhere, free tools that make exam preparation less chaotic. It started from a simple observation — most study planners are either built for one country's school system, locked behind accounts and paywalls, or quietly harvesting student data.</p>
+      <h2>What we believe</h2>
+      <ul>
+        <li><strong>Free core, forever.</strong> The four launch tools cost nothing and have no premium gates on the basics.</li>
+        <li><strong>No signup, ever required.</strong> A student with a borrowed phone and five minutes should be able to build a timetable.</li>
+        <li><strong>Private by design.</strong> Grades and study plans are personal. Everything runs in your browser; nothing leaves it.</li>
+        <li><strong>Global-first.</strong> Grading systems, week starts, and date formats differ by region. The tools adapt to the student, not the other way around.</li>
+        <li><strong>Show the working.</strong> Every calculation is documented on the <a href="/methodology/">methodology page</a> so any number can be checked.</li>
+      </ul>
+      <h2>How it stays free</h2>
+      <p><span data-brand="name"></span> is a static website with no servers, no database, and no paid services. That keeps running costs at effectively zero, which is what makes the free core sustainable. Optional future features (like AI assistance) will always be opt-in and transparent about where your data goes — see the <a href="/privacy/">privacy policy</a>.</p>
+      <h2>Roadmap</h2>
+      <p>The v1 launch includes four tools: the study timetable generator, grade calculator, syllabus coverage tracker, and exam countdown planner, plus a personal study space for notes and files. <a href="/guides/">Guides</a> publish alongside the tools, written for real student problems rather than search engines.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+    <p>Your data stays in your browser. No accounts, no tracking, no servers.</p>
+    <p>&copy; 2026 <span data-brand="name"></span>. All rights reserved.</p>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/site.js"></script>
+</body>
+</html>

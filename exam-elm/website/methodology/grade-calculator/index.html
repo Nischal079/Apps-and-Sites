@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<title>Grade calculator formulas — {{brand}} methodology</title>
+<meta name="description" content="Every formula the grade calculator uses, every regional trap it guards against, and every estimate it labels — with sources, so you can hand-verify any number." />
+<link rel="canonical" href="https://studypilot.pages.dev/methodology/grade-calculator/" />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/">My Study Space</a>
+      <a href="/ai-chat/">AI Chat</a>
+      <a href="/ai-workflows/">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/">My Study Space</a>
+    <a href="/ai-chat/">AI Chat</a>
+    <a href="/ai-workflows/">AI Tools</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="section">
+    <div class="wrap prose">
+      <p class="eyebrow">Methodology</p>
+      <h1>Grade calculator: every formula, trap and estimate</h1>
+      <p>This is the trust contract behind the <a href="/tools/grade-calculator/">grade calculator</a>. Every formula the tool uses is written below, every known regional trap is named, and everything that is an estimate is labeled as one — with sources. If you can&rsquo;t hand-verify a number from this page, the tool shouldn&rsquo;t show it.</p>
+
+      <h2>How the tool is built</h2>
+      <ul>
+        <li><strong>Grade math is never hard-coded.</strong> Each education system lives in a versioned configuration file (<code>config/regions/*.json</code>) carrying its grade&ndash;point mapping, conversion formulas, pass thresholds and official sources. The calculator reads the config; adding a country means adding one file, never changing the math.</li>
+        <li><strong>Rounding lives in the config.</strong> Every region rounds half-up to 2 decimals — except Mumbai University Engineering, which rounds <em>up</em> to the next integer per its circular.</li>
+        <li><strong>Anything marked estimate is an inference, not a measured number.</strong> Items the research could not confirm against a primary source are marked UNVERIFIED and the tool says so on screen.</li>
+      </ul>
+
+      <h2>United States — 4.0 GPA</h2>
+      <p><strong>There is no single official US scale.</strong> The College Board states that high schools use different grading scales and &ldquo;the 4.0 scale is just one common example.&rdquo; The tool therefore offers presets — never one hard-coded formula.</p>
+      <p><strong>Core formula (all presets):</strong> GPA = &Sigma;(grade points &times; credits) &divide; &Sigma;(credits). Excluded courses (S/U, W, I, audits) and zero-credit courses are skipped in the average but reported.</p>
+      <h3>Presets</h3>
+      <table class="data">
+        <thead><tr><th scope="col">Preset</th><th scope="col">Mapping</th></tr></thead>
+        <tbody>
+          <tr><td>College Board reference (whole letters)</td><td>A 4.0, B 3.0, C 2.0, D 1.0, F 0.0 — official reference table; the Board&rsquo;s bands are A 90&ndash;100, B 80&ndash;89, C 70&ndash;79, D 66&ndash;69, F below 65</td></tr>
+          <tr><td>Plus/minus &mdash; tenths (default)</td><td>A+ 4.00, A 4.00, A&minus; 3.70, B+ 3.30, B 3.00, B&minus; 2.70, C+ 2.30, C 2.00, C&minus; 1.70, D+ 1.30, D 1.00, D&minus; 0.70, F 0.00 — most common across university registrars</td></tr>
+          <tr><td>Plus/minus &mdash; thirds</td><td>A&minus; 3.67, B+ 3.33, B&minus; 2.67, C+ 2.33, C&minus; 1.67, D+ 1.33, D&minus; 0.67 (A 4.0, F 0.0 as above)</td></tr>
+          <tr><td>A+ = 4.33 variant</td><td>Tenths mapping with A+ 4.33 (Arizona State registrar; LSAC standardization)</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Weighted GPA:</strong> Honors +0.5 and AP/IB +1.0 are district <em>conventions</em>, not national policy — the tool lets you set your own bumps, applies them only to courses graded C or above (no bonus on D/F), and labels them as conventions. <strong>Traps:</strong> GPA &divide; 4 &times; 100 is used by <em>no</em> school — any %&harr;GPA conversion is estimate-only. <strong>Retakes:</strong> no national rule — the tool offers <em>replace</em> (latest attempt only) and <em>average</em> (all attempts, UMKC policy since 1985); group matching is by course name.</p>
+
+      <h2>United Kingdom — degree classification</h2>
+      <p>UK classification is computed from <strong>weighted module marks, not a grade&rarr;points table</strong>.</p>
+      <p><strong>Core formula:</strong> weighted mark = &Sigma;(year mark &times; year weight), using one of four UKSCQA typical models: 0/0/100 (final year only), 0/33/67, 0/50/50, 0/10/30/60 (four-year). Year 1 is usually zero-weighted. The tool records per-year credits for reference; the weighting itself is by year.</p>
+      <table class="data">
+        <thead><tr><th scope="col">Classification</th><th scope="col">Mark</th></tr></thead>
+        <tbody>
+          <tr><td>First-class honours</td><td>&ge; 70</td></tr>
+          <tr><td>Upper second (2:1)</td><td>60&ndash;69</td></tr>
+          <tr><td>Lower second (2:2)</td><td>50&ndash;59</td></tr>
+          <tr><td>Third-class honours</td><td>40&ndash;49</td></tr>
+          <tr><td>Pass / fail boundary</td><td>35&ndash;40 (institution-specific)</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Borderlines:</strong> UKSCQA recommends a zone of consideration of &le; 2 percentage points below a boundary with no additional rounding (68.0 may be reconsidered for a First; 67.99 not). Mechanics vary by university, so the tool offers a borderline checkbox and tells you whether you fall in the zone — it never upgrades you silently.</p>
+      <p><strong>GCSE 9&ndash;1 grade order (reference only, no GPA math):</strong> 9 &rsaquo; 8 &rsaquo; 7 &rsaquo; 6 &rsaquo; 5 &rsaquo; 4 &rsaquo; 3 &rsaquo; 2 &rsaquo; 1 &rsaquo; U. Anchor points (Ofqual): bottom of 7 = bottom of old A; bottom of 4 = bottom of old C; bottom of 1 = bottom of old G; 9 sits above old A*. Grade 4 = standard pass, grade 5 = strong pass. <strong>A-level order:</strong> A* &rsaquo; A &rsaquo; B &rsaquo; C &rsaquo; D &rsaquo; E &rsaquo; U (X = incomplete; no A* at AS). Boundaries are set per exam series per board <em>after</em> marking — never hard-coded.</p>
+
+      <h2>India — CBSE: &times;9.5 is historical only</h2>
+      <p><strong>Formula (CCE era only):</strong> Percentage = CGPA &times; 9.5. Official source: CBSE Circular No. 24/2010 (28-05-2010), which calls the result an <em>indicative</em> percentage. The 9.5 came from CBSE&rsquo;s analysis that A1-band students averaged ~95 marks (95 &divide; 10 = 9.5) — so <strong>10 CGPA = 95%, not 100%</strong>.</p>
+      <p><strong>The gate:</strong> CCE was abolished in March 2017. Current marksheets show subject marks plus positional grades (A1&ndash;D2, E = Essential Repeat) — no CGPA, no grade points, nothing to convert, and CBSE declares no aggregate percentage. The tool <em>refuses</em> the &times;9.5 conversion unless you confirm yours is a pre-2018 CCE marksheet. CCE-era grade points for reference: A1=10, A2=9, B1=8, B2=7, C1=6, C2=5, D=4, E=fail.</p>
+
+      <h2>India — ICSE / ISC (CISCE): English-forced best-of-N</h2>
+      <ul>
+        <li><strong>ICSE Class 10:</strong> Percentage = (best 5 subjects &divide; 500) &times; 100, <strong>English compulsorily included</strong>; the lowest other subject is dropped. Pass: 33% per subject.</li>
+        <li><strong>ISC Class 12:</strong> Aggregate = (English + best 3 others) &divide; 4 &times; 100 — <strong>best of 4, not 5</strong>. Divisions: Distinction &ge; 75%, First 60&ndash;74.99%, Pass 35&ndash;59.99%.</li>
+      </ul>
+      <p><strong>Traps:</strong> never a plain average — English is forced and the lowest subject(s) drop. Pass is 35%/subject for ISC (lowered from 40% for the 2024 exams); 40% on outdated pages is wrong. The tool shows exactly which subjects were counted and which were dropped.</p>
+
+      <h2>India — VTU: the scheme picker is mandatory</h2>
+      <p>Wrong scheme = &plusmn;7.5 percentage points. There is no silent default.</p>
+      <table class="data">
+        <thead><tr><th scope="col">Schemes</th><th scope="col">Formula</th><th scope="col">Source</th></tr></thead>
+        <tbody>
+          <tr><td>2021 / 2022 / 2025</td><td>M = CGPA &times; 10</td><td>VTU M.Arch Regulations 2024 cl. 22-OMA-11.4; B.E./B.Tech Regs 2022 cl. 22OB 6.7; 2021 cl. 21OB13.2</td></tr>
+          <tr><td>2015 / 2017 / 2018</td><td>M = (CGPA &minus; 0.75) &times; 10</td><td>VTU &ldquo;CGPA Standard Formula&rdquo; page</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Grade maps:</strong> newer schemes — O=10, A+=9, A=8, B+=7, B=6, C=5, P=4, F=0; 2018-era — S=10, A=9, B=8, C=7, D=6, E=4, F=0. <strong>Classes (new schemes):</strong> First Class with Distinction &ge; 7.0 (first-attempt clears only), First Class &ge; 6.0, Second Class &ge; 5.0, Pass &ge; 4.0. <strong>Not implemented:</strong> a claimed VTU notification prescribing (CGPA &minus; 0.50) &times; 10 for 2021/2022 schemes has zero corroboration and contradicts VTU&rsquo;s own regulations — UNVERIFIED, deliberately excluded.</p>
+
+      <h2>India — Mumbai University: no single formula</h2>
+      <p>The tool ships the verified <strong>Engineering (Faculty of Technology)</strong> formula only, and says so:</p>
+      <ul>
+        <li>CGPI &lt; 7: % = 7.1 &times; CGPI + 12</li>
+        <li>CGPI &ge; 7: % = 7.4 &times; CGPI + 12</li>
+      </ul>
+      <p>Result rounded <strong>up</strong> to the next integer. Source: Circular Exam/Engg/720 of 2015, printed verbatim on B.E. transcripts. <strong>Trap:</strong> the commonly quoted &ldquo;(CGPA &minus; 0.75) &times; 10&rdquo; is VTU&rsquo;s <em>old</em> formula, misattributed to MU by aggregator sites — never use it here. Pre-2026 general-faculty coefficients are conflicted (7.1 vs 7.25) and not shipped; post-2026 there is no formula (colleges compute actual marks).</p>
+
+      <h2>Nepal — NEB (SEE / Class 11&ndash;12)</h2>
+      <p>Governing document: CDC Letter Grading Directive 2078 (4th amendment 2081).</p>
+      <table class="data">
+        <thead><tr><th scope="col">%</th><th scope="col">Letter</th><th scope="col">Grade point</th></tr></thead>
+        <tbody>
+          <tr><td>&ge; 90</td><td>A+</td><td>4.0</td></tr>
+          <tr><td>80&ndash;&lt;90</td><td>A</td><td>3.6</td></tr>
+          <tr><td>70&ndash;&lt;80</td><td>B+</td><td>3.2</td></tr>
+          <tr><td>60&ndash;&lt;70</td><td>B</td><td>2.8</td></tr>
+          <tr><td>50&ndash;&lt;60</td><td>C+</td><td>2.4</td></tr>
+          <tr><td>40&ndash;&lt;50</td><td>C</td><td>2.0</td></tr>
+          <tr><td>35&ndash;&lt;40</td><td>D (minimum pass)</td><td>1.6</td></tr>
+          <tr><td>&lt; 35</td><td>NG (Not Graded)</td><td>&mdash;</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Core formula:</strong> GPA = &Sigma;(credit hours &times; grade point) &divide; &Sigma;(credit hours). <strong>Pass rules (per subject, both must hold):</strong> &ge; 35% in theory <em>and</em> &ge; 40% in internal/practical — below either is NG for that subject. NG in 1&ndash;2 subjects &rarr; supplementary grade-increment exam; NG in more than 2 &rarr; repeat the year; no certificate until all NG is cleared.</p>
+      <p><span class="badge warn">ESTIMATE</span> <strong>&ldquo;Percentage = GPA &times; 25&rdquo; has no official source</strong> — a directive-citing source explicitly says no official GPA&rarr;percentage formula exists. The tool shows it only on request, always badged as an estimate.</p>
+
+      <h2>Singapore — NUS / NTU (5.0 scale)</h2>
+      <p><strong>Grade&rarr;point table (identical at both):</strong> A+ 5.00, A 5.00, A&minus; 4.50, B+ 4.00, B 3.50, B&minus; 3.00, C+ 2.50, C 2.00, D+ 1.50, D 1.00, F 0.00. <strong>F is included at 0</strong> — only S/U, FGO P/NR, W and similar non-graded entries are excludable.</p>
+      <ul>
+        <li><strong>NUS:</strong> GPA = &Sigma;(grade point &times; Units) &divide; &Sigma;(Units). CAP was renamed GPA on 1 Aug 2023. S/U: letter hidden, not computed; from AY2021/22 S = D or above (earlier: C or above); quota 32 units with cohort rules.</li>
+        <li><strong>NTU (pre-AY2024/25, S/U)</strong> and <strong>NTU (AY2024/25+, FGO)</strong> are separate presets, never merged. FGO: A/B/C/D &rarr; P (Pass, earns AU); F &rarr; NR (No Record); both excluded from CGPA; irrevocable. Passed courses may not be repeated; the F stays in the CGPA on retake.</li>
+      </ul>
+      <p><strong>Honours bands (both universities):</strong> Highest Distinction 4.50&ndash;5.00; Distinction 4.00&ndash;4.49; Merit 3.50&ndash;3.99; Honours 3.00&ndash;3.49; Pass 2.00&ndash;2.99. Graduation minimum: 2.00. NTU adds FYP conditions for the top classes (e.g. Engineering/Computing&amp;DS need &ge; B+ FYP for Highest Distinction). <strong>Trap:</strong> neither university publishes percentage bands for letter grades — never use Wikipedia&rsquo;s bands.</p>
+
+      <h2>&ldquo;What do I need on the final?&rdquo;</h2>
+      <p><strong>Formula:</strong> needed = (target &minus; (1&minus;w) &times; current) &divide; w, where w is the final&rsquo;s weight as a fraction. If the target is mathematically unreachable, the tool says so plainly (&ldquo;Even 100% on the final won&rsquo;t reach an A — the highest possible is B+&rdquo;) instead of showing a number; if you&rsquo;ve already secured the target it says that too. Where the region publishes percentage bands, you can pick a target grade and the tool fills in the band minimum.</p>
+
+      <h2>Estimates and UNVERIFIED items</h2>
+      <p>Anything here is labeled on screen wherever it appears. Nothing below is shipped as fact:</p>
+      <ul>
+        <li>Any national US %&harr;letter table (doesn&rsquo;t exist; school-specific) and GPA &divide; 4 &times; 100 conversions.</li>
+        <li>Weighted-GPA bumps as official policy (district conventions only).</li>
+        <li>US retake specifics as a national rule; &ldquo;D earns credit&rdquo; universality.</li>
+        <li>UKSCQA 2pp zone mechanics beyond the published recommendation; UK condonement rules.</li>
+        <li>GCSE grade-9 allocation; NI/Welsh/Scottish grade details; reformed-linear A* boundary statistics.</li>
+        <li>CBSE Circular 24/2010 primary text; VTU regulation PDFs primary text; MU circulars primary text (incl. the 7.1 vs 7.25 conflict); CISCE regulations primary text; state-board documents beyond Maharashtra.</li>
+        <li>NEB &ldquo;GPA &times; 25&rdquo; (no official formula exists — estimate only) and legacy nine-level scale points.</li>
+        <li>NUS failed-then-retaken module treatment; the claimed VTU (CGPA &minus; 0.50) &times; 10 notification (excluded from the tool).</li>
+      </ul>
+
+      <h2>Hand-verify any number</h2>
+      <ol>
+        <li>Note the region, preset/scheme, and the &ldquo;Formula used&rdquo; line under your result.</li>
+        <li>Find the matching formula on this page and recompute with your own calculator.</li>
+        <li>Check the grade&rarr;point mapping against the tables above and your institution&rsquo;s transcript key.</li>
+        <li>If anything disagrees, <a href="/contact/">tell us</a> — a wrong formula is worse than no formula.</li>
+      </ol>
+
+      <h2>Sources</h2>
+      <ul>
+        <li><a href="https://bigfuture.collegeboard.org/plan-for-college/get-started/how-to-calculate-gpa-4.0-scale">College Board BigFuture — how to calculate GPA (4.0 scale)</a></li>
+        <li><a href="https://catalog.missouri.edu/academicpolicies/grades/">University of Missouri Academic Catalog — grades</a></li>
+        <li><a href="https://catalog.umkc.edu/general-graduate-academic-regulations-information/general-graduate-academic-regulations/course-and-grading-policies/graduate-course-grading/">UMKC — repeated courses included in GPA since 1985</a></li>
+        <li><a href="https://dera.ioe.ac.uk/id/eprint/36040/contents">UKSCQA — Principles for effective degree algorithm design</a></li>
+        <li><a href="https://www.gov.uk/government/publications/glossary-for-ofquals-statistics/glossary-for-ofquals-statistics">Ofqual glossary for statistics (GCSE 9&ndash;1)</a></li>
+        <li><a href="https://www.jcq.org.uk/knowledge-hub/reformed-linear-gce-exams-in-england/">JCQ — reformed linear GCE exams</a></li>
+        <li><a href="http://www.icbse.com/cgpa">CBSE Circular No. 24/2010 — CGPA &times; 9.5 (via icbse.com)</a></li>
+        <li><a href="https://collegedunia.com/exams/icse-class-x-board/grading-system">Collegedunia — ICSE Class X grading system</a> and <a href="https://collegedunia.com/exams/isc/grading-system">ISC grading system</a></li>
+        <li><a href="https://vtu.ac.in/en/cgpa-standard-formula/">VTU CGPA standard formula page</a></li>
+        <li><a href="https://www.munotes.in/calculators">munotes.in — MU calculators (Engg circular 720/2015)</a></li>
+        <li><a href="https://www.bikrambhujel.com.np/p/neb-gpa-calculator.html">bikrambhujel.com.np — NEB GPA calculator (cites directive sections)</a></li>
+        <li><a href="https://www.ntu.edu.sg/media/docs/default-source/office-of-academic-services/academic-handbook-(undergraduate-studies)-ay2026-27v3.pdf?sfvrsn=69b13d12_1">NTU Academic Handbook AY2026-27</a></li>
+        <li><a href="https://nus.edu.sg/registrar/academic-information-policies/undergraduate-students/continuation-and-graduation-requirements">NUS Registrar — continuation and graduation requirements</a></li>
+      </ul>
+      <p><a href="/methodology/">&larr; Back to methodology overview</a></p>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+    <p>Your data stays in your browser. No accounts, no tracking, no servers.</p>
+    <p>&copy; 2026 <span data-brand="name"></span>. All rights reserved.</p>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/site.js"></script>
+</body>
+</html>

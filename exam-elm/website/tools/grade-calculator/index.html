@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grade Calculator — {{brand}}</title>
+<meta name="description" content="Free GPA and grade calculator for US, UK, CBSE, ICSE/ISC, VTU, Mumbai University, NEB, NUS/NTU and more. Weighted GPA, percentage conversions and 'what do I need on the final?' — every formula shown, nothing leaves your device." />
+<link rel="canonical" href="https://studypilot.pages.dev/tools/grade-calculator/" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Grade Calculator — {{brand}}","url":"https://studypilot.pages.dev/tools/grade-calculator/","applicationCategory":"EducationalApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Free GPA and grade calculator for US, UK, CBSE, ICSE/ISC, VTU, Mumbai University, NEB, NUS/NTU and more. Weighted GPA, percentage conversions and 'what do I need on the final?' — every formula shown, nothing leaves your device."}</script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+<meta name="theme-color" content="#312e81" />
+<link rel="stylesheet" href="/assets/css/main.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+<a class="skip" href="/tools/grade-calculator/#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark" aria-hidden="true"></span><span data-brand="name"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/tools/timetable/">Timetable</a>
+      <a href="/tools/grade-calculator/" aria-current="page">Grade Calculator</a>
+      <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+      <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/study-space/">My Study Space</a>
+      <a href="/ai-chat/">AI Chat</a>
+      <a href="/ai-workflows/">AI Tools</a>
+      <a href="/guides/">Guides</a>
+      <a href="/about/">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">&#9776;</button>
+    </div>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
+    <a href="/">Home</a>
+    <a href="/tools/timetable/">Timetable</a>
+    <a href="/tools/grade-calculator/" aria-current="page">Grade Calculator</a>
+    <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
+    <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/study-space/">My Study Space</a>
+    <a href="/ai-chat/">AI Chat</a>
+    <a href="/ai-workflows/">AI Tools</a>
+    <a href="/guides/">Guides</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+
+<main id="main" class="wrap section">
+  <p class="eyebrow">Free tool</p>
+  <h1>Grade Calculator</h1>
+  <p class="muted">Weighted GPA, percentage conversions and &ldquo;what do I need on the final?&rdquo; — using your education system&rsquo;s real grading rules, with every formula shown so you can verify the result. Your courses never leave this device.</p>
+
+  <section class="card no-print" aria-labelledby="region-h">
+    <h2 id="region-h">Your education system</h2>
+    <div class="field">
+      <label for="regionSelect">Region</label>
+      <select id="regionSelect" disabled>
+        <option value="">Loading regions&hellip;</option>
+      </select>
+      <p class="hint" id="regionHint"></p>
+    </div>
+    <div id="regionMeta"></div>
+  </section>
+
+  <section class="card no-print" id="toolCard" hidden>
+    <h2 id="toolTitle">Calculator</h2>
+    <div id="regionControls"></div>
+    <div id="courseRowsWrap">
+      <h3 id="coursesTitle">Your courses</h3>
+      <div id="courseRows" class="gc-rows"></div>
+      <div class="btn-row left">
+        <button class="btn btn-ghost btn-sm" type="button" id="addCourse">+ Add course</button>
+        <button class="btn btn-ghost btn-sm danger" type="button" id="clearRows">Start over</button>
+      </div>
+    </div>
+    <div class="btn-row left">
+      <button class="btn btn-primary" type="button" id="calculate">Calculate</button>
+    </div>
+    <p class="error" id="formError" role="alert" hidden></p>
+  </section>
+
+  <section class="result" id="result" aria-live="polite" hidden>
+    <div id="resultBody"></div>
+  </section>
+
+  <section class="card no-print" aria-labelledby="final-h">
+    <h2 id="final-h">What do I need on the final?</h2>
+    <div class="grid grid-2">
+      <div class="field">
+        <label for="curPct">Current overall %</label>
+        <input type="number" id="curPct" min="0" max="100" step="0.5" inputmode="decimal" />
+      </div>
+      <div class="field">
+        <label for="finalWeight">Final exam weight %</label>
+        <input type="number" id="finalWeight" min="0" max="100" step="1" inputmode="decimal" />
+        <p class="hint">How much the final is worth, e.g. 40.</p>
+      </div>
+      <div class="field">
+        <label for="targetPct">Target final %</label>
+        <input type="number" id="targetPct" min="0" max="100" step="0.5" inputmode="decimal" />
+      </div>
+      <div class="field" id="finalGradeWrap" hidden>
+        <label for="finalGrade">Target grade (optional)</label>
+        <select id="finalGrade">
+          <option value="">— pick a grade to fill the target —</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row left">
+      <button class="btn btn-primary" type="button" id="calcFinal">Calculate needed score</button>
+    </div>
+    <p class="error" id="finalError" role="alert" hidden></p>
+    <div id="finalResult" hidden></div>
+  </section>
+
+  <p class="muted">Every formula on this page is documented with its source on the <a href="/methodology/grade-calculator/">grade calculator methodology page</a> — hand-verify any number.</p>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <nav aria-label="Footer">
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/guides/">Guides</a>
+    </nav>
+    <p>Your data stays in your browser. No accounts, no tracking, no servers.</p>
+    <p>&copy; 2026 <span data-brand="name"></span>. All rights reserved.</p>
+  </div>
+</footer>
+
+<script type="module" src="/assets/js/page-grade-calculator.js"></script>
+</body>
+</html>
