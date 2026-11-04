@@ -66,14 +66,15 @@ button, input, select, textarea { font: inherit; }
 /* Nav */
 .nav { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
 .nav-inner { display: flex; align-items: center; gap: 1rem; height: 64px; }
+.nav .wrap { max-width: 1360px; }
 .brand { display: flex; align-items: center; gap: 0.55rem; font-weight: 800; font-size: 1.15rem; color: var(--text); text-decoration: none; }
 .brand-mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--indigo-700), var(--indigo-900)); display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem; }
 .brand-mark::after { content: "✈"; }
 .nav-links { display: none; gap: 0.25rem; margin-left: auto; }
-.nav-links a { padding: 0.5rem 0.8rem; border-radius: 9px; text-decoration: none; color: var(--muted); font-weight: 600; }
+.nav-links a { padding: 0.5rem 0.65rem; border-radius: 9px; text-decoration: none; color: var(--muted); font-weight: 600; font-size: 0.93rem; white-space: nowrap; }
 .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--text); background: var(--bg-soft); }
 .nav-actions { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; }
-@media (min-width: 900px) {
+@media (min-width: 1280px) {
   .nav-links { display: flex; }
   .nav-actions { margin-left: 0.5rem; }
   #menuBtn { display: none; }
