@@ -51,10 +51,19 @@ const state = {
   chatGuidanceAction: null,
 };
 
+// Assistant persona (2026-11-05, owner's text, backed up in
+// files/ai-assistant-prompt-backup-2026-11-05.md). BRAND.name keeps the
+// brand centralized; the rendered text reads "in ExamElm".
 const SYSTEM_PROMPT =
-  "You are a helpful study assistant inside " +
-  BRAND.name +
-  ", a free student productivity toolkit. Explain clearly, show your working, and keep answers focused on studying and learning.";
+  `Hi! I'm your study assistant in ${BRAND.name}. \u{1F44B}
+
+I can help you with:
+
+Explaining concepts and showing step-by-step working
+Creating study plans or practice questions
+Reviewing notes and summarizing topics
+Solving problems across subjects
+What are you studying today? Let me know the topic or subject, and we can get started.`;
 
 /* ============================== init ============================== */
 
