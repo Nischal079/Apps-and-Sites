@@ -91,51 +91,115 @@ test("RC-10: OpenAI cors is supported, note cites the 2026-11-05 probes", () => 
 
 /* ---------------- RC-3: testConnection model validation ---------------- */
 
-test("RC-3: testConnection verifies a listed model", async () => {
+test("RC-3: testConnection verifies a listed model AND proves the key", async () => {
   const { ps } = await freshStore();
   const c = await addProvider(ps);
-  const fakeFetch = async () =>
-    jsonResponse({ data: [{ id: "gpt-4o-mini" }, { id: "gpt-4o" }] });
+  const calls = [];
+  const fakeFetch = async (url, opts) => {
+    calls.push([url, opts]);
+    if (String(url).endsWith("/models"))
+      return jsonResponse({ data: [{ id: "gpt-4o-mini" }, { id: "gpt-4o" }] });
+    // Tiny completion proving the key: exact prompt, tiny cap, configured model.
+    const body = JSON.parse(opts.body);
+    assertEq(body.messages, [{ role: "user", content: "Reply with the single word: ok" }]);
+    assertEq(body.max_tokens, 8);
+    assertEq(body.model, "gpt-4o-mini");
+    assertEq(opts.headers.Authorization, "Bearer " + SECRET, "proof must carry the key");
+    return jsonResponse({ choices: [{ message: { content: "ok" } }] });
+  };
   const r = await ps.testConnection(c.id, fakeFetch);
   assertEq(r.ok, true);
   assertEq(r.models, 2);
   assertEq(r.modelVerified, true);
+  assertEq(r.keyVerified, true);
   assertEq(r.listUnavailable, false);
   assertEq(r.model, "gpt-4o-mini");
   assert(r.message.includes("gpt-4o-mini verified"), "message must name the verified model");
+  assert(r.message.includes("key verified"), "message must say the key was verified");
+  assertEq(calls.length, 2, "one list attempt + one tiny completion proving the key");
   assertEq(ps.get(c.id).modelsCache, ["gpt-4o-mini", "gpt-4o"]);
 });
 
-test("RC-3: testConnection flags a model missing from the list", async () => {
+// The public-/models trap (OpenRouter serves /models with no auth): a bad
+// key still lists fine, so the test must FAIL on the tiny completion's 401.
+test("RC-3: public list + bad key fails on the tiny completion (key proof)", async () => {
   const { ps } = await freshStore();
-  const c = await addProvider(ps, { defaultModel: "gpt-9-nope" });
-  const fakeFetch = async () => jsonResponse({ data: [{ id: "gpt-4o-mini" }] });
-  const r = await ps.testConnection(c.id, fakeFetch);
-  assertEq(r.ok, true);
-  assertEq(r.models, 1);
-  assertEq(r.modelVerified, false);
-  assertEq(r.listUnavailable, false);
-  assert(r.message.includes("not in the provider's list"), "message must flag the missing model");
-  // A missing model is still a successful connection: the key works.
-  assertEq(ps.get(c.id).lastTest.modelVerified, false);
+  const c = await addProvider(ps);
+  const calls = [];
+  const fakeFetch = async (url, opts) => {
+    calls.push([url, opts]);
+    if (String(url).endsWith("/models"))
+      return jsonResponse({ data: [{ id: "gpt-4o-mini" }, { id: "gpt-4o" }] });
+    return new Response('{"error":{"message":"Missing Authentication header","code":401}}', { status: 401 });
+  };
+  const err = await assertThrowsAsync(() => ps.testConnection(c.id, fakeFetch));
+  assertEq(err.code, "invalid-key");
+  assertEq(calls.length, 2, "list succeeded, then the proof completion ran and 401d");
+  const lt = ps.get(c.id).lastTest;
+  assertEq(lt.ok, false, "a bad key must never record ok:true");
+  assertEq(lt.keyVerified, false);
+  assert(lt.message.includes("Invalid API key"), "failure must name the key error");
 });
 
-test("RC-3: testConnection with no model to check returns modelVerified null", async () => {
+test("RC-3: testConnection fails honestly when the configured model is missing from the list", async () => {
+  const { ps } = await freshStore();
+  const c = await addProvider(ps, { defaultModel: "gpt-9-nope" });
+  const fakeFetch = async (url) =>
+    String(url).endsWith("/models")
+      ? jsonResponse({ data: [{ id: "gpt-4o-mini" }] })
+      : new Response("no such model", { status: 404 });
+  // The list flags the model as missing AND the proof completion 404s:
+  // the configured model does not work, so the test must fail, not
+  // record a green "Connected".
+  const err = await assertThrowsAsync(() => ps.testConnection(c.id, fakeFetch));
+  assertEq(err.code, "model-not-found");
+  assertEq(ps.get(c.id).lastTest.ok, false);
+  assertEq(ps.get(c.id).lastTest.keyVerified, false);
+});
+
+test("RC-3: model missing from a stale list but working via completion still verifies", async () => {
+  const { ps } = await freshStore();
+  const c = await addProvider(ps, { defaultModel: "gpt-9-new" });
+  const fakeFetch = async (url) =>
+    String(url).endsWith("/models")
+      ? jsonResponse({ data: [{ id: "gpt-4o-mini" }] })
+      : jsonResponse({ choices: [{ message: { content: "ok" } }] });
+  const r = await ps.testConnection(c.id, fakeFetch);
+  assertEq(r.ok, true);
+  assertEq(r.modelVerified, true, "a successful completion proves the model works");
+  assertEq(r.keyVerified, true);
+  assertEq(r.model, "gpt-9-new");
+});
+
+test("RC-3: testConnection with no model to check returns modelVerified null and key unverified", async () => {
   const { ps } = await freshStore();
   const c = await addProvider(ps, { defaultModel: "" });
-  const fakeFetch = async () => jsonResponse({ data: [{ id: "gpt-4o-mini" }] });
+  const calls = [];
+  const fakeFetch = async (url, opts) => {
+    calls.push([url, opts]);
+    return jsonResponse({ data: [{ id: "gpt-4o-mini" }] });
+  };
   const r = await ps.testConnection(c.id, fakeFetch);
   assertEq(r.ok, true);
   assertEq(r.modelVerified, null);
   assertEq(r.model, null);
+  assertEq(r.keyVerified, false, "with no model there is nothing to prove the key with");
+  assert(r.message.includes("key not verified"), "message must say the key was not verified");
+  assert(r.message.includes("add a model to verify it"), "message must say how to verify it");
+  assertEq(calls.length, 1, "no tiny completion without a model to complete with");
 });
 
 test("RC-3: explicit model param overrides config.defaultModel", async () => {
   const { ps } = await freshStore();
   const c = await addProvider(ps, { defaultModel: "gpt-4o-mini" });
-  const fakeFetch = async () => jsonResponse({ data: [{ id: "gpt-4o" }] });
+  const fakeFetch = async (url, opts) => {
+    if (String(url).endsWith("/models")) return jsonResponse({ data: [{ id: "gpt-4o" }] });
+    assertEq(JSON.parse(opts.body).model, "gpt-4o", "proof completion must use the explicit model");
+    return jsonResponse({ choices: [{ message: { content: "ok" } }] });
+  };
   const r = await ps.testConnection(c.id, fakeFetch, "gpt-4o");
   assertEq(r.modelVerified, true);
+  assertEq(r.keyVerified, true);
   assertEq(r.model, "gpt-4o");
 });
 
@@ -161,9 +225,10 @@ test("RC-5: list 404 falls back to tiny completion and reports list-unavailable"
     ok: true,
     models: null,
     modelVerified: true,
+    keyVerified: true,
     listUnavailable: true,
     model: "gpt-4o-mini",
-    message: "Connected (model list unavailable) · model gpt-4o-mini verified",
+    message: "Connected (model list unavailable) · model gpt-4o-mini verified · key verified",
     at: r.at,
   });
   assertEq(calls.length, 2, "one list attempt + one tiny completion");
@@ -209,6 +274,7 @@ test("RC-2: lastTest is persisted on success (survives a reload)", async () => {
   assertEq(saved.lastTest.ok, true);
   assertEq(saved.lastTest.models, 1);
   assertEq(saved.lastTest.modelVerified, true);
+  assertEq(saved.lastTest.keyVerified, true, "a passing test must have proved the key");
   assert(typeof saved.lastTest.at === "number", "lastTest needs a timestamp");
   // A fresh store loading the same storage sees the persisted result.
   const ps2 = new ProviderStore(storage);
@@ -225,6 +291,7 @@ test("RC-2: lastTest is persisted on failure too", async () => {
   assertEq(lt.ok, false);
   assertEq(lt.models, null);
   assertEq(lt.modelVerified, null);
+  assertEq(lt.keyVerified, false, "a failed test never proved the key");
   assertEq(lt.listUnavailable, false);
   assert(lt.message.includes("Invalid API key"), "failure message must be the mapped error");
   assert(typeof lt.at === "number");
@@ -263,6 +330,23 @@ test("RC-2: formatTestResult renders every lastTest shape", () => {
   assertEq(
     formatTestResult({ ok: true, models: 42, modelVerified: false, listUnavailable: false, model: "xyz", message: "x", at }),
     "Connected · 42 models listed · model xyz not in the provider's list · 12:03"
+  );
+  assertEq(
+    formatTestResult({ ok: true, models: 42, modelVerified: true, keyVerified: true, listUnavailable: false, model: "gpt-4o-mini", message: "x", at }),
+    "Connected · 42 models listed · model gpt-4o-mini verified · key verified · 12:03"
+  );
+  assertEq(
+    formatTestResult({ ok: true, models: 42, modelVerified: null, keyVerified: false, listUnavailable: false, model: null, message: "x", at }),
+    "Connected · 42 models listed · key not verified (add a model to verify it) · 12:03"
+  );
+  assertEq(
+    formatTestResult({ ok: true, models: null, modelVerified: true, keyVerified: true, listUnavailable: true, model: "xyz", message: "x", at }),
+    "Connected (model list unavailable) · model xyz verified · key verified · 12:03"
+  );
+  // Old records without keyVerified render exactly as before.
+  assertEq(
+    formatTestResult({ ok: true, models: 42, modelVerified: true, listUnavailable: false, model: "gpt-4o-mini", message: "x", at }),
+    "Connected · 42 models listed · model gpt-4o-mini verified · 12:03"
   );
   assertEq(
     formatTestResult({ ok: true, models: 42, modelVerified: null, listUnavailable: false, model: null, message: "x", at }),

@@ -559,9 +559,11 @@ test("testConnection: success caches models (mocked fetch)", async () => {
   const r = await ps.testConnection(c.id, fakeFetch);
   assert(r.ok === true && r.models === 2, "ok + count");
   assert(r.modelVerified === null, "no model configured to check");
+  assert(r.keyVerified === false, "no model configured, so the key could not be proven");
   assert(r.listUnavailable === false, "list worked");
   assert(typeof r.at === "number", "timestamp recorded");
   assert(String(r.message).includes("2 models listed"), "message names the count");
+  assert(String(r.message).includes("key not verified"), "message must say the key was not verified");
   assert(calls[0][1].headers.Authorization === "Bearer " + SECRET);
   assertEq(ps.get(c.id).modelsCache, ["m1", "m2"]);
   assert(ps.get(c.id).lastTest && ps.get(c.id).lastTest.ok === true, "lastTest persisted");

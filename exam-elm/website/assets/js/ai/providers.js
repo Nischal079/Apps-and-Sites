@@ -155,7 +155,8 @@ export function formatTestResult(lastTest) {
   if (lastTest.listUnavailable) {
     const modelBit =
       lastTest.modelVerified && lastTest.model ? ` · model ${lastTest.model} verified` : "";
-    return `Connected (model list unavailable)${modelBit} · ${time}`;
+    const keyBit = lastTest.keyVerified ? " · key verified" : "";
+    return `Connected (model list unavailable)${modelBit}${keyBit} · ${time}`;
   }
   const countBit =
     typeof lastTest.models === "number" ? ` · ${lastTest.models} models listed` : "";
@@ -165,7 +166,16 @@ export function formatTestResult(lastTest) {
     else if (lastTest.modelVerified === false)
       modelBit = ` · model ${lastTest.model} not in the provider's list`;
   }
-  return `Connected${countBit}${modelBit} · ${time}`;
+  // keyVerified is true only when a real completion proved the key; false
+  // means the test never checked it (no model configured). Old records
+  // without the field render exactly as before.
+  const keyBit =
+    lastTest.keyVerified === true
+      ? " · key verified"
+      : lastTest.keyVerified === false
+        ? " · key not verified (add a model to verify it)"
+        : "";
+  return `Connected${countBit}${modelBit}${keyBit} · ${time}`;
 }
 
 function uid() {
@@ -746,16 +756,25 @@ export class ProviderStore {
   }
 
   /**
-   * Test a provider connection and validate the model.
+   * Test a provider connection, validate the model, AND prove the API key.
    *
    * testConnection(id, fetchImpl, model), where model is optional and defaults
    * to config.defaultModel. Returns:
    *   { ok:true, models:N, modelVerified:true|false|null,
-   *     listUnavailable:false, model, message }
+   *     keyVerified:true|false, listUnavailable:false, model, message }
    * where modelVerified is null when no model was given to check, and
    * `model` is the model that was checked (or null).
+   * KEY PROOF: a successful /models list alone proves nothing about the
+   * key: some providers (notably OpenRouter) serve /models publicly, so
+   * a bad key still lists fine. Whenever a model is configured, the test
+   * therefore also runs one tiny completion (8 max tokens) with that
+   * model; only a successful completion sets keyVerified:true. A 401 (or
+   * any other failure) from that completion fails the test honestly
+   * instead of recording a green "Connected". With no model configured
+   * there is nothing to complete with, so the test reports the endpoint
+   * as reachable but keyVerified:false, never a plain "verified".
    * When the list endpoint 404s, falls back to a tiny completion and
-   * returns { ok:true, models:null, modelVerified:true,
+   * returns { ok:true, models:null, modelVerified:true, keyVerified:true,
    * listUnavailable:true, model, message } ("Connected (model list
    * unavailable)"). Any other non-OK list response throws the mapped error.
    * Every outcome (success or failure) is stored as config.lastTest and
@@ -799,10 +818,11 @@ export class ProviderStore {
               ok: true,
               models: null,
               modelVerified: modelToCheck ? true : null,
+              keyVerified: true,
               listUnavailable: true,
               model: modelToCheck || null,
               message: modelToCheck
-                ? `Connected (model list unavailable) · model ${modelToCheck} verified`
+                ? `Connected (model list unavailable) · model ${modelToCheck} verified · key verified`
                 : "Connected (model list unavailable)",
               at: Date.now(),
             };
@@ -813,22 +833,31 @@ export class ProviderStore {
           throw adapter.mapHttpError(res.status, body);
         }
         const models = adapter.parseModelList(await res.json().catch(() => ({})));
-        const modelVerified = modelToCheck ? models.includes(modelToCheck) : null;
         await this.update(id, {
           modelsCache: models.slice(0, 200),
           modelsCachedAt: new Date().toISOString(),
         });
+        if (modelToCheck) {
+          // A listed /models response proves the endpoint is reachable
+          // and the model ID exists, but NOT the key: OpenRouter serves
+          // /models publicly, so a bad key lists fine. Prove the key with
+          // one tiny completion (8 max tokens) using the configured
+          // model; any failure (401 invalid key, 404 unknown model, ...)
+          // fails the test honestly instead of recording "Connected".
+          // A successful completion also proves the model works, even
+          // when the list itself is stale or partial.
+          await this._tinyCompletionCheck(withKey, modelToCheck, f);
+        }
         const result = {
           ok: true,
           models: models.length,
-          modelVerified,
+          modelVerified: modelToCheck ? true : null,
+          keyVerified: modelToCheck ? true : false,
           listUnavailable: false,
           model: modelToCheck || null,
           message: modelToCheck
-            ? modelVerified
-              ? `Connected · ${models.length} models listed · model ${modelToCheck} verified`
-              : `Connected · ${models.length} models listed · model ${modelToCheck} not in the provider's list`
-            : `Connected · ${models.length} models listed`,
+            ? `Connected · ${models.length} models listed · model ${modelToCheck} verified · key verified`
+            : `Connected · ${models.length} models listed · key not verified (add a model to verify it)`,
           at: Date.now(),
         };
         await record(result);
@@ -841,10 +870,11 @@ export class ProviderStore {
         ok: true,
         models: null,
         modelVerified: modelToCheck ? true : null,
+        keyVerified: true,
         listUnavailable: true,
         model: modelToCheck || null,
         message: modelToCheck
-          ? `Connected (model list unavailable) · model ${modelToCheck} verified`
+          ? `Connected (model list unavailable) · model ${modelToCheck} verified · key verified`
           : "Connected (model list unavailable)",
         at: Date.now(),
       };
@@ -855,6 +885,7 @@ export class ProviderStore {
         ok: false,
         models: null,
         modelVerified: null,
+        keyVerified: false,
         listUnavailable: false,
         model: modelToCheck || null,
         message: err && err.message ? err.message : String(err),
