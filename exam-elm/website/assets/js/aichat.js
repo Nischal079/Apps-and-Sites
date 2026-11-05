@@ -315,6 +315,7 @@ function renderChatModelList() {
   wrap.innerHTML =
     `<h4 class="provider-subhead">Models</h4>` +
     `<div class="model-list">${modelRows}</div>` +
+    `<div class="btn-row left"><button type="button" class="btn btn-sm btn-ghost" data-act="discover" data-id="${esc(c.id)}">Discover models</button></div>` +
     inlineAddHtml +
     (c.modelsCache && c.modelsCache.length
       ? `<div class="list-item-meta">${c.modelsCache.length} models discovered</div>`
