@@ -99,7 +99,12 @@ export class OpenAICompatibleAdapter extends BaseAdapter {
     if (maxTokens) body.max_tokens = maxTokens;
     if (stream) {
       body.stream = true;
-      body.stream_options = { include_usage: true };
+      // stream_options is documented only for OpenAI and OpenRouter.
+      // Other OpenAI-compatible endpoints (DeepSeek, custom, …) may reject
+      // unknown fields with 400, and omitting it is safe: it is optional.
+      if (config.builtinId === "openai" || config.builtinId === "openrouter") {
+        body.stream_options = { include_usage: true };
+      }
     }
     return {
       url: this.endpoint(config, "/chat/completions"),

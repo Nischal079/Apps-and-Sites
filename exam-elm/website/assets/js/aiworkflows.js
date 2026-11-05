@@ -17,6 +17,7 @@ import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
 import { ProviderStore } from "./ai/providers.js";
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
+import { modelForProviderChange, missingKeyMessage } from "./ai/chatui.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, estimateTokens, formatUsd } from "./ai/costs.js";
 import {
@@ -197,6 +198,11 @@ function initProviders() {
 
 function wireProviderBar() {
   $("provSelect").addEventListener("change", () => {
+    // RC-4: provider CHANGE resets the model to the new provider's default
+    // first — never carry a model across providers. Save after the reset so
+    // the persisted pair is consistent.
+    const next = state.providers.get($("provSelect").value);
+    $("provModel").value = modelForProviderChange($("provModel").value, next ? next.defaultModel : "");
     syncModelList();
     saveLastUsed($("provSelect").value, $("provModel").value.trim());
   });
@@ -218,7 +224,9 @@ function syncModelList() {
     o.value = m;
     dl.appendChild(o);
   }
-  if (c && c.defaultModel && !$("provModel").value) $("provModel").value = c.defaultModel;
+  // NOTE (RC-4): this must NOT touch the model value. The reset happens only
+  // on a provider change (wireProviderBar); resetting here would wipe a
+  // user's typed model on every unrelated re-render.
   updateKeyBadge();
   refreshAllCosts();
 }
@@ -330,9 +338,20 @@ async function runStream({ messages, maxTokens, outputEl, sendBtn, stopBtn, plac
     const p = document.createElement("p");
     p.className = "hint";
     const cancelled = err instanceof AIError && err.code === "aborted";
-    p.textContent = cancelled ? "Cancelled." : "Couldn't complete: " + friendly(err);
+    // RC-1: a missing key for a previously verified or last-used provider
+    // was most likely lost on a page reload (memory-only) — say so.
+    let msg = friendly(err);
+    if (!cancelled && err instanceof AIError && err.code === "invalid-key") {
+      const lastUsed = loadLastUsed();
+      const hadVerified = !!(prov.config.lastTest && prov.config.lastTest.ok);
+      const wasLastUsed = !!(lastUsed && lastUsed.providerId === prov.config.id);
+      if (hadVerified || wasLastUsed) {
+        msg = missingKeyMessage({ hadVerified, wasLastUsed });
+      }
+    }
+    p.textContent = cancelled ? "Cancelled." : "Couldn't complete: " + msg;
     outputEl.appendChild(p);
-    if (!cancelled) toast(friendly(err));
+    if (!cancelled) toast(msg);
     return null;
   } finally {
     setBusy(sendBtn, stopBtn, false);

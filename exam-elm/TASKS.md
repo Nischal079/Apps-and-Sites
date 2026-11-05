@@ -88,3 +88,14 @@ Authoritative spec: user's MASTER DEVELOPMENT EXECUTION ORDER + files/architectu
 - [x] Pure logic in assets/js/ai/chatui.js + tests/aichat-ui.test.js (13 tests); full suite 282/282 green (269 baseline + 13 new), node --check clean, CSP/ID/external-resource/innerHTML/em-dash audits clean; sw.js precache + v11 bump; TESTING.md + KNOWN-ISSUES.md updated
 - [x] Pre-existing uncommitted work preserved in the same commit: costs.js price re-verification + launch-checklist.md note
 - [ ] Visual QA + real-provider smoke pass outstanding — flagged in KNOWN-ISSUES.md (needs human eyes / live browser); deployment handled separately by coordinator (NOT pushed)
+
+### Step 2 — AI provider connection fixes ✅ COMPLETE (2026-11-05, audit RC-1..RC-10)
+- [x] Audit first (read-only, files/ai-provider-audit-2026-11-05.md): verdict code bugs, not a CORS block; zero website/ changes during audit
+- [x] RC-1 inline encrypted-storage offer at key entry + explicit key-lost-on-reload messaging (memory-only default preserved)
+- [x] RC-2 persisted lastTest per provider, rendered in the card after re-render (success and failure survive)
+- [x] RC-4 model always reset to the new provider's default on provider change (both pages); saveLastUsed ordered after reset
+- [x] RC-3 testConnection validates the configured model; RC-5 /models-404 falls back to tiny completion
+- [x] RC-6 Regenerate missing-key surfaces an inline error (no more silent unhandled rejection)
+- [x] RC-8 stream_options gated to openai/openrouter; RC-9 completeOnce abort-race + zero-token JSON fallback; RC-10 OpenAI cors "blocked" → "supported" (probe-verified, browser confirmation pending); RC-7 custom endpoints made honest in the form (no backend proxy)
+- [x] Tests: 315/315 green (16 files), run twice; 3 stale ai.test.js expectations updated to the new contract; node --check clean; CSP/ID/innerHTML/em-dash audits clean; TESTING.md + KNOWN-ISSUES.md updated
+- [ ] Live provider end-to-end verification outstanding — needs the user's key in the live app (Step 4); Step 3 (Settings UI redesign) NOT started

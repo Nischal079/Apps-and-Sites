@@ -14,11 +14,11 @@ import { esc, initTheme, injectBrand, toast } from "./ui.js";
 import { openStorage } from "./storage.js";
 import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
-import { ProviderStore, BUILTINS, builtinById } from "./ai/providers.js";
+import { ProviderStore, BUILTINS, builtinById, formatTestResult } from "./ai/providers.js";
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, formatUsd } from "./ai/costs.js";
-import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions } from "./ai/chatui.js";
+import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage } from "./ai/chatui.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,6 +34,10 @@ const state = {
   aborter: null,
   editingProvider: null,
   searchQuery: "",
+  // Provider id whose card shows the inline "encrypt & store" offer after a
+  // key was just kept in memory (RC-1). Session-only; cleared on dismiss or
+  // once the keys are encrypted.
+  encOfferFor: null,
 };
 
 const SYSTEM_PROMPT =
@@ -62,6 +66,12 @@ async function init() {
   $("gotoSettingsBtn").addEventListener("click", openSettings);
   updateChatAvailability();
   renderMessages(); // greeting empty state when no conversation is selected
+  // Deep links into Settings: the AI Tools page links to /ai-chat/#providers
+  // ("Manage providers & keys"). The old Providers tab is gone, so open the
+  // settings slide-over instead of landing on the page with it closed.
+  if (location.hash === "#providers" || location.hash === "#settings") {
+    openSettings();
+  }
 }
 
 /* ======================= app shell: sidebar + settings ======================= */
@@ -157,6 +167,25 @@ function renderProviders() {
     const keyState = state.providers.hasKey(c.id)
       ? '<span class="badge ok">Key in memory</span>'
       : '<span class="badge">No key set</span>';
+    // Persisted last-test line (RC-2): survives re-renders, so a verified
+    // provider stays visibly verified. Empty when never tested.
+    const testLine = formatTestResult(c.lastTest || null);
+    const testLineHtml =
+      `<p class="hint" data-role="test-result" aria-live="polite"` +
+      (c.lastTest && c.lastTest.ok ? ` style="color: var(--ok, #15803d)"` : "") +
+      `>${esc(testLine)}</p>`;
+    // Inline encrypted-storage offer (RC-1): shown after a key was just kept
+    // in memory, only while that key is still in memory and no encrypted
+    // storage is set up yet (the setup form is hidden once it exists, so
+    // the shortcut would have nowhere to scroll to).
+    const encOfferHtml =
+      state.encOfferFor === c.id && state.providers.hasKey(c.id) && !state.providers.encryptedAtRest
+        ? `<p class="hint">Key kept in memory for this tab only.</p>` +
+          `<div class="btn-row">` +
+          `<button type="button" class="btn btn-sm" data-act="enc-offer" data-id="${esc(c.id)}">Encrypt &amp; store on this device</button>` +
+          `<button type="button" class="btn btn-sm btn-ghost" data-act="enc-dismiss" data-id="${esc(c.id)}">Dismiss</button>` +
+          `</div>`
+        : "";
     card.innerHTML =
       `<div class="list-item-title">${esc(c.name)} ${c.isDefault ? '<span class="badge">default</span>' : ""} ${keyState}</div>` +
       `<div class="list-item-meta">${esc(b.label || c.type)} · <code>${esc(c.baseUrl)}</code></div>` +
@@ -179,7 +208,8 @@ function renderProviders() {
          <button type="button" class="btn btn-sm btn-ghost" data-act="edit" data-id="${esc(c.id)}">Edit</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="remove" data-id="${esc(c.id)}">Remove</button>
        </div>` +
-      `<p class="hint" data-role="test-result" aria-live="polite"></p>` +
+      encOfferHtml +
+      testLineHtml +
       `<div data-role="edit-form" hidden></div>`;
     list.appendChild(card);
   }
@@ -203,9 +233,21 @@ async function onProviderAction(e) {
       const input = $("key-" + CSS.escape(id));
       state.providers.setKey(id, input.value);
       input.value = "";
+      state.encOfferFor = id; // offer encrypted storage inline (RC-1)
       toast("Key kept in memory for this tab.");
       renderProviders();
       renderChatSelectors();
+    } else if (act === "enc-offer") {
+      // Shortcut only: scroll to the passphrase field in the encrypted
+      // storage panel and focus it. The encrypt flow itself is unchanged.
+      const pass = $("encPassNew");
+      if (pass) {
+        pass.scrollIntoView({ block: "center" });
+        pass.focus();
+      }
+    } else if (act === "enc-dismiss") {
+      state.encOfferFor = null;
+      renderProviders();
     } else if (act === "forget-key") {
       state.providers.forgetKey(id);
       toast("Key forgotten.");
@@ -213,15 +255,26 @@ async function onProviderAction(e) {
     } else if (act === "test") {
       btn.disabled = true;
       say("Testing connection…", true);
-      const r = await state.providers.testConnection(id);
-      say(r.models ? `Connected · ${r.models} models listed.` : "Connected.", true);
+      // RC-2: say() is interim only. The result is persisted as
+      // config.lastTest by the store; the re-render shows it, so it
+      // survives (success and failure alike).
+      // RC-3: validate the model the user actually intends to chat with.
+      try {
+        await state.providers.testConnection(id, undefined, $("chatModel").value.trim() || undefined);
+      } catch (err) {
+        // Failure is persisted as lastTest by the store; the re-render
+        // below shows it. Never rely on the transient say() for results.
+      }
       renderProviders();
       renderChatSelectors();
     } else if (act === "discover") {
       btn.disabled = true;
       say("Discovering models…", true);
-      const r = await state.providers.discoverModels(id);
-      say(r.count ? `Found ${r.count} models.` : "Connected, but no model list returned · type the model ID manually.", true);
+      try {
+        await state.providers.discoverModels(id);
+      } catch (err) {
+        // Same as test: the outcome is persisted as lastTest; re-render shows it.
+      }
       renderProviders();
       renderChatSelectors();
     } else if (act === "default") {
@@ -291,7 +344,13 @@ function renderBuiltinSelect() {
   const sync = () => {
     const b = builtinById(sel.value);
     $("pvBaseUrl").value = b.defaultBaseUrl;
-    $("pvCorsNote").textContent = "Direct browser access: " + b.cors + ". " + b.corsNote;
+    // RC-7: a custom domain is refused by this page's browser security
+    // policy before any request is sent — say so plainly instead of the
+    // generic CORS note.
+    $("pvCorsNote").textContent =
+      b.id === "custom"
+        ? "Custom domains are blocked by this page's browser security policy (it allows only the five built-in provider domains) · a custom domain will be refused before any request is sent. Use a built-in provider instead."
+        : "Direct browser access: " + b.cors + ". " + b.corsNote;
     $("pvKeyHelp").textContent = b.keyHelp;
     if (! $("pvName").value) $("pvName").placeholder = "e.g. My " + b.label + " key";
   };
@@ -342,6 +401,7 @@ function wireEncButtons() {
       await state.providers.persistEncrypted(p1);
       $("encPassNew").value = "";
       $("encPassConfirm").value = "";
+      state.encOfferFor = null; // keys are stored now · the inline offer is moot
       toast("Keys encrypted and stored on this device.");
       renderEncPanel();
       renderProviders();
@@ -422,7 +482,9 @@ function syncModelDatalist() {
     o.value = m;
     dl.appendChild(o);
   }
-  if (c && c.defaultModel && !$("chatModel").value) $("chatModel").value = c.defaultModel;
+  // NOTE (RC-4): this must NOT touch the model value. The reset happens only
+  // on a provider change (wireComposer / selectConversation); resetting here
+  // would wipe a user's typed model on every unrelated re-render.
   updateCostLine();
   updateActiveModelLine();
 }
@@ -447,6 +509,11 @@ function updateCostLine() {
 
 function wireComposer() {
   $("chatProvider").addEventListener("change", () => {
+    // RC-4: provider CHANGE resets the model to the new provider's default
+    // first — never carry a model across providers. Save after the reset so
+    // the persisted pair is consistent.
+    const next = state.providers.get($("chatProvider").value);
+    $("chatModel").value = modelForProviderChange($("chatModel").value, next ? next.defaultModel : "");
     syncModelDatalist();
     saveLastUsed($("chatProvider").value, $("chatModel").value.trim());
   });
@@ -567,6 +634,10 @@ async function selectConversation(id) {
   renderMessages();
   if (rec.providerId && state.providers.get(rec.providerId)) {
     $("chatProvider").value = rec.providerId;
+    // RC-4: reset to the conversation provider's default before applying
+    // the conversation's own saved model (if any) below.
+    const next = state.providers.get(rec.providerId);
+    $("chatModel").value = modelForProviderChange($("chatModel").value, next ? next.defaultModel : "");
     syncModelDatalist();
   }
   if (rec.model) $("chatModel").value = rec.model;
@@ -668,7 +739,12 @@ async function onMessageAction(e) {
     state.conv.messages = state.conv.messages.slice(0, i);
     await persistConv();
     renderMessages();
-    await runCompletion();
+    // RC-6: a missing key must surface, not reject unhandled.
+    try {
+      await runCompletion();
+    } catch (err) {
+      toast(friendly(err));
+    }
   } else if (act === "save-note") {
     try {
       const title = "AI answer · " + new Date().toLocaleString();
@@ -716,7 +792,15 @@ async function sendPrompt() {
   try {
     key = state.providers.getKey(providerId);
   } catch (err) {
-    toast(friendly(err));
+    // RC-1: if this provider was verified or was last used, the key was
+    // most likely lost on a page reload (memory-only) — say so explicitly.
+    const lastUsed = loadLastUsed();
+    toast(
+      missingKeyMessage({
+        hadVerified: !!(config.lastTest && config.lastTest.ok),
+        wasLastUsed: !!(lastUsed && lastUsed.providerId === providerId),
+      })
+    );
     openSettings();
     return;
   }
@@ -744,13 +828,9 @@ async function sendPrompt() {
 }
 
 async function runCompletion(config, key, model, maxTokens) {
-  config = config || state.providers.get(state.conv.providerId);
-  const withKey = { ...config, apiKey: key || state.providers.getKey(config.id) };
-  model = model || state.conv.model;
-  maxTokens = maxTokens || state.conv.maxTokens || 1024;
-  const adapter = state.providers.adapterForConfig(config);
-
-  // Assistant placeholder.
+  // Assistant placeholder FIRST, so a failure resolving the key/config
+  // still has somewhere to report (RC-6: the old code threw before the
+  // try block, leaving Regenerate to fail silently).
   const box = $("messages");
   const wrap = document.createElement("div");
   wrap.className = "msg msg-assistant";
@@ -760,6 +840,26 @@ async function runCompletion(config, key, model, maxTokens) {
   wrap.appendChild(body);
   box.appendChild(wrap);
   box.scrollTop = box.scrollHeight;
+
+  let withKey;
+  let adapter;
+  try {
+    config = config || state.providers.get(state.conv.providerId);
+    withKey = { ...config, apiKey: key || state.providers.getKey(config.id) };
+    model = model || state.conv.model;
+    maxTokens = maxTokens || state.conv.maxTokens || 1024;
+    adapter = state.providers.adapterForConfig(config);
+  } catch (err) {
+    // Same inline shape as the stream-error path below; return without
+    // throwing so callers (Send, Regenerate) never see an unhandled
+    // rejection for a missing key.
+    body.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = "Couldn't complete: " + friendly(err);
+    body.appendChild(p);
+    return;
+  }
 
   setStreaming(true);
   state.aborter = new AbortController();

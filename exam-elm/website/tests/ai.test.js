@@ -32,7 +32,8 @@ const cfg = (over = {}) => ({
 
 test("openai-compatible: exact request shape, key in header not URL", () => {
   const a = new OpenAICompatibleAdapter();
-  const info = a.requestInfo(cfg(), {
+  // stream_options is sent only for known-compatible builtins (RC-8).
+  const info = a.requestInfo(cfg({ builtinId: "openai" }), {
     messages: [{ role: "user", content: "hi" }],
     model: "gpt-4o-mini",
     maxTokens: 100,
@@ -364,7 +365,7 @@ test("builtins carry honest CORS notes", () => {
     assert(["blocked", "supported", "unverified"].includes(b.cors), b.id);
   }
   assert(builtinById("anthropic").cors === "supported");
-  assert(builtinById("openai").cors === "blocked");
+  assert(builtinById("openai").cors === "supported"); // RC-10: live probes contradict the old "blocked" claim
 });
 
 test("testConnection: success caches models (mocked fetch)", async () => {
@@ -377,9 +378,14 @@ test("testConnection: success caches models (mocked fetch)", async () => {
     return new Response(JSON.stringify({ data: [{ id: "m1" }, { id: "m2" }] }), { status: 200 });
   };
   const r = await ps.testConnection(c.id, fakeFetch);
-  assertEq(r, { ok: true, models: 2 });
+  assert(r.ok === true && r.models === 2, "ok + count");
+  assert(r.modelVerified === null, "no model configured to check");
+  assert(r.listUnavailable === false, "list worked");
+  assert(typeof r.at === "number", "timestamp recorded");
+  assert(String(r.message).includes("2 models listed"), "message names the count");
   assert(calls[0][1].headers.Authorization === "Bearer " + SECRET);
   assertEq(ps.get(c.id).modelsCache, ["m1", "m2"]);
+  assert(ps.get(c.id).lastTest && ps.get(c.id).lastTest.ok === true, "lastTest persisted");
 });
 
 test("testConnection: 401 -> invalid-key; TypeError -> cors-blocked", async () => {

@@ -15,6 +15,32 @@ export const SUGGESTION_CHIPS = [
   "Summarize my notes",
 ];
 
+/**
+ * Reset rule for switching providers: a model belongs to exactly one
+ * provider, so the model field is always reset to the new provider's
+ * default (or blank when it has none). The previous model is never
+ * carried across providers. Pure; see tests/aichat-provider-fixes.test.js.
+ * `prevModel` is intentionally ignored — it only documents what was there.
+ */
+export function modelForProviderChange(prevModel, newDefaultModel) {
+  return newDefaultModel || "";
+}
+
+/**
+ * Message for a send that fails because no key is in memory. When the
+ * provider was previously verified (its last connection test succeeded)
+ * or was the last-used provider, the key was most likely lost on a page
+ * reload (keys live in memory only unless encrypted storage is enabled),
+ * so say that explicitly. Otherwise use the generic no-key message.
+ * Pure; never includes key material (it only takes booleans).
+ */
+export function missingKeyMessage({ hadVerified = false, wasLastUsed = false } = {}) {
+  if (hadVerified || wasLastUsed) {
+    return "Your key was kept in memory only and was lost when the page reloaded · re-enter it in Settings, or enable encrypted storage.";
+  }
+  return "No API key is set for this provider. Enter the key (kept in memory only) or unlock encrypted storage.";
+}
+
 /** Display title for a conversation row (the store leaves new chats titled). */
 export function sessionTitle(row) {
   const t = row && typeof row.title === "string" ? row.title.trim() : "";

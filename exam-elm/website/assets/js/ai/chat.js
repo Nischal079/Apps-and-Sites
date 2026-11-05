@@ -189,27 +189,75 @@ export async function streamChat(opts) {
       throw new AIError("network", `Stream interrupted: ${e && e.message ? e.message : e}`);
     }
     clearTimeout(timer);
+    // Non-streaming fallback (RC-9): some endpoints ignore `stream: true`
+    // and answer with a plain JSON body. The SSE parser then yields zero
+    // tokens. In that case, and only then, retry once, non-streaming,
+    // via completeOnce. Only one fallback per attempt; a JSON content type
+    // is required, so a genuinely empty SSE stream never falls back.
+    if (!text) {
+      let contentType = "";
+      try {
+        contentType = (res.headers && res.headers.get ? res.headers.get("content-type") : "") || "";
+      } catch {
+        contentType = "";
+      }
+      if (contentType.toLowerCase().includes("application/json")) {
+        const fb = await completeOnce({
+          adapter,
+          config,
+          messages,
+          model,
+          maxTokens,
+          signal,
+          timeoutMs,
+          fetchImpl: f,
+        });
+        if (fb && fb.text) return { text: fb.text, usage: null };
+      }
+    }
     return { text, usage };
   }
 }
 
 /** One-shot non-streaming completion (used sparingly; streaming is default). */
 export async function completeOnce(opts) {
-  const { adapter, config, messages, model, maxTokens, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl } = opts;
+  const { adapter, config, messages, model, maxTokens, signal, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl } = opts;
   const f = fetchImpl || globalThis.fetch;
   const info = adapter.requestInfo(config, { messages, model, maxTokens, stream: false });
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  const timer = setTimeout(
+    () =>
+      ctrl.abort(
+        new AIError(
+          "timeout",
+          `Request timed out after ${Math.round(timeoutMs / 1000)}s. The provider may be slow · try again.`
+        )
+      ),
+    timeoutMs
+  );
+  if (signal) {
+    if (signal.aborted) {
+      clearTimeout(timer);
+      throw new AIError("aborted", "Cancelled.");
+    }
+    signal.addEventListener("abort", () => ctrl.abort(new AIError("aborted", "Cancelled.")), { once: true });
+  }
   let res;
   try {
-    res = await f(info.url, {
+    const fetchP = f(info.url, {
       method: "POST",
       headers: info.headers,
       body: JSON.stringify(info.body),
       signal: ctrl.signal,
     });
-  } catch {
+    // Swallow late rejections: if abort wins the race, the underlying fetch
+    // may still reject later · it must not become an unhandled rejection.
+    fetchP.catch(() => {});
+    res = await Promise.race([fetchP, abortRejected(ctrl)]);
+  } catch (e) {
     clearTimeout(timer);
+    if (e instanceof AIError) throw e; // our own abort(reason)
+    if (e && e.name === "AbortError") throw new AIError("aborted", "Cancelled.");
     throw networkError(adapter.label);
   }
   clearTimeout(timer);

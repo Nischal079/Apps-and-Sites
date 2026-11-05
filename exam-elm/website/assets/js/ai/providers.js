@@ -34,9 +34,9 @@ export const BUILTINS = [
     label: "OpenAI",
     type: "openai-compatible",
     defaultBaseUrl: "https://api.openai.com/v1",
-    cors: "blocked",
+    cors: "supported",
     corsNote:
-      "Direct browser access is blocked: OpenAI's API sends no CORS headers, so browsers refuse the call. Use a custom endpoint pointed at your own local relay, or choose another provider below.",
+      "Preflight probes from this site (curl, 2026-11-05) show OpenAI allows direct browser requests, but real-browser confirmation is still pending. If Test connection reports a block, check the console error.",
     modelListing: true,
     docsUrl: "https://platform.openai.com/docs/api-reference",
     keyHelp: "Create a key at platform.openai.com → API keys. Billing is pay-as-you-go and separate from any ChatGPT subscription.",
@@ -107,6 +107,40 @@ export function builtinById(id) {
   return BUILTINS.find((b) => b.id === id) || null;
 }
 
+/**
+ * One-line display string for a stored lastTest record, e.g.
+ *   "Connected · 42 models listed · model gpt-4o-mini verified · 12:03"
+ *   "Connected · 42 models listed · model xyz not in the provider's list · 12:03"
+ *   "Connected (model list unavailable) · model xyz verified · 12:03"
+ *   "Test failed · Invalid API key for OpenAI (HTTP 401). Check the key… · 12:03"
+ * Time is HH:MM local. Returns "" for null/undefined input.
+ * Pure function: no I/O, no em dashes.
+ */
+export function formatTestResult(lastTest) {
+  if (!lastTest) return "";
+  const at = lastTest.at ? new Date(lastTest.at) : new Date();
+  const hh = String(at.getHours()).padStart(2, "0");
+  const mm = String(at.getMinutes()).padStart(2, "0");
+  const time = `${hh}:${mm}`;
+  if (!lastTest.ok) {
+    return `Test failed · ${lastTest.message || "Unknown error"} · ${time}`;
+  }
+  if (lastTest.listUnavailable) {
+    const modelBit =
+      lastTest.modelVerified && lastTest.model ? ` · model ${lastTest.model} verified` : "";
+    return `Connected (model list unavailable)${modelBit} · ${time}`;
+  }
+  const countBit =
+    typeof lastTest.models === "number" ? ` · ${lastTest.models} models listed` : "";
+  let modelBit = "";
+  if (lastTest.model) {
+    if (lastTest.modelVerified === true) modelBit = ` · model ${lastTest.model} verified`;
+    else if (lastTest.modelVerified === false)
+      modelBit = ` · model ${lastTest.model} not in the provider's list`;
+  }
+  return `Connected${countBit}${modelBit} · ${time}`;
+}
+
 function uid() {
   return (
     "prv_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10)
@@ -124,6 +158,7 @@ function publicConfig(c) {
     defaultModel: c.defaultModel || "",
     modelsCache: c.modelsCache || [],
     modelsCachedAt: c.modelsCachedAt || null,
+    lastTest: c.lastTest || null,
     isDefault: !!c.isDefault,
     updatedAt: c.updatedAt || new Date().toISOString(),
   };
@@ -198,6 +233,7 @@ export class ProviderStore {
       defaultModel: String(defaultModel || "").slice(0, 120),
       modelsCache: [],
       modelsCachedAt: null,
+      lastTest: null,
       isDefault: this.configs.size === 0,
       updatedAt: new Date().toISOString(),
     };
@@ -209,7 +245,13 @@ export class ProviderStore {
   async update(id, patch) {
     const c = this.get(id);
     if (!c) throw new Error("Provider not found.");
-    const allowed = ["name", "baseUrl", "defaultModel", "modelsCache", "modelsCachedAt"];
+    const allowed = ["name", "baseUrl", "defaultModel", "modelsCache", "modelsCachedAt", "lastTest"];
+    // Editing name, base URL or default model invalidates any earlier
+    // verification: the stored test result no longer describes this config.
+    // (A patch that itself carries a fresh lastTest wins over the clear.)
+    if (["name", "baseUrl", "defaultModel"].some((k) => patch[k] !== undefined)) {
+      c.lastTest = null;
+    }
     for (const k of allowed) {
       if (patch[k] !== undefined) {
         if (k === "baseUrl") {
@@ -343,36 +385,18 @@ export class ProviderStore {
     return adapterFor(config.type);
   }
 
-  /** Minimal cheap call: list models where supported, else a tiny completion. */
-  async testConnection(id, fetchImpl) {
-    const config = this.get(id);
-    if (!config) throw new Error("Provider not found.");
-    const key = this.getKey(id); // friendly error when missing
-    const adapter = this.adapterForConfig(config);
-    const withKey = { ...config, apiKey: key };
+  /**
+   * One tiny non-streaming completion, used to verify a provider whose
+   * model-list endpoint is unavailable (404) or absent. Returns the parsed
+   * completion ({text}); throws the mapped AIError on failure, including
+   * model-not-found when the model itself is wrong.
+   */
+  async _tinyCompletionCheck(withKey, model, fetchImpl) {
+    const adapter = this.adapterForConfig(withKey);
     const f = fetchImpl || globalThis.fetch;
-
-    const modelsReq = adapter.listModelsRequest(withKey);
-    if (modelsReq) {
-      let res;
-      try {
-        res = await f(modelsReq.url, { method: "GET", headers: modelsReq.headers });
-      } catch {
-        throw networkError(adapter.label);
-      }
-      if (!res.ok) {
-        const body = await res.text().catch(() => "");
-        throw adapter.mapHttpError(res.status, body);
-      }
-      const models = adapter.parseModelList(await res.json().catch(() => ({})));
-      await this.update(id, { modelsCache: models.slice(0, 200), modelsCachedAt: new Date().toISOString() });
-      return { ok: true, models: models.length };
-    }
-
-    // Fallback: one tiny non-streaming completion.
     const info = adapter.requestInfo(withKey, {
       messages: [{ role: "user", content: "Reply with the single word: ok" }],
-      model: config.defaultModel || "default",
+      model: model || "default",
       maxTokens: 8,
       stream: false,
     });
@@ -390,7 +414,127 @@ export class ProviderStore {
       const body = await res.text().catch(() => "");
       throw adapter.mapHttpError(res.status, body);
     }
-    return { ok: true, models: 0 };
+    return adapter.parseJsonResponse(await res.json().catch(() => ({})));
+  }
+
+  /**
+   * Test a provider connection and validate the model.
+   *
+   * testConnection(id, fetchImpl, model), where model is optional and defaults
+   * to config.defaultModel. Returns:
+   *   { ok:true, models:N, modelVerified:true|false|null,
+   *     listUnavailable:false, model, message }
+   * where modelVerified is null when no model was given to check, and
+   * `model` is the model that was checked (or null).
+   * When the list endpoint 404s, falls back to a tiny completion and
+   * returns { ok:true, models:null, modelVerified:true,
+   * listUnavailable:true, model, message } ("Connected (model list
+   * unavailable)"). Any other non-OK list response throws the mapped error.
+   * Every outcome (success or failure) is stored as config.lastTest and
+   * persisted, so the UI can render it after a re-render.
+   */
+  async testConnection(id, fetchImpl, model) {
+    const config = this.get(id);
+    if (!config) throw new Error("Provider not found.");
+    const modelToCheck =
+      model !== undefined && model !== null && String(model) !== ""
+        ? String(model)
+        : config.defaultModel || "";
+    const f = fetchImpl || globalThis.fetch;
+
+    const record = async (result) => {
+      try {
+        await this.update(id, { lastTest: result });
+      } catch {
+        /* best-effort: a failed persist must not mask the test outcome */
+      }
+    };
+
+    try {
+      const key = this.getKey(id); // friendly error when missing
+      const adapter = this.adapterForConfig(config);
+      const withKey = { ...config, apiKey: key };
+
+      const modelsReq = adapter.listModelsRequest(withKey);
+      if (modelsReq) {
+        let res;
+        try {
+          res = await f(modelsReq.url, { method: "GET", headers: modelsReq.headers });
+        } catch {
+          throw networkError(adapter.label);
+        }
+        if (!res.ok) {
+          if (res.status === 404) {
+            // Model listing unsupported · verify with a tiny completion.
+            await this._tinyCompletionCheck(withKey, modelToCheck, f);
+            const result = {
+              ok: true,
+              models: null,
+              modelVerified: modelToCheck ? true : null,
+              listUnavailable: true,
+              model: modelToCheck || null,
+              message: modelToCheck
+                ? `Connected (model list unavailable) · model ${modelToCheck} verified`
+                : "Connected (model list unavailable)",
+              at: Date.now(),
+            };
+            await record(result);
+            return result;
+          }
+          const body = await res.text().catch(() => "");
+          throw adapter.mapHttpError(res.status, body);
+        }
+        const models = adapter.parseModelList(await res.json().catch(() => ({})));
+        const modelVerified = modelToCheck ? models.includes(modelToCheck) : null;
+        await this.update(id, {
+          modelsCache: models.slice(0, 200),
+          modelsCachedAt: new Date().toISOString(),
+        });
+        const result = {
+          ok: true,
+          models: models.length,
+          modelVerified,
+          listUnavailable: false,
+          model: modelToCheck || null,
+          message: modelToCheck
+            ? modelVerified
+              ? `Connected · ${models.length} models listed · model ${modelToCheck} verified`
+              : `Connected · ${models.length} models listed · model ${modelToCheck} not in the provider's list`
+            : `Connected · ${models.length} models listed`,
+          at: Date.now(),
+        };
+        await record(result);
+        return result;
+      }
+
+      // No list endpoint at all: verify with a tiny completion.
+      await this._tinyCompletionCheck(withKey, modelToCheck, f);
+      const result = {
+        ok: true,
+        models: null,
+        modelVerified: modelToCheck ? true : null,
+        listUnavailable: true,
+        model: modelToCheck || null,
+        message: modelToCheck
+          ? `Connected (model list unavailable) · model ${modelToCheck} verified`
+          : "Connected (model list unavailable)",
+        at: Date.now(),
+      };
+      await record(result);
+      return result;
+    } catch (err) {
+      const failure = {
+        ok: false,
+        models: null,
+        modelVerified: null,
+        listUnavailable: false,
+        model: modelToCheck || null,
+        message: err && err.message ? err.message : String(err),
+        at: Date.now(),
+      };
+      await record(failure);
+      throw err;
+    }
   }
 
   async discoverModels(id, fetchImpl) {
