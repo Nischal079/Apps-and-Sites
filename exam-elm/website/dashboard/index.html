@@ -49,12 +49,14 @@
   </nav>
 </header>
 
-<main id="main">
+<main id="main" class="tool-page">
   <div class="wrap">
-    <div class="page-hero">
-      <p class="eyebrow">Control center</p>
-      <h1>Dashboard</h1>
-      <p>Everything in one place: your plans, syllabus progress, upcoming exams, and study materials. All of it lives in this browser · nothing leaves your device.</p>
+    <div class="tool-header">
+      <div class="wrap">
+        <p class="eyebrow">Control center</p>
+        <h1>Dashboard</h1>
+        <p>Everything in one place: your plans, syllabus progress, upcoming exams, and study materials. All of it lives in this browser · nothing leaves your device.</p>
+      </div>
     </div>
 
     <div id="degradedBanner" class="banner warn" hidden>
@@ -63,33 +65,33 @@
 
     <section aria-label="At a glance">
       <div class="stat-grid cols-4">
-        <div class="stat-card">
+        <div class="stat-card pastel-blue">
           <span class="stat-icon" aria-hidden="true">&#9719;</span>
-          <div>
+          <div class="stat-body">
             <div class="stat-num" id="statTimetables">0</div>
             <div class="stat-label">Saved timetables</div>
             <div class="stat-sub" id="statTimetablesSub"></div>
           </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card pastel-green">
           <span class="stat-icon t-green" aria-hidden="true">&#9745;</span>
-          <div>
+          <div class="stat-body">
             <div class="stat-num" id="statCoverage">n/a</div>
             <div class="stat-label">Syllabus coverage</div>
             <div class="stat-sub" id="statCoverageSub"></div>
           </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card pastel-rose">
           <span class="stat-icon t-rose" aria-hidden="true">&#9681;</span>
-          <div>
+          <div class="stat-body">
             <div class="stat-num" id="statNextExam">n/a</div>
             <div class="stat-label">Next exam</div>
             <div class="stat-sub" id="statNextExamSub"></div>
           </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card pastel-purple">
           <span class="stat-icon t-sky" aria-hidden="true">&#128196;</span>
-          <div>
+          <div class="stat-body">
             <div class="stat-num" id="statNotes">0</div>
             <div class="stat-label">Notes &amp; files</div>
             <div class="stat-sub" id="statNotesSub"></div>

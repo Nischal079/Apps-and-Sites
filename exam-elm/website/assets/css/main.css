@@ -22,8 +22,8 @@
   --primary: var(--indigo-700);
   --primary-contrast: #ffffff;
   --accent: var(--amber-500);
-  --radius: 14px;
-  --shadow: 0 10px 30px rgba(30, 27, 75, 0.08);
+  --radius: 16px;
+  --shadow: 0 4px 24px rgba(15, 23, 42, 0.07);
   --maxw: 1120px;
   color-scheme: light;
 }
@@ -149,11 +149,14 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.55); }
 .toast { position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%) translateY(20px); background: var(--indigo-950); color: #fff; padding: 0.8rem 1.3rem; border-radius: 12px; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 200; max-width: 90vw; text-align: center; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Footer */
-footer.site { border-top: 1px solid var(--border); margin-top: 3rem; padding: 2.2rem 0 2.6rem; color: var(--muted); font-size: 0.92rem; }
+/* Footer: dark indigo bar, like the Grade App footer. */
+footer.site { border-top: 0; margin-top: 3rem; padding: 2.4rem 0 2.8rem; background: var(--indigo-950); color: #c7d2fe; font-size: 0.92rem; }
 footer.site nav { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; margin: 0.8rem 0; }
-footer.site a { color: var(--muted); text-decoration: none; }
-footer.site a:hover { color: var(--text); }
+footer.site a { color: #c7d2fe; text-decoration: none; }
+footer.site a:hover { color: #fff; }
+footer.site strong { color: #fff; }
+footer.site .muted { color: #a5b4fc; }
+:root[data-theme="dark"] footer.site { background: #0f1530; }
 
 /* Prose pages */
 .prose { max-width: 720px; }
@@ -375,29 +378,36 @@ details.gc-details table { margin-top: 0.6rem; }
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--indigo-600), var(--indigo-700));
-  box-shadow: 0 6px 16px rgba(67, 56, 202, 0.28);
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
 }
 .btn-primary:hover { filter: brightness(1.1); }
 
-/* Gradient hero band (homepage) and page hero (dashboard, study space). */
-.hero-band {
-  background: linear-gradient(135deg, var(--indigo-700), var(--violet-700) 55%, var(--indigo-900));
-  color: #fff; border-radius: 22px; padding: 2.8rem 1.6rem; box-shadow: var(--shadow-lg);
+/* Full-bleed indigo header band for tool pages (Grade App style header).
+   Lives inside a .wrap container and bleeds to the viewport edges via
+   negative margins. Pages using it add class="tool-page" to <main> to drop
+   the section top padding so the band sits flush under the nav. */
+html, body { overflow-x: clip; }
+.tool-page { padding-top: 0; }
+.tool-header {
+  margin: 0 calc(50% - 50vw) 2rem; padding: 2.4rem 0 2.6rem;
+  background: linear-gradient(120deg, #4f46e5, #6d28d9 55%, #312e81); color: #fff;
 }
-.hero-band h1 { color: #fff; }
-.hero-band .lead { color: rgba(255, 255, 255, 0.88); }
-.hero-band .btn-primary { background: #fff; color: var(--indigo-900); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25); }
-.hero-band .btn-ghost { border-color: rgba(255, 255, 255, 0.55); color: #fff; }
-.hero-band .promise-pills li { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.28); color: #fff; }
-.page-hero {
-  background: linear-gradient(135deg, var(--indigo-700), var(--violet-700) 55%, var(--indigo-900));
-  color: #fff; border-radius: var(--radius-lg); padding: 1.7rem 1.5rem; margin: 1.2rem 0 1.6rem; box-shadow: var(--shadow-lg);
+.tool-header .eyebrow { color: rgba(255, 255, 255, 0.75); }
+.tool-header h1 { color: #fff; font-size: clamp(1.9rem, 4vw, 2.6rem); margin: 0.3rem 0 0.6rem; }
+.tool-header p { color: rgba(255, 255, 255, 0.88); max-width: 680px; margin: 0; }
+.tool-header .muted { color: rgba(255, 255, 255, 0.88); }
+
+/* Homepage hero: same gradient, full-bleed, centered. */
+.hero-gradient {
+  background: linear-gradient(120deg, #4f46e5, #6d28d9 55%, #312e81); color: #fff;
+  padding: 3.4rem 0 3rem; text-align: center;
 }
-.page-hero h1 { color: #fff; margin: 0 0 0.3rem; }
-.page-hero p { color: rgba(255, 255, 255, 0.88); margin: 0; }
-.page-hero .eyebrow { color: rgba(255, 255, 255, 0.75); }
-.page-hero .muted { color: rgba(255, 255, 255, 0.88); }
+.hero-gradient h1 { color: #fff; }
+.hero-gradient .lead { color: rgba(255, 255, 255, 0.88); }
+.hero-gradient .btn-primary { background: #fff; color: var(--indigo-900); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); }
+.hero-gradient .btn-ghost { border-color: rgba(255, 255, 255, 0.55); color: #fff; }
+.hero-gradient .promise-pills li { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.28); color: #fff; }
 
 /* Tinted icon tiles on tool cards. */
 .tool-card .ticon {
@@ -436,6 +446,100 @@ details.gc-details table { margin-top: 0.6rem; }
 .dash-link h3 { margin: 0 0 0.25rem; font-size: 1.05rem; }
 .dash-link p { margin: 0; color: var(--muted); font-size: 0.92rem; }
 .dash-link:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+
+/* ---------- Design system v2: screenshot palette + components ---------- */
+:root {
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-600: #2563eb;
+  --green-50: #f0fdf4;
+  --amber-50: #fffbeb;
+  --purple-50: #f5f3ff;
+  --purple-600: #7c3aed;
+  --rose-50: #fff1f2;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+:root[data-theme="dark"] {
+  --blue-50: rgba(37, 99, 235, 0.16);
+  --blue-100: rgba(37, 99, 235, 0.24);
+  --green-50: rgba(22, 163, 74, 0.14);
+  --amber-50: rgba(217, 119, 6, 0.14);
+  --purple-50: rgba(124, 58, 237, 0.16);
+  --rose-50: rgba(225, 29, 72, 0.14);
+}
+
+h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
+.btn-ghost { background: var(--surface); }
+input::placeholder, textarea::placeholder { color: #94a3b8; }
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], input[type="password"], input[type="url"], select, textarea {
+  border-radius: 12px;
+}
+
+/* Tabs: Grade App style — gray labels, indigo underline on active. */
+.tabs button { font-size: 0.95rem; padding: 0.85rem 1.1rem; }
+.tabs button.active { color: var(--primary); }
+
+/* Syllabus tracker: colored initial tiles + tinted progress bars. */
+.subj-tile {
+  width: 44px; height: 44px; border-radius: 12px; display: inline-flex; flex: none;
+  align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem;
+  background: var(--indigo-100); color: var(--indigo-900);
+}
+.subj-tile.t-green { background: var(--green-100); color: #166534; }
+.subj-tile.t-amber { background: var(--amber-100); color: #92400e; }
+.subj-tile.t-rose { background: var(--rose-100); color: #9f1239; }
+.subj-tile.t-sky { background: var(--sky-100); color: #075985; }
+.subject-head { align-items: center; gap: 0.8rem; }
+.subject-head h3 { flex: 1 1 auto; }
+.subject-head [data-action="del-subject"] { margin-left: auto; }
+.progress.t-green > span { background: #22c55e; }
+.progress.t-amber > span { background: #f59e0b; }
+.progress.t-rose > span { background: #f43f5e; }
+.progress.t-sky > span { background: #0284c7; }
+.topic-row { border-radius: 12px; padding: 0.7rem 0.9rem; box-shadow: var(--shadow-sm); }
+
+/* Exam countdown: colored top accent per card, like chapter cards. */
+.count-card { border-top: 4px solid var(--indigo-600); }
+.count-card.today { border-top-color: var(--amber-500); }
+.count-card.past { border-top-color: #94a3b8; }
+.count-card .count-big { color: var(--indigo-700); }
+:root[data-theme="dark"] .count-card .count-big { color: #a5b4fc; }
+
+/* Grade calculator: component rows as soft boxes, result as a hero panel. */
+.gc-rows .card { background: var(--bg-soft); box-shadow: none; border-radius: 12px; }
+.gc-rows .c-remove { color: #e11d48; border-color: #fecdd3; }
+.gc-rows .c-remove:hover { background: var(--rose-50); }
+.result { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); }
+.result .gc-big { color: var(--indigo-700); }
+:root[data-theme="dark"] .result .gc-big { color: #a5b4fc; }
+
+/* Timetable: day headers read as calendar section heads. */
+.plan-day { border-radius: 16px; box-shadow: var(--shadow-sm); }
+
+/* Study space: sidebar card, files as grid cards (screenshot file grid). */
+.ss-side { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1rem; box-shadow: var(--shadow-sm); }
+#fileList { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem; }
+#fileList .file-row { flex-direction: column; align-items: flex-start; height: 100%; }
+#fileList .file-row .file-info { width: 100%; }
+#fileList .file-row .file-icon { font-size: 2rem; }
+#fileList .file-row .btn { width: 100%; justify-content: center; }
+#fileList .empty { grid-column: 1 / -1; }
+
+/* Big stat number, used for overall coverage and hero stats. */
+.big-num { font-size: 2.6rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; color: var(--indigo-700); margin: 0.2rem 0; }
+:root[data-theme="dark"] .big-num { color: #a5b4fc; }
+.stat-card.pastel-blue { background: var(--blue-50); border-color: var(--blue-100); }
+.stat-card.pastel-green { background: var(--green-50); border-color: var(--green-100); }
+.stat-card.pastel-amber { background: var(--amber-50); border-color: var(--amber-100); }
+.stat-card.pastel-purple { background: var(--purple-50); border-color: #ddd6fe; }
+.stat-card.pastel-rose { background: var(--rose-50); border-color: var(--rose-100); }
+.stat-card.pastel-blue, .stat-card.pastel-green, .stat-card.pastel-amber, .stat-card.pastel-purple, .stat-card.pastel-rose { justify-content: space-between; }
+.stat-card.pastel-blue .stat-body, .stat-card.pastel-green .stat-body,
+.stat-card.pastel-amber .stat-body, .stat-card.pastel-purple .stat-body, .stat-card.pastel-rose .stat-body { text-align: right; }
+
+/* AI Tools: provider bar as a card. */
+#provBar { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.1rem 1.2rem; box-shadow: var(--shadow-sm); }
 
 /* ---------- Phase 7: AI workflows (additive; no existing rules changed) ---------- */
 /* The `hidden` attribute must always hide: component classes like .btn set

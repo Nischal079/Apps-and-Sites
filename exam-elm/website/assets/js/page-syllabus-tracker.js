@@ -95,17 +95,20 @@ function topicRowHTML(sid, t, idx, total) {
     "</li>";
 }
 
-function subjectCardHTML(s, todayISO) {
+function subjectCardHTML(s, todayISO, idx) {
   const cov = subjectCoverage(s);
   const pace = paceFor(s, todayISO);
   const pct = cov.percent === null ? 0 : cov.percent;
   const pctLabel = cov.percent === null ? "n/a" : cov.percent + "%";
+  const TILES = ["", "t-green", "t-amber", "t-rose", "t-sky"];
+  const tile = TILES[(idx || 0) % TILES.length];
+  const initial = (s.name || "?").trim().charAt(0).toUpperCase();
   let html = '<section class="card" data-subject-id="' + esc(s.id) + '" aria-label="Subject: ' + esc(s.name) + '">';
-  html += '<div class="subject-head"><h3>' + esc(s.name) + "</h3>" + paceBadge(pace) +
+  html += '<div class="subject-head"><span class="subj-tile ' + tile + '" aria-hidden="true">' + esc(initial) + "</span><h3>" + esc(s.name) + "</h3>" + paceBadge(pace) +
     '<button type="button" class="btn btn-ghost btn-sm danger" data-action="del-subject">Delete subject</button></div>';
   html += '<div class="kv-line"><span class="muted">Coverage</span><span><strong>' + esc(pctLabel) + "</strong>" +
     (cov.total ? ' <span class="muted">(' + cov.done + " confident, " + cov.wip + " in progress, " + cov.total + " total)</span>" : "") + "</span></div>";
-  html += '<div class="progress" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Coverage for ' + esc(s.name) + '"><span style="width:' + pct + '%"></span></div>';
+  html += '<div class="progress ' + tile + '" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Coverage for ' + esc(s.name) + '"><span style="width:' + pct + '%"></span></div>';
   html += '<p class="muted" style="margin-top:0.5rem">' + esc(pace.message) + "</p>";
   html += '<div class="inline-form" style="margin-top:0.6rem"><div class="field"><label for="date-' + esc(s.id) + '">Exam date</label>' +
     '<input type="date" id="date-' + esc(s.id) + '" class="subj-date" min="2000-01-01" max="2100-12-31" value="' + esc(s.examDate || "") + '" /></div></div>';
@@ -128,7 +131,8 @@ function render() {
     $("overallBody").innerHTML = '<p class="muted">Add a subject below to start tracking.</p>';
   } else {
     $("overallBody").innerHTML =
-      '<div class="kv-line"><span class="muted">Overall coverage</span><span><strong>' + oc.percent + "%</strong></span></div>" +
+      '<p class="big-num">' + oc.percent + "%</p>" +
+      '<p class="muted">Overall coverage</p>' +
       '<div class="progress lg" role="progressbar" aria-valuenow="' + oc.percent + '" aria-valuemin="0" aria-valuemax="100" aria-label="Overall syllabus coverage"><span style="width:' + oc.percent + '%"></span></div>' +
       '<p class="muted">' + oc.done + " topics confident, " + oc.wip + " in progress, across " + doc.subjects.length +
       (doc.subjects.length === 1 ? " subject." : " subjects.") + " In-progress topics count half.</p>";
@@ -147,7 +151,7 @@ function render() {
 
   /* subjects */
   $("emptyCard").hidden = doc.subjects.length > 0;
-  $("subjectsWrap").innerHTML = doc.subjects.map((s) => subjectCardHTML(s, todayISO)).join("");
+  $("subjectsWrap").innerHTML = doc.subjects.map((s, i) => subjectCardHTML(s, todayISO, i)).join("");
 }
 
 /* ---------- actions ---------- */
