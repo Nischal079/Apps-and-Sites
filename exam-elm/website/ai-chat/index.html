@@ -6,11 +6,11 @@
 <meta name="robots" content="noindex" />
 <!-- connect-src: explicit allowlist of built-in BYOK provider origins ONLY.
      No wildcards. Custom user endpoints are NOT covered by this static CSP and
-     will be blocked by the browser — tracked as a known limitation in
+     will be blocked by the browser · tracked as a known limitation in
      KNOWN-ISSUES.md (a static page cannot grant per-user CSP exceptions). -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://openrouter.ai https://api.deepseek.com https://api.anthropic.com https://generativelanguage.googleapis.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
-<title>AI Study Assistant — {{brand}}</title>
-<meta name="description" content="Optional AI study help with your own API key. Your key and prompts go directly to the provider you choose — nothing passes through our servers." />
+<title>AI Study Assistant · {{brand}}</title>
+<meta name="description" content="Optional AI study help with your own API key. Your key and prompts go directly to the provider you choose · nothing passes through our servers." />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
 <link rel="manifest" href="/manifest.webmanifest" />
@@ -31,6 +31,7 @@
       <a href="/tools/grade-calculator/">Grade Calculator</a>
       <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
       <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/dashboard/">Dashboard</a>
     </nav>
     <div class="nav-actions">
       <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
@@ -48,6 +49,7 @@
     <a href="/tools/grade-calculator/">Grade Calculator</a>
     <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
     <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/dashboard/">Dashboard</a>
   </nav>
 </header>
 
@@ -56,16 +58,16 @@
   <h1>AI Study Assistant</h1>
   <p class="muted" style="max-width: 680px;">
     Ask study questions with an AI provider of <em>your</em> choice, using
-    <em>your</em> API key. Free tools stay free — this is an opt-in extra.
+    <em>your</em> API key. Free tools stay free · this is an opt-in extra.
   </p>
 
   <div class="banner warn" role="note" aria-label="Important disclosures">
     <strong>Before you connect a provider, know this:</strong>
     <ul style="margin: 0.5rem 0 0; padding-left: 1.2rem;">
-      <li>Your prompts go <strong>directly from this browser to the provider you choose</strong>. There is no <span data-brand="name">ExamElm</span> server in between — we never see your prompts or your key.</li>
+      <li>Your prompts go <strong>directly from this browser to the provider you choose</strong>. There is no <span data-brand="name">ExamElm</span> server in between · we never see your prompts or your key.</li>
       <li>The provider you choose <strong>receives everything you send</strong>, including any text you paste.</li>
       <li>Keys are kept <strong>in this browser's memory only</strong> unless you explicitly opt into passphrase-encrypted storage. An unlocked key could be read by a malicious script, so never paste secrets into chat and keep your browser updated.</li>
-      <li><strong>API billing is separate</strong> from ChatGPT, Claude, Gemini or any other consumer subscription — you pay the provider's API rates.</li>
+      <li><strong>API billing is separate</strong> from ChatGPT, Claude, Gemini or any other consumer subscription · you pay the provider's API rates.</li>
       <li><strong>Nothing is sent anywhere until you press Send.</strong></li>
     </ul>
   </div>
@@ -127,7 +129,7 @@
   <!-- ========================= PROVIDERS ========================= -->
   <section id="panelProviders" role="tabpanel" aria-labelledby="tabProviders" hidden>
     <h2>Providers</h2>
-    <p class="muted">Add one or more AI providers. Requests go directly from your browser to the provider — there is no middleman.</p>
+    <p class="muted">Add one or more AI providers. Requests go directly from your browser to the provider · there is no middleman.</p>
     <div id="providerList"></div>
 
     <div class="card" style="margin-top: 1.2rem;">
@@ -162,7 +164,7 @@
       <p class="muted">
         By default keys live only in this tab's memory and vanish when you close it.
         Optionally, store them on this device encrypted with a passphrase you choose.
-        <strong>Forget the passphrase and the keys are unrecoverable</strong> — there is no reset.
+        <strong>Forget the passphrase and the keys are unrecoverable</strong> · there is no reset.
       </p>
       <p id="encStatus" class="hint" aria-live="polite"></p>
       <div id="encSetup">
@@ -195,7 +197,7 @@
 
 <footer class="footer">
   <div class="wrap footer-inner">
-    <p><span data-brand="name"></span> — <span data-brand="tagline"></span></p>
+    <p><span data-brand="name"></span> · <span data-brand="tagline"></span></p>
     <nav aria-label="Footer">
       <a href="/about/">About</a>
       <a href="/contact/">Contact</a>

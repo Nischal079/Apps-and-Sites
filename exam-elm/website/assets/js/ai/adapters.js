@@ -1,5 +1,5 @@
 /**
- * StudyPilot — BYOK provider adapters.
+ * StudyPilot · BYOK provider adapters.
  *
  * Provider-independent architecture: every provider speaks through the same
  * normalized interface, so the chat UI never contains provider-specific code.
@@ -19,7 +19,7 @@
  * Messages use the normalized shape: [{role:'system'|'user'|'assistant', content}]
  *
  * SECURITY: keys travel only in request headers (Authorization / x-api-key /
- * x-goog-api-key) — never in URLs, never in logs. The page CSP allowlists
+ * x-goog-api-key) · never in URLs, never in logs. The page CSP allowlists
  * provider origins explicitly (see ai-chat/index.html); no wildcards.
  */
 
@@ -116,7 +116,7 @@ export class OpenAICompatibleAdapter extends BaseAdapter {
     try {
       json = JSON.parse(d);
     } catch {
-      return null; // partial line — the stream parser re-buffers
+      return null; // partial line · the stream parser re-buffers
     }
     const delta = json.choices && json.choices[0] && json.choices[0].delta;
     if (delta && typeof delta.content === "string" && delta.content) {
@@ -148,7 +148,7 @@ export class OpenAICompatibleAdapter extends BaseAdapter {
     if (status === 429)
       return new AIError(
         "rate-limited",
-        `Rate limited by ${this.label} (HTTP 429). Wait a moment and retry — the app backs off automatically. ${body}`
+        `Rate limited by ${this.label} (HTTP 429). Wait a moment and retry · the app backs off automatically. ${body}`
       );
     if (status === 404)
       return new AIError(
@@ -251,7 +251,7 @@ export class AnthropicAdapter extends BaseAdapter {
     if (status === 429)
       return new AIError(
         "rate-limited",
-        `Rate limited by Anthropic (HTTP 429). Wait a moment and retry — the app backs off automatically. ${body}`
+        `Rate limited by Anthropic (HTTP 429). Wait a moment and retry · the app backs off automatically. ${body}`
       );
     if (status === 404)
       return new AIError(
@@ -281,7 +281,7 @@ export class AnthropicAdapter extends BaseAdapter {
 }
 
 /* ------------------------------------------------------------------ */
-/* Google Gemini (native). Key travels in the x-goog-api-key header —  */
+/* Google Gemini (native). Key travels in the x-goog-api-key header ·  */
 /* never in the URL query string.                                      */
 /* ------------------------------------------------------------------ */
 export class GeminiAdapter extends BaseAdapter {
@@ -375,7 +375,7 @@ export class GeminiAdapter extends BaseAdapter {
     if (status === 429)
       return new AIError(
         "rate-limited",
-        `Rate limited by Google Gemini (HTTP 429). Wait a moment and retry — the app backs off automatically. ${body}`
+        `Rate limited by Google Gemini (HTTP 429). Wait a moment and retry · the app backs off automatically. ${body}`
       );
     if (status === 404)
       return new AIError(

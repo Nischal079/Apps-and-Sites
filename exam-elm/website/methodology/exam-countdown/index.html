@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
-<title>Exam countdown methodology — {{brand}}</title>
-<meta name="description" content="How the exam countdown planner computes days-left, prep estimates and reminders — including the timezone guarantees, so you can hand-verify any number." />
+<title>Exam countdown methodology · {{brand}}</title>
+<meta name="description" content="How the exam countdown planner computes days-left, prep estimates and reminders · including the timezone guarantees, so you can hand-verify any number." />
 <link rel="canonical" href="https://studypilot.pages.dev/methodology/exam-countdown/" />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
@@ -27,6 +27,7 @@
       <a href="/tools/grade-calculator/">Grade Calculator</a>
       <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
       <a href="/tools/exam-countdown/" aria-current="page">Exam Countdown</a>
+      <a href="/dashboard/">Dashboard</a>
     </nav>
     <div class="nav-actions">
       <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
@@ -44,6 +45,7 @@
     <a href="/tools/grade-calculator/">Grade Calculator</a>
     <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
     <a href="/tools/exam-countdown/" aria-current="page">Exam Countdown</a>
+    <a href="/dashboard/">Dashboard</a>
   </nav>
 </header>
 
@@ -52,24 +54,24 @@
     <div class="wrap prose">
       <p class="eyebrow">Methodology</p>
       <h1>Exam countdown: every formula</h1>
-      <p>This is the trust contract behind the <a href="/tools/exam-countdown/">exam countdown planner</a> — how days-left is computed, how prep estimates work, what the reminders can and can&rsquo;t do, and the timezone guarantees. If you can&rsquo;t hand-verify a number from this page, the tool shouldn&rsquo;t show it.</p>
+      <p>This is the trust contract behind the <a href="/tools/exam-countdown/">exam countdown planner</a> · how days-left is computed, how prep estimates work, what the reminders can and can&rsquo;t do, and the timezone guarantees. If you can&rsquo;t hand-verify a number from this page, the tool shouldn&rsquo;t show it.</p>
 
-      <h2>Days left — the timezone guarantee</h2>
+      <h2>Days left · the timezone guarantee</h2>
       <p><strong>Days left = (exam calendar date) &minus; (today&rsquo;s calendar date)</strong>, as whole days. The computation never touches timestamps:</p>
       <ol>
-        <li>Both dates are parsed as local calendar dates — never via <code>new Date("YYYY-MM-DD")</code>, which JavaScript interprets as UTC midnight and shifts the day for anyone west of UTC.</li>
-        <li>The difference is computed on UTC-normalized day boundaries (integer day math), so daylight-saving transitions — 23-hour and 25-hour days — cannot add or remove a day.</li>
+        <li>Both dates are parsed as local calendar dates · never via <code>new Date("YYYY-MM-DD")</code>, which JavaScript interprets as UTC midnight and shifts the day for anyone west of UTC.</li>
+        <li>The difference is computed on UTC-normalized day boundaries (integer day math), so daylight-saving transitions · 23-hour and 25-hour days · cannot add or remove a day.</li>
         <li>&ldquo;Today&rdquo; is re-read from the device on every load and whenever the tab regains focus, so a countdown never goes stale overnight.</li>
       </ol>
       <p>The guarantee: <strong>a student in Kathmandu (+5:45) and one in New York (&minus;5:00) see the same &ldquo;days left&rdquo; for the same exam date on the same local calendar day.</strong> This is covered by an automated test matrix spanning UTC&minus;11 to UTC+14, both US daylight-saving transitions, and the international date line. Exam dates must be real calendar dates (30 February is rejected, not rolled over) between the years 2000 and 2100.</p>
 
       <h2>Prep estimates</h2>
-      <p>When an exam is linked to a subject in the <a href="/tools/syllabus-tracker/">syllabus tracker</a> — by an explicit link, or automatically when the names match — each card shows a daily target:</p>
+      <p>When an exam is linked to a subject in the <a href="/tools/syllabus-tracker/">syllabus tracker</a> · by an explicit link, or automatically when the names match · each card shows a daily target:</p>
       <p><strong>Required topics/day = topics remaining (not marked confident) &divide; days left</strong>, to one decimal.</p>
-      <p>If you entered available study hours, they&rsquo;re shown alongside as context — the tool does not pretend to know how long your topics take. Special cases: past exams say so; a fully-covered syllabus says &ldquo;use the time for revision&rdquo;; an exam today skips the math and says focus on the weakest topics; a subject with no topics yet asks you to add them first. <strong>Honest limitation:</strong> the estimate assumes topics take roughly equal effort.</p>
+      <p>If you entered available study hours, they&rsquo;re shown alongside as context · the tool does not pretend to know how long your topics take. Special cases: past exams say so; a fully-covered syllabus says &ldquo;use the time for revision&rdquo;; an exam today skips the math and says focus on the weakest topics; a subject with no topics yet asks you to add them first. <strong>Honest limitation:</strong> the estimate assumes topics take roughly equal effort.</p>
 
-      <h2>Reminders — what they are and aren&rsquo;t</h2>
-      <p>Every time the page loads, exams due within the next 7 days (including today) produce a &ldquo;Coming up&rdquo; banner: &ldquo;Physics final is in 3 days&rdquo;, &ldquo;Chemistry is tomorrow&rdquo;, &ldquo;Maths is today&rdquo;. That&rsquo;s the whole reminder system — <strong>deliberately</strong>. A static page with no backend cannot schedule push notifications or wake itself up; any countdown app that claims otherwise is either running a server or misleading you. The banner recomputes on load and on day change, so it&rsquo;s always current when you open the page.</p>
+      <h2>Reminders · what they are and aren&rsquo;t</h2>
+      <p>Every time the page loads, exams due within the next 7 days (including today) produce a &ldquo;Coming up&rdquo; banner: &ldquo;Physics final is in 3 days&rdquo;, &ldquo;Chemistry is tomorrow&rdquo;, &ldquo;Maths is today&rdquo;. That&rsquo;s the whole reminder system · <strong>deliberately</strong>. A static page with no backend cannot schedule push notifications or wake itself up; any countdown app that claims otherwise is either running a server or misleading you. The banner recomputes on load and on day change, so it&rsquo;s always current when you open the page.</p>
 
       <h2>Storage and privacy</h2>
       <p>Your exams are stored as a single document in your browser&rsquo;s local database (IndexedDB, with an in-memory fallback if your browser blocks storage). Linked tracker subjects keep their exam date in sync through a stored exam reference; deleting a countdown keeps the subject&rsquo;s date (it&rsquo;s still meaningful) but clears the link. Nothing is uploaded, there are no accounts, and clearing your browser data will delete your countdowns.</p>
@@ -81,7 +83,7 @@
 
 <footer class="site">
   <div class="wrap">
-    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <p><strong><span data-brand="name"></span></strong> &middot; <span data-brand="tagline"></span></p>
     <nav aria-label="Footer">
       <a href="/about/">About</a>
       <a href="/contact/">Contact</a>

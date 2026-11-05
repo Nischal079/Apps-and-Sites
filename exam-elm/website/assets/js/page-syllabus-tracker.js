@@ -1,5 +1,5 @@
 /**
- * StudyPilot — Syllabus tracker page controller.
+ * StudyPilot · Syllabus tracker page controller.
  * Runs the shared site bootstrap, then wires topic tracking,
  * confidence/pace views, and IndexedDB persistence.
  */
@@ -17,7 +17,7 @@ import {
 } from "/assets/js/tracker.js";
 
 /* ============================================================
- * Syllabus Tracker — UI WIRING ONLY.
+ * Syllabus Tracker · UI WIRING ONLY.
  * All math lives in /assets/js/tracker.js (pure, unit-tested).
  * This file builds DOM, reads inputs, validates in plain
  * language, persists one document in the kv store, and renders.
@@ -60,7 +60,7 @@ async function save() {
   try {
     await storage.put("kv", { key: TRACKER_KV_KEY, value: doc });
   } catch (e) {
-    showError("Couldn't save: " + (e && e.message ? e.message : "storage error") + ". Your latest changes may be lost — export anything important.");
+    showError("Couldn't save: " + (e && e.message ? e.message : "storage error") + ". Your latest changes may be lost · export anything important.");
   }
 }
 
@@ -99,7 +99,7 @@ function subjectCardHTML(s, todayISO) {
   const cov = subjectCoverage(s);
   const pace = paceFor(s, todayISO);
   const pct = cov.percent === null ? 0 : cov.percent;
-  const pctLabel = cov.percent === null ? "—" : cov.percent + "%";
+  const pctLabel = cov.percent === null ? "n/a" : cov.percent + "%";
   let html = '<section class="card" data-subject-id="' + esc(s.id) + '" aria-label="Subject: ' + esc(s.name) + '">';
   html += '<div class="subject-head"><h3>' + esc(s.name) + "</h3>" + paceBadge(pace) +
     '<button type="button" class="btn btn-ghost btn-sm danger" data-action="del-subject">Delete subject</button></div>';
@@ -140,7 +140,7 @@ function render() {
     $("weakestBody").innerHTML = '<p class="muted">Nothing to rank yet.</p>';
   } else {
     $("weakestBody").innerHTML = '<ol class="topic-list">' + weak.map((w) =>
-      '<li class="topic-row"><span class="t-name"><strong>' + esc(w.topicName) + '</strong> <span class="muted">— ' + esc(w.subjectName) + "</span></span>" +
+      '<li class="topic-row"><span class="t-name"><strong>' + esc(w.topicName) + '</strong> <span class="muted">· ' + esc(w.subjectName) + "</span></span>" +
       '<span class="badge">' + esc(weakestReason(w)) + "</span></li>"
     ).join("") + "</ol>";
   }

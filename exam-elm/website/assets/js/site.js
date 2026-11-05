@@ -1,5 +1,5 @@
 /**
- * StudyPilot — shared site bootstrap.
+ * StudyPilot · shared site bootstrap.
  *
  * Runs once per page (imported as a side effect). Handles theme init, brand
  * injection, mobile menu wiring, theme-toggle icon sync, and service-worker

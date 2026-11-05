@@ -1,10 +1,10 @@
 /**
- * StudyPilot — grade calculation engine.
+ * StudyPilot · grade calculation engine.
  *
  * PURE, DOM-free ES module: no browser APIs, no imports. Node tests import
  * this directly. All regional math is DATA-driven (config/regions/*.json);
  * this module implements the generic operations. Never hard-code a regional
- * formula here — resolve parameters from the active region config first.
+ * formula here · resolve parameters from the active region config first.
  *
  * Rounding lives in the config ({mode, decimals}) because GPA math lives or
  * dies on rounding. Every config ships test vectors pinning its behavior.
@@ -12,7 +12,7 @@
 
 /**
  * Round a value per a rounding spec {mode: 'half_up'|'truncate'|'ceiling', decimals}.
- * 'ceiling' ignores decimals (rounds UP to next integer — MU engineering).
+ * 'ceiling' ignores decimals (rounds UP to next integer · MU engineering).
  */
 export function roundValue(value, rounding) {
   const mode = (rounding && rounding.mode) || "half_up";
@@ -101,7 +101,7 @@ export function computeGPA(courses, gradeMap, rounding) {
     counted++;
   }
   if (den === 0) {
-    throw new Error("No credit-bearing courses to average — add credits or un-exclude a course.");
+    throw new Error("No credit-bearing courses to average · add credits or un-exclude a course.");
   }
   return {
     gpa: roundValue(num / den, rounding),
@@ -142,7 +142,7 @@ export function convertLinear(x, a, b) {
 }
 
 /**
- * Piecewise conversion (MU engineering). pieces: [{lt, a, b}] — first piece
+ * Piecewise conversion (MU engineering). pieces: [{lt, a, b}] · first piece
  * with x < lt wins; the last piece should have lt: Infinity.
  */
 export function convertPiecewise(x, pieces) {
@@ -151,7 +151,7 @@ export function convertPiecewise(x, pieces) {
   for (const p of pieces) {
     if (v < p.lt) return p.a * v + p.b;
   }
-  throw new Error("No conversion piece matched — check the input range.");
+  throw new Error("No conversion piece matched · check the input range.");
 }
 
 /** CBSE legacy (pre-2018 CCE) indicative conversion. Gate the UI call on the legacy checkbox. */
@@ -163,7 +163,7 @@ export function cbseLegacyToPct(cgpa) {
 
 /**
  * GPA → percentage estimate. There is NO official formula for several systems
- * (notably NEB) — callers MUST label the result "estimate".
+ * (notably NEB) · callers MUST label the result "estimate".
  */
 export function estimateGpaToPct(gpa) {
   const v = Number(gpa);

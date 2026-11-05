@@ -1,5 +1,5 @@
 /**
- * StudyPilot — BYOK chat engine (streaming).
+ * StudyPilot · BYOK chat engine (streaming).
  *
  * - Builds the request through the provider's adapter (no provider-specific
  *   code here).
@@ -51,7 +51,7 @@ export function createSseParser(onEvent) {
           if (line.startsWith("event:")) event = line.slice(6).trim();
           else if (line.startsWith("data:")) dataLines.push(line.slice(5).replace(/^\s/, ""));
         }
-        // Comment-only blocks (keepalives) carry no payload — don't emit.
+        // Comment-only blocks (keepalives) carry no payload · don't emit.
         if (dataLines.length || event) onEvent(event, dataLines.join("\n"));
       }
     },
@@ -94,7 +94,7 @@ function abortRejected(ctrl) {
  *
  * opts: { adapter, config (with apiKey), messages, model, maxTokens,
  *         signal (user abort), timeoutMs, fetchImpl, onToken, onUsage }
- * Returns { text, usage } — throws AIError on failure.
+ * Returns { text, usage } · throws AIError on failure.
  */
 export async function streamChat(opts) {
   const {
@@ -116,7 +116,7 @@ export async function streamChat(opts) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(new AIError("timeout", `Request timed out after ${Math.round(timeoutMs / 1000)}s. The provider may be slow — try again.`)), timeoutMs);
+    const timer = setTimeout(() => ctrl.abort(new AIError("timeout", `Request timed out after ${Math.round(timeoutMs / 1000)}s. The provider may be slow · try again.`)), timeoutMs);
     if (signal) {
       if (signal.aborted) {
         clearTimeout(timer);
@@ -134,7 +134,7 @@ export async function streamChat(opts) {
         signal: ctrl.signal,
       });
       // Swallow late rejections: if abort wins the race, the underlying fetch
-      // may still reject later — it must not become an unhandled rejection.
+      // may still reject later · it must not become an unhandled rejection.
       fetchP.catch(() => {});
       res = await Promise.race([fetchP, abortRejected(ctrl)]);
     } catch (e) {

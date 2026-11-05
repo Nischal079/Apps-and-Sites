@@ -8,8 +8,8 @@
      sandboxed-by-CSP iframe from a locally-created object URL. Nothing leaves
      the device; object-src stays 'none'. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; frame-src blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
-<title>My Study Space — {{brand}}</title>
-<meta name="description" content="My Study Space: private, in-browser notes, files, folders and saved study plans. Everything stays on your device — no signup, no servers." />
+<title>My Study Space · {{brand}}</title>
+<meta name="description" content="My Study Space: private, in-browser notes, files, folders and saved study plans. Everything stays on your device · no signup, no servers." />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
 <link rel="manifest" href="/manifest.webmanifest" />
@@ -30,6 +30,7 @@
       <a href="/tools/grade-calculator/">Grade Calculator</a>
       <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
       <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/dashboard/">Dashboard</a>
     </nav>
     <div class="nav-actions">
       <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
@@ -47,15 +48,18 @@
     <a href="/tools/grade-calculator/">Grade Calculator</a>
     <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
     <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/dashboard/">Dashboard</a>
   </nav>
 </header>
 
 <main id="main">
   <section class="section">
     <div class="wrap">
-      <p class="eyebrow">Private &middot; on this device only</p>
-      <h1>My Study Space</h1>
-      <p class="muted">Your notes, files and saved plans live in this browser — no account, no servers, no tracking. Export a backup regularly: clearing browser data, private browsing or storage eviction can delete it.</p>
+      <div class="page-hero">
+        <p class="eyebrow">Private &middot; on this device only</p>
+        <h1>My Study Space</h1>
+        <p>Your notes, files and saved plans live in this browser · no account, no servers, no tracking. Export a backup regularly: clearing browser data, private browsing or storage eviction can delete it.</p>
+      </div>
 
       <div id="degradedBanner" class="banner warn" hidden>
         <strong>Storage is limited right now.</strong> This browser (or private mode) won't keep IndexedDB data, so everything works but <em>won't persist</em> after you leave. Export a backup before you go.
@@ -89,7 +93,7 @@
               <p><strong>Drop files here</strong> or</p>
               <button id="uploadBtn" class="btn btn-primary btn-sm" type="button">Choose files</button>
               <input id="fileInput" type="file" multiple hidden />
-              <p class="muted" style="font-size:0.85rem">PDF, images, text, Word docs — up to 50&nbsp;MB each. Stored in this browser only.</p>
+              <p class="muted" style="font-size:0.85rem">PDF, images, text, Word docs · up to 50&nbsp;MB each. Stored in this browser only.</p>
             </div>
             <div id="fileFolders" class="tree" aria-label="File folders"></div>
           </aside>
@@ -124,13 +128,13 @@
 
         <div class="card" style="padding:1.1rem; margin-bottom:1rem">
           <h3 style="margin-top:0">Export backup</h3>
-          <p class="muted">Downloads one JSON file with everything: notes, files, folders, saved timetables. Keep it somewhere safe — it's the only copy outside this browser.</p>
+          <p class="muted">Downloads one JSON file with everything: notes, files, folders, saved timetables. Keep it somewhere safe · it's the only copy outside this browser.</p>
           <button id="exportBtn" class="btn btn-primary" type="button">Download full backup</button>
         </div>
 
         <div class="card" style="padding:1.1rem; margin-bottom:1rem">
           <h3 style="margin-top:0">Import backup</h3>
-          <p class="muted">Restore from a backup file. <strong>Merge</strong> keeps your current data and only adds what's new. <strong>Replace</strong> deletes everything first — export your current data before doing that.</p>
+          <p class="muted">Restore from a backup file. <strong>Merge</strong> keeps your current data and only adds what's new. <strong>Replace</strong> deletes everything first · export your current data before doing that.</p>
           <div style="display:flex; gap:1.2rem; flex-wrap:wrap; margin:0.6rem 0">
             <label><input type="radio" name="importMode" value="merge" checked /> Merge (safe default)</label>
             <label><input type="radio" name="importMode" value="replace" /> Replace everything</label>
@@ -144,14 +148,14 @@
         </div>
 
         <div class="banner warn">
-          <strong>Keep your data safe.</strong> Your study space lives in this browser's storage. It can be lost if you clear browser data, use private/incognito windows, or if the browser evicts it under storage pressure. Export a backup regularly — especially before clearing anything.
+          <strong>Keep your data safe.</strong> Your study space lives in this browser's storage. It can be lost if you clear browser data, use private/incognito windows, or if the browser evicts it under storage pressure. Export a backup regularly · especially before clearing anything.
         </div>
       </section>
 
       <!-- FOLDERS -->
       <section class="ss-section" aria-label="Folders">
         <h2>Folders</h2>
-        <p class="muted">Organize notes and files. Folders can nest inside each other. A folder can only be deleted when it's empty — move its contents out first.</p>
+        <p class="muted">Organize notes and files. Folders can nest inside each other. A folder can only be deleted when it's empty · move its contents out first.</p>
         <div class="inline-form">
           <input id="newFolderName" type="text" placeholder="New folder name" maxlength="80" aria-label="New folder name" />
           <button id="createFolderBtn" class="btn btn-primary btn-sm" type="button">Create folder</button>
@@ -175,7 +179,7 @@
 
 <footer class="site">
   <div class="wrap">
-    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <p><strong><span data-brand="name"></span></strong> &middot; <span data-brand="tagline"></span></p>
     <nav aria-label="Footer">
       <a href="/about/">About</a>
       <a href="/contact/">Contact</a>

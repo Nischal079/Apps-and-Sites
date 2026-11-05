@@ -1,5 +1,5 @@
 /**
- * StudyPilot — Study Space page controller.
+ * StudyPilot · Study Space page controller.
  * Runs the shared site bootstrap (theme, brand, menu, service worker),
  * then starts the Study Space app with an error toast on failure.
  */

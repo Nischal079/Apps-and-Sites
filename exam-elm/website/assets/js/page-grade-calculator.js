@@ -1,5 +1,5 @@
 /**
- * StudyPilot — Grade calculator page controller.
+ * StudyPilot · Grade calculator page controller.
  * Runs the shared site bootstrap, then wires region selection,
  * assessment rows, and the pure grade engine from assets/js/grade.js.
  */
@@ -14,7 +14,7 @@ import {
 } from "/assets/js/grade.js";
 
 /* ============================================================
- * Grade Calculator — UI WIRING ONLY.
+ * Grade Calculator · UI WIRING ONLY.
  * Every number comes from /assets/js/grade.js (the engine) fed by
  * config/regions/*.json. This file builds DOM, reads inputs,
  * validates in plain language, and renders results. No math here
@@ -121,7 +121,7 @@ function tokenOptions(tokens, gradeMap, selected) {
   const sorted = (tokens || []).slice().sort((a, b) => ((gradeMap[b] ?? -1) - (gradeMap[a] ?? -1)));
   return sorted.map((t) =>
     '<option value="' + esc(t) + '"' + (t === selected ? " selected" : "") + ">" +
-    esc(t) + (gradeMap[t] != null ? " — " + esc(String(gradeMap[t])) : "") + "</option>"
+    esc(t) + (gradeMap[t] != null ? " · " + esc(String(gradeMap[t])) : "") + "</option>"
   ).join("");
 }
 
@@ -321,8 +321,8 @@ const RENDER = {
       '<p class="hint" id="us-preset-note">' + esc(state.preset.note || "") + "</p></div>" +
       '<div class="field"><label for="us-retake">Retake policy</label>' +
       '<select id="us-retake">' +
-      '<option value="replace"' + ((init && init.retake) === "average" ? "" : " selected") + ">Replace — keep only the latest attempt</option>" +
-      '<option value="average"' + ((init && init.retake) === "average" ? " selected" : "") + ">Average — include every attempt</option></select>" +
+      '<option value="replace"' + ((init && init.retake) === "average" ? "" : " selected") + ">Replace · keep only the latest attempt</option>" +
+      '<option value="average"' + ((init && init.retake) === "average" ? " selected" : "") + ">Average · include every attempt</option></select>" +
       '<p class="hint">' + esc(cfg.retake_note) + "</p></div>" +
       '<div class="field"><label for="us-honors">Honors bump</label>' +
       '<input type="number" id="us-honors" min="0" step="0.1" inputmode="decimal" value="' + esc((init && init.honorsBump) ?? cfg.weighted_bumps.honors) + '" />' +
@@ -331,7 +331,7 @@ const RENDER = {
       '<input type="number" id="us-ap" min="0" step="0.1" inputmode="decimal" value="' + esc((init && init.apBump) ?? cfg.weighted_bumps.ap_ib) + '" />' +
       '<p class="hint">' + esc(cfg.weighted_note) + "</p></div>" +
       "</div>" +
-      '<p><span class="badge warn">No single official US scale</span> <span class="muted">Pick the preset your school actually uses — check your transcript key.</span></p>';
+      '<p><span class="badge warn">No single official US scale</span> <span class="muted">Pick the preset your school actually uses · check your transcript key.</span></p>';
     $("courseRowsWrap").hidden = false;
     $("coursesTitle").textContent = "Your courses";
     $("addCourse").onclick = () => addGradeRow({}, { tokens: gradeTokensOf(state.preset.grade_map), gradeMap: state.preset.grade_map, showType: true, excludeLabel: "Excluded (S/U, W, I…)" });
@@ -357,11 +357,11 @@ const RENDER = {
       "<span><strong>Borderline consideration.</strong> Tick if your mark lands just below a boundary.</span></label>" +
       '<p class="hint">' + esc(cfg.borderline.note) + "</p></div>" +
       "</div>" +
-      '<details class="gc-details"><summary>GCSE 9–1 grade order (reference — no GPA math)</summary>' +
+      '<details class="gc-details"><summary>GCSE 9–1 grade order (reference · no GPA math)</summary>' +
       "<p><strong>" + esc(cfg.grade_orders.gcse.order.join(" › ")) + "</strong></p>" +
       '<p class="muted">' + esc(cfg.grade_orders.gcse.note) + "</p>" +
       '<p class="muted">' + esc(cfg.grade_orders.gcse.anchor_points) + "</p></details>" +
-      '<details class="gc-details"><summary>A-level grade order (reference — no GPA math)</summary>' +
+      '<details class="gc-details"><summary>A-level grade order (reference · no GPA math)</summary>' +
       "<p><strong>" + esc(cfg.grade_orders.alevel.order.join(" › ")) + "</strong></p>" +
       '<p class="muted">' + esc(cfg.grade_orders.alevel.note) + "</p></details>";
     $("regionControls").innerHTML = html;
@@ -388,10 +388,10 @@ const RENDER = {
     $("regionControls").innerHTML =
       '<div class="field"><label for="vtu-scheme">Your scheme / batch <span class="badge warn">required</span></label>' +
       '<select id="vtu-scheme">' +
-      '<option value="">— choose your scheme —</option>' +
+      '<option value="">Choose your scheme</option>' +
       cfg.schemes.map((s) => '<option value="' + esc(s.id) + '"' + (state.scheme && state.scheme.id === s.id ? " selected" : "") + ">" + esc(s.label) + "</option>").join("") +
       "</select>" +
-      '<p class="hint" id="vtu-scheme-note">' + (state.scheme ? esc(state.scheme.formula + ". " + state.scheme.source_note) : "The 2021+ and 2015–2018 formulas differ by 7.5 percentage points — pick the wrong one and your result is wrong.") + "</p></div>";
+      '<p class="hint" id="vtu-scheme-note">' + (state.scheme ? esc(state.scheme.formula + ". " + state.scheme.source_note) : "The 2021+ and 2015–2018 formulas differ by 7.5 percentage points · pick the wrong one and your result is wrong.") + "</p></div>";
     $("coursesTitle").textContent = "Your courses";
     const showRows = () => {
       const has = !!state.scheme;
@@ -421,7 +421,7 @@ const RENDER = {
       '<div class="grid grid-2">' +
       '<div class="field"><label for="mu-faculty">Faculty</label>' +
       '<select id="mu-faculty"><option value="' + esc(f.id) + '">' + esc(f.faculty) + "</option></select>" +
-      '<p class="hint">Only Engineering (Faculty of Technology) is covered — no verified formula exists for other faculties. See the methodology page.</p></div>' +
+      '<p class="hint">Only Engineering (Faculty of Technology) is covered · no verified formula exists for other faculties. See the methodology page.</p></div>' +
       '<div class="field"><label for="mu-cgpi">Your CGPI (0–10)</label>' +
       '<input type="number" id="mu-cgpi" min="0" max="10" step="0.01" inputmode="decimal" value="' + esc((init && init.cgpi) ?? "") + '" />' +
       '<p class="hint">From your transcript (cumulative grade point index).</p></div>' +
@@ -458,7 +458,7 @@ const RENDER = {
       '<div class="field"><label for="icse-preset">Board / class</label>' +
       '<select id="icse-preset">' + presetOptions(presets, state.preset.id) + "</select>" +
       '<p class="hint" id="icse-preset-note">' + esc(state.preset.note) + "</p></div>" +
-      '<p class="muted">Name your English subject exactly <strong>English</strong> — it is always included. The lowest other subject(s) are dropped automatically.</p>';
+      '<p class="muted">Name your English subject exactly <strong>English</strong> · it is always included. The lowest other subject(s) are dropped automatically.</p>';
     $("courseRowsWrap").hidden = false;
     $("coursesTitle").textContent = "Your subjects";
     $("addCourse").style.display = "";
@@ -502,7 +502,7 @@ const RENDER = {
       '<div class="field"><label for="sg-preset">University / scheme</label>' +
       '<select id="sg-preset">' + presetOptions(presets, state.preset.id) + "</select></div>" +
       '<div id="sg-preset-notes"></div>' +
-      '<p class="muted">F grades count as 0 in the GPA. Tick “excluded” only for S/U, FGO P/NR, W and similar non-graded entries — never for an F.</p>';
+      '<p class="muted">F grades count as 0 in the GPA. Tick “excluded” only for S/U, FGO P/NR, W and similar non-graded entries · never for an F.</p>';
     renderNotes();
     $("courseRowsWrap").hidden = false;
     $("coursesTitle").textContent = "Your courses";
@@ -532,7 +532,7 @@ const RENDER = {
 };
 
 /* ============================================================
- * Per-region calculators — read controls, call the engine,
+ * Per-region calculators · read controls, call the engine,
  * render results. Wiring only.
  * ============================================================ */
 
@@ -554,7 +554,7 @@ const CALCULATE = {
       return { name: c.name, credits: c.credits, points: base, excluded: c.excluded };
     });
     const res = computeGPA(applyRetakeMode(courses, retake), preset.grade_map, cfg.rounding);
-    const badges = [{ text: "No single official US scale — verify against your school's transcript key", kind: "warn" }];
+    const badges = [{ text: "No single official US scale · verify against your school's transcript key", kind: "warn" }];
     if (usedBump) badges.push({ text: "Weighted bumps are district conventions, not national policy", kind: "warn" });
     renderResult(cfg, {
       title: "Your GPA",
@@ -583,12 +583,12 @@ const CALCULATE = {
       const higher = cfg.percentage_bands.filter((b) => b.min > mark).sort((a, b) => a.min - b.min)[0];
       if (higher && mark >= higher.min - cfg.borderline.zone_pp) {
         notes.push("Borderline zone: " + mark + "% is within " + cfg.borderline.zone_pp + "pp of " + higher.label +
-          " — your university may consider you for the higher classification. Check their borderline rules; some round, some don't.");
+          " · your university may consider you for the higher classification. Check their borderline rules; some round, some don't.");
       } else {
         notes.push("Borderline box ticked, but " + mark + "% is not within the " + cfg.borderline.zone_pp + "pp zone of consideration below the next boundary.");
       }
     }
-    notes.push("GCSE and A-level grades are reference only — they can't be converted to a GPA; boundaries are set per exam series after marking.");
+    notes.push("GCSE and A-level grades are reference only · they can't be converted to a GPA; boundaries are set per exam series after marking.");
     renderResult(cfg, {
       title: "Your weighted mark",
       big: fmt(mark) + "%",
@@ -601,7 +601,7 @@ const CALCULATE = {
 
   "in-vtu"(cfg) {
     const scheme = state.scheme;
-    if (!scheme) throw new Error("Choose your VTU scheme first — the 2021+ and 2015–2018 formulas differ by 7.5 percentage points.");
+    if (!scheme) throw new Error("Choose your VTU scheme first · the 2021+ and 2015–2018 formulas differ by 7.5 percentage points.");
     const rows = readGradeRows();
     const res = computeGPA(rows, scheme.grade_map, cfg.rounding);
     // Engine params come from the scheme's machine-readable conversion (config data, not code).
@@ -616,7 +616,7 @@ const CALCULATE = {
       lines: [
         ["CGPA", fmt(res.gpa)],
         ["Scheme", scheme.label],
-        ["Class", band ? band.label + (band.note ? " — " + band.note : "") : "—"],
+        ["Class", band ? band.label + (band.note ? " · " + band.note : "") : "n/a"],
         ["Credits counted", fmt(res.totalCredits)],
       ],
       formula: scheme.formula + " → " + params.a + " × " + fmt(res.gpa) + (params.b < 0 ? " − " + Math.abs(params.b) : " + " + params.b) + " = " + fmt(pct) + "%.",
@@ -638,13 +638,13 @@ const CALCULATE = {
       badges: [{ text: "Only Engineering (Faculty of Technology) is covered", kind: "warn" }],
       lines: [["CGPI entered", fmt(cgpi)]],
       formula: piece + " = " + fmt(Math.round(raw * 100) / 100) + ", rounded UP to the next integer = " + fmt(pct) + "%.",
-      formulaNote: f.source_note + " The commonly quoted “(CGPA − 0.75) × 10” is VTU's old formula, misattributed to MU — never use it here.",
+      formulaNote: f.source_note + " The commonly quoted “(CGPA − 0.75) × 10” is VTU's old formula, misattributed to MU · never use it here.",
     });
   },
 
   "in-cbse"(cfg) {
     if (!$("cbse-gate").checked) {
-      throw new Error("This ×9.5 conversion is for pre-2018 CCE marksheets only — it must not be applied to current marksheets. " +
+      throw new Error("This ×9.5 conversion is for pre-2018 CCE marksheets only · it must not be applied to current marksheets. " +
         "If your marksheet shows subject marks (not a CGPA), nothing needs converting: use the General percentage calculator instead. " +
         "Tick the box only if yours is genuinely a pre-2018 CCE marksheet.");
     }
@@ -654,7 +654,7 @@ const CALCULATE = {
       title: "Your indicative percentage (CBSE, legacy CCE)",
       big: fmt(Math.round(pct * 100) / 100) + "%",
       sub: "from a CGPA of " + fmt(cgpa),
-      badges: [{ text: "INDICATIVE — 10 CGPA = 95%, not 100%", kind: "warn" }],
+      badges: [{ text: "INDICATIVE · 10 CGPA = 95%, not 100%", kind: "warn" }],
       formula: cfg.legacy_conversion.formula + " → " + fmt(cgpa) + " × 9.5 = " + fmt(Math.round(pct * 100) / 100) + "%.",
       formulaNote: cfg.legacy_conversion.note,
     });
@@ -667,11 +667,11 @@ const CALCULATE = {
     const isIsc = preset.id === "isc";
     const band = isIsc ? bandFor(r.aggregate, cfg.percentage_bands) : null;
     let extraHTML = '<div class="grid grid-2"><div><p><strong>Counted (' + r.selected.length + ")</strong></p><ul class=\"gc-meta-list\">" +
-      r.selected.map((m) => "<li>" + esc(m.name) + " — " + esc(String(m.pct)) + "%</li>").join("") + "</ul></div>" +
+      r.selected.map((m) => "<li>" + esc(m.name) + " · " + esc(String(m.pct)) + "%</li>").join("") + "</ul></div>" +
       "<div><p><strong>Dropped (" + r.dropped.length + ")</strong></p>";
     extraHTML += r.dropped.length
-      ? '<ul class="gc-meta-list">' + r.dropped.map((m) => "<li>" + esc(m.name) + " — " + esc(String(m.pct)) + "%</li>").join("") + "</ul>"
-      : '<p class="muted">None — every subject counted.</p>';
+      ? '<ul class="gc-meta-list">' + r.dropped.map((m) => "<li>" + esc(m.name) + " · " + esc(String(m.pct)) + "%</li>").join("") + "</ul>"
+      : '<p class="muted">None · every subject counted.</p>';
     extraHTML += "</div></div>";
     renderResult(cfg, {
       title: preset.id === "icse" ? "Your ICSE percentage" : "Your ISC aggregate",
@@ -698,7 +698,7 @@ const CALCULATE = {
     if ($("neb-estimate").checked) {
       const pct = roundValue(estimateGpaToPct(res.gpa), cfg.rounding);
       lines.push(["Estimated percentage", "~" + fmt(pct) + "%"]);
-      badges.push({ text: "ESTIMATE — no official NEB GPA→percentage formula exists", kind: "warn" });
+      badges.push({ text: "ESTIMATE · no official NEB GPA→percentage formula exists", kind: "warn" });
       sub += " · ~" + fmt(pct) + "% estimate";
     }
     renderResult(cfg, {
@@ -718,17 +718,17 @@ const CALCULATE = {
     const res = computeGPA(rows, cfg.grade_map, cfg.rounding);
     const band = bandFor(res.gpa, cfg.honours_bands);
     const notes = [preset.su_note, preset.fgo_note, preset.retake_note, preset.honours_note].filter(Boolean);
-    notes.push("Neither university publishes percentage bands for letter grades — don't use Wikipedia's bands.");
+    notes.push("Neither university publishes percentage bands for letter grades · don't use Wikipedia's bands.");
     renderResult(cfg, {
       title: "Your GPA (" + preset.label + ")",
       big: fmt(res.gpa),
       sub: band ? band.label : "Below the Pass band",
-      badges: [{ text: "F grades count as 0 — only S/U, FGO P/NR, W and similar are excludable", kind: "" }],
+      badges: [{ text: "F grades count as 0 · only S/U, FGO P/NR, W and similar are excludable", kind: "" }],
       lines: [
         ["Units counted", fmt(res.totalCredits)],
         ["Courses counted", fmt(res.counted)],
         ["Excluded (not in GPA)", fmt(res.excludedCount)],
-        ["Honours band", band ? band.label + " (" + band.min.toFixed(2) + "–" + band.max.toFixed(2) + ")" : "—"],
+        ["Honours band", band ? band.label + " (" + band.min.toFixed(2) + "–" + band.max.toFixed(2) + ")" : "n/a"],
         ["Graduation minimum", fmt(cfg.graduation_minimum)],
       ],
       formula: preset.formula + ".",
@@ -743,7 +743,7 @@ const CALCULATE = {
     renderResult(cfg, {
       title: "Your weighted average",
       big: fmt(res.gpa) + "%",
-      badges: [{ text: "General fallback — pick your education system above for exact grading math", kind: "warn" }],
+      badges: [{ text: "General fallback · pick your education system above for exact grading math", kind: "warn" }],
       lines: [
         ["Subjects counted", fmt(res.counted)],
         ["Total weight", fmt(res.totalCredits)],
@@ -758,7 +758,7 @@ function onCalculate() {
   try {
     CALCULATE[state.regionId](state.cfg);
     saveDraft();
-    toast("Calculated — draft saved on this device.");
+    toast("Calculated · draft saved on this device.");
   } catch (e) {
     setError(e && e.message ? e.message : "Something went wrong while calculating.");
     $("result").hidden = true;
@@ -766,7 +766,7 @@ function onCalculate() {
 }
 
 /* ============================================================
- * "What do I need on the final?" — region-aware target picker.
+ * "What do I need on the final?" · region-aware target picker.
  * ============================================================ */
 function finalBands(cfg) {
   if (!cfg) return null;
@@ -780,7 +780,7 @@ function refreshFinalTargets() {
   const sel = $("finalGrade");
   if (!bands) { wrap.hidden = true; return; }
   wrap.hidden = false;
-  sel.innerHTML = '<option value="">— or pick a target grade —</option>' +
+  sel.innerHTML = '<option value="">Pick a target grade</option>' +
     bands.map((b) => '<option value="' + esc(String(b.min)) + '">' + esc(b.label) + " (≥ " + esc(String(b.min)) + "%)</option>").join("");
   sel.onchange = () => { if (sel.value !== "") $("targetPct").value = sel.value; };
 }
@@ -804,7 +804,7 @@ function onFinal() {
         (bl ? " (" + esc(bl.label) + ")" : "") + ".</p>";
     } else if (r.alreadyMet) {
       html = '<p class="gc-big">Already secured</p>' +
-        "<p>You've already locked in " + esc(String(tgt)) + "% — even 0% on the final keeps you there. Aim higher?</p>";
+        "<p>You've already locked in " + esc(String(tgt)) + "% · even 0% on the final keeps you there. Aim higher?</p>";
     } else {
       html = '<p class="gc-big">' + esc(String(r.needed)) + "%</p>" +
         '<p class="muted">needed on the final</p>' +

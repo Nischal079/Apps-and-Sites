@@ -1,5 +1,5 @@
 /**
- * StudyPilot — AI Chat page controller (BYOK).
+ * StudyPilot · AI Chat page controller (BYOK).
  *
  * Wires: provider management, key handling (memory-first), encrypted
  * opt-in storage, streaming chat with cancel/regenerate/copy/save-as-note,
@@ -15,10 +15,14 @@ import { openStorage } from "./storage.js";
 import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
 import { ProviderStore, BUILTINS, builtinById } from "./ai/providers.js";
+import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, formatUsd } from "./ai/costs.js";
 
 const $ = (id) => document.getElementById(id);
+
+/* First-render restore of the last-used provider/model (see renderChatSelectors). */
+let lastUsedApplied = false;
 
 const state = {
   storage: null,
@@ -126,7 +130,7 @@ function renderProviders() {
       `<p class="hint">${esc(b.corsNote || "")}</p>` +
       `<div class="field" style="max-width: 420px;">
          <label for="key-${esc(c.id)}">API key</label>
-         <input type="password" id="key-${esc(c.id)}" autocomplete="off" placeholder="Paste key — kept in memory only" />
+         <input type="password" id="key-${esc(c.id)}" autocomplete="off" placeholder="Paste key · kept in memory only" />
          <p class="hint">Stored in this tab's memory. Never written to disk unless you opt into encrypted storage below.</p>
        </div>` +
       `<div class="btn-row">
@@ -173,14 +177,14 @@ async function onProviderAction(e) {
       btn.disabled = true;
       say("Testing connection…", true);
       const r = await state.providers.testConnection(id);
-      say(r.models ? `Connected — ${r.models} models listed.` : "Connected.", true);
+      say(r.models ? `Connected · ${r.models} models listed.` : "Connected.", true);
       renderProviders();
       renderChatSelectors();
     } else if (act === "discover") {
       btn.disabled = true;
       say("Discovering models…", true);
       const r = await state.providers.discoverModels(id);
-      say(r.count ? `Found ${r.count} models.` : "Connected, but no model list returned — type the model ID manually.", true);
+      say(r.count ? `Found ${r.count} models.` : "Connected, but no model list returned · type the model ID manually.", true);
       renderProviders();
       renderChatSelectors();
     } else if (act === "default") {
@@ -351,7 +355,23 @@ function renderChatSelectors() {
     if (c.isDefault) o.selected = true;
     sel.appendChild(o);
   }
+  // First render only: restore the provider + model used last time, so the
+  // user doesn't re-pick them on every visit. Later re-renders (adding a
+  // provider, setting a new default) keep the current selection instead.
+  let saved = null;
+  if (!lastUsedApplied) {
+    lastUsedApplied = true;
+    saved = loadLastUsed();
+    if (saved && saved.providerId) {
+      if (state.providers.get(saved.providerId)) sel.value = saved.providerId;
+      else clearLastUsed(); // stale provider · fall back to the default
+    }
+  }
   syncModelDatalist();
+  if (saved && saved.model) {
+    $("chatModel").value = saved.model;
+    updateCostLine();
+  }
 }
 
 function syncModelDatalist() {
@@ -379,16 +399,22 @@ function updateCostLine() {
   }
   const est = estimateCost(model, prompt, maxTokens);
   if (!est.known) {
-    line.textContent = `Cost unknown for "${model}" — check your provider's pricing page. Nothing is sent until you press Send.`;
+    line.textContent = `Cost unknown for "${model}" · check your provider's pricing page. Nothing is sent until you press Send.`;
   } else {
     line.textContent =
-      `Estimated max cost ≈ ${formatUsd(est.estCostUsd)} (${est.promptTokens.toLocaleString()} prompt tokens est. + up to ${est.maxOutputTokens.toLocaleString()} output tokens) for ${est.label}. Prices are estimates — verify with your provider. Nothing is sent until you press Send.`;
+      `Estimated max cost ≈ ${formatUsd(est.estCostUsd)} (${est.promptTokens.toLocaleString()} prompt tokens est. + up to ${est.maxOutputTokens.toLocaleString()} output tokens) for ${est.label}. Prices are estimates · verify with your provider. Nothing is sent until you press Send.`;
   }
 }
 
 function wireComposer() {
-  $("chatProvider").addEventListener("change", syncModelDatalist);
-  $("chatModel").addEventListener("input", updateCostLine);
+  $("chatProvider").addEventListener("change", () => {
+    syncModelDatalist();
+    saveLastUsed($("chatProvider").value, $("chatModel").value.trim());
+  });
+  $("chatModel").addEventListener("input", () => {
+    updateCostLine();
+    saveLastUsed($("chatProvider").value, $("chatModel").value.trim());
+  });
   $("promptInput").addEventListener("input", updateCostLine);
   $("maxTokens").addEventListener("input", updateCostLine);
   $("sendBtn").addEventListener("click", sendPrompt);
@@ -542,7 +568,7 @@ async function onMessageAction(e) {
         document.execCommand("copy");
         toast("Copied.");
       } catch {
-        toast("Copy failed — select the text manually.");
+        toast("Copy failed · select the text manually.");
       }
       ta.remove();
     }
@@ -554,7 +580,7 @@ async function onMessageAction(e) {
     await runCompletion();
   } else if (act === "save-note") {
     try {
-      const title = "AI answer — " + new Date().toLocaleString();
+      const title = "AI answer · " + new Date().toLocaleString();
       await state.storage.put("notes", {
         id: state.storage.newId("note"),
         title,
@@ -608,6 +634,7 @@ async function sendPrompt() {
     toast("Enter a model ID (or discover models on the Providers tab).");
     return;
   }
+  saveLastUsed(providerId, model);
   const maxTokens = Math.max(1, Math.min(128000, Number($("maxTokens").value) || 1024));
 
   if (!state.conv) await newConversation();

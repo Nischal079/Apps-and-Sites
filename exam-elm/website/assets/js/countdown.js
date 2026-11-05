@@ -1,12 +1,12 @@
 /**
- * StudyPilot — exam countdown planner: PURE LOGIC, no DOM.
+ * StudyPilot · exam countdown planner: PURE LOGIC, no DOM.
  *
  * Data model (persisted as one document in the kv store under "countdown:v1"):
  *   { version: 1, exams: [ { id, name, date: "YYYY-MM-DD", dailyHours: number|null } ] }
  *
  * TIMEZONE CORRECTNESS (the top risk for this tool): every computation here
  * is DATE-ONLY. daysUntil(examISO, todayISO) depends only on the two calendar
- * dates — it never touches timestamps, so a student in Kathmandu (+5:45) and
+ * dates · it never touches timestamps, so a student in Kathmandu (+5:45) and
  * one in New York (−5:00) see the same "days left" for the same exam date on
  * the same local calendar day. DST transitions cannot shift a count because
  * daysBetween() normalizes through Date.UTC day boundaries.
@@ -31,7 +31,7 @@ function newId(prefix) {
 export function validateExamName(name) {
   const n = String(name || "").trim();
   if (!n) throw new Error("Give the exam a name, e.g. “Physics final”.");
-  if (n.length > 80) throw new Error("Exam names are limited to 80 characters — shorten it a little.");
+  if (n.length > 80) throw new Error("Exam names are limited to 80 characters · shorten it a little.");
   return n;
 }
 
@@ -41,7 +41,7 @@ export function validateExamDate(str) {
   const d = parseStrictDate(s);
   if (!d) throw new Error("Enter a valid exam date, e.g. 2026-12-04.");
   const y = d.getFullYear();
-  if (y < 2000 || y > 2100) throw new Error("That year looks wrong — enter a date between 2000 and 2100.");
+  if (y < 2000 || y > 2100) throw new Error("That year looks wrong · enter a date between 2000 and 2100.");
   const p = (n) => String(n).padStart(2, "0");
   return `${y}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
@@ -140,19 +140,19 @@ export function prepEstimate(exam, subjects, todayISO) {
   if (topics.length === 0) {
     return {
       daysLeft, verdict: "no-data", linked: true, subjectName: subject.name,
-      message: "This subject has no topics yet — add them in the syllabus tracker.",
+      message: "This subject has no topics yet · add them in the syllabus tracker.",
     };
   }
   if (remaining === 0) {
     return {
       daysLeft, verdict: "done", linked: true, subjectName: subject.name, remaining: 0,
-      message: "Syllabus complete — use the remaining time for revision.",
+      message: "Syllabus complete · use the remaining time for revision.",
     };
   }
   if (daysLeft === 0) {
     return {
       daysLeft, verdict: "today", linked: true, subjectName: subject.name, remaining,
-      message: `Exam is today — ${remaining} topic${remaining === 1 ? "" : "s"} still open; focus on the weakest.`,
+      message: `Exam is today · ${remaining} topic${remaining === 1 ? "" : "s"} still open; focus on the weakest.`,
     };
   }
   const requiredPerDay = Math.round((remaining / daysLeft) * 10) / 10;
@@ -166,7 +166,7 @@ export function prepEstimate(exam, subjects, todayISO) {
 /* ---------------- check-on-load reminders ---------------- */
 
 /**
- * Day-level reminders — computed on page load (and on day change).
+ * Day-level reminders · computed on page load (and on day change).
  * NO backend scheduling: a static page cannot wake itself. Exams due within
  * the reminder window (today … +7 days) produce banner messages.
  */
@@ -176,7 +176,7 @@ export function dayReminders(exams, todayISO) {
     const daysLeft = daysUntil(e.date, todayISO);
     if (daysLeft < 0 || daysLeft > REMINDER_WINDOW_DAYS) continue;
     let message;
-    if (daysLeft === 0) message = `“${e.name}” is today — good luck.`;
+    if (daysLeft === 0) message = `“${e.name}” is today · good luck.`;
     else if (daysLeft === 1) message = `“${e.name}” is tomorrow.`;
     else message = `“${e.name}” is in ${daysLeft} days.`;
     out.push({ exam: e, daysLeft, message });

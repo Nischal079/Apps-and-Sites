@@ -1,5 +1,5 @@
 /**
- * StudyPilot — AI document workflows page controller (BYOK, Phase 7).
+ * StudyPilot · AI document workflows page controller (BYOK, Phase 7).
  *
  * Five tabs: Context Chat, Flashcards, Quiz, Study Planner, Notes Assistant.
  * All prompts are assembled locally; transmission happens ONLY through
@@ -15,6 +15,7 @@ import { openStorage } from "./storage.js";
 import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
 import { ProviderStore } from "./ai/providers.js";
+import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, estimateTokens, formatUsd } from "./ai/costs.js";
 import {
@@ -45,6 +46,9 @@ import { encodeShare } from "./timetable.js";
 import { extractDocxText } from "./docx.js";
 
 const $ = (id) => document.getElementById(id);
+
+/* First-render restore of the last-used provider/model (see initProviders). */
+let lastUsedApplied = false;
 
 const state = {
   storage: null,
@@ -172,12 +176,33 @@ function initProviders() {
     if (c.isDefault) o.selected = true;
     sel.appendChild(o);
   }
+  // First render only: restore the provider + model used last time (shared
+  // with AI Chat, so the pair follows the user across both pages).
+  let saved = null;
+  if (!lastUsedApplied) {
+    lastUsedApplied = true;
+    saved = loadLastUsed();
+    if (saved && saved.providerId) {
+      if (state.providers.get(saved.providerId)) sel.value = saved.providerId;
+      else clearLastUsed(); // stale provider · fall back to the default
+    }
+  }
   syncModelList();
+  if (saved && saved.model) {
+    $("provModel").value = saved.model;
+    refreshAllCosts();
+  }
 }
 
 function wireProviderBar() {
-  $("provSelect").addEventListener("change", syncModelList);
-  $("provModel").addEventListener("input", refreshAllCosts);
+  $("provSelect").addEventListener("change", () => {
+    syncModelList();
+    saveLastUsed($("provSelect").value, $("provModel").value.trim());
+  });
+  $("provModel").addEventListener("input", () => {
+    refreshAllCosts();
+    saveLastUsed($("provSelect").value, $("provModel").value.trim());
+  });
   for (const id of ["maxTokCtx", "maxTokCards", "maxTokQuiz", "maxTokPlan", "maxTokNotes"]) {
     $(id).addEventListener("input", refreshAllCosts);
   }
@@ -208,7 +233,7 @@ function updateKeyBadge() {
     b.textContent = "Key in memory";
   } else {
     b.className = "badge warn";
-    b.textContent = "No key set — add it in AI Chat";
+    b.textContent = "No key set · add it in AI Chat";
   }
   host.appendChild(b);
 }
@@ -235,7 +260,7 @@ function setCost(elId, promptText, maxTokens) {
   const est = estimateCost(model, promptText, maxTokens);
   el.textContent = est.known
     ? `Estimated max cost ≈ ${formatUsd(est.estCostUsd)} (estimate). Nothing is sent until you press Send.`
-    : `Cost unknown for this model — check your provider's pricing page. Nothing is sent until you press Send.`;
+    : `Cost unknown for this model · check your provider's pricing page. Nothing is sent until you press Send.`;
 }
 
 /* ==================== shared streaming send flow ==================== */
@@ -263,6 +288,7 @@ async function runStream({ messages, maxTokens, outputEl, sendBtn, stopBtn, plac
     toast(friendly(e));
     return null;
   }
+  saveLastUsed(prov.config.id, prov.model);
   const maxTok = clampNum(maxTokens, 100, 8000, 1000);
   const adapter = state.providers.adapterForConfig(prov.config);
   const withKey = { ...prov.config, apiKey: prov.key };
@@ -544,13 +570,13 @@ async function refreshCtxPreview() {
     if (assembly.droppedCount > 0) {
       const w = document.createElement("p");
       w.className = "hint";
-      w.textContent = `${assembly.droppedCount} item(s) dropped — at most ${CTX.MAX_ITEMS} items are sent per request.`;
+      w.textContent = `${assembly.droppedCount} item(s) dropped · at most ${CTX.MAX_ITEMS} items are sent per request.`;
       box.appendChild(w);
     }
     if (assembly.truncatedAny) {
       const w = document.createElement("p");
       w.className = "hint";
-      w.textContent = "Some items were truncated to fit the context budget — see the rows above.";
+      w.textContent = "Some items were truncated to fit the context budget · see the rows above.";
       box.appendChild(w);
     }
   }
@@ -639,7 +665,7 @@ function populateNoteSelects() {
     if (!state.notes.length) {
       const o = document.createElement("option");
       o.value = "";
-      o.textContent = "No notes yet — add some in My Study Space";
+      o.textContent = "No notes yet · add some in My Study Space";
       sel.appendChild(o);
     }
     for (const n of state.notes) {
@@ -741,7 +767,7 @@ async function generateCards() {
     statusEl.innerHTML = "";
     const p = document.createElement("p");
     p.className = "hint";
-    p.textContent = "Couldn't parse any cards from the reply — try again, or ask for a simpler format.";
+    p.textContent = "Couldn't parse any cards from the reply · try again, or ask for a simpler format.";
     statusEl.appendChild(p);
     return;
   }
@@ -752,7 +778,7 @@ async function generateCards() {
     null,
     src.kind === "note" ? { kind: "note", name: src.name } : { kind: "paste", name: "Pasted text" }
   );
-  toast(`${cards.length} cards generated — review them below.`);
+  toast(`${cards.length} cards generated · review them below.`);
 }
 
 function startCardReview(cards, deckId, source) {
@@ -780,7 +806,7 @@ function renderCard() {
   face.className = "msg-body";
   const label = document.createElement("p");
   label.className = "hint";
-  label.textContent = r.flipped ? "Answer — activate to see the question" : "Question — activate to see the answer";
+  label.textContent = r.flipped ? "Answer · activate to see the question" : "Question · activate to see the answer";
   const txt = document.createElement("p");
   txt.textContent = r.flipped ? card.back : card.front;
   txt.style.fontSize = "1.1rem";
@@ -1000,20 +1026,20 @@ async function generateQuiz() {
     statusEl.innerHTML = "";
     const p = document.createElement("p");
     p.className = "hint";
-    p.textContent = "Couldn't parse any questions from the reply — try again, or reduce the number of questions.";
+    p.textContent = "Couldn't parse any questions from the reply · try again, or reduce the number of questions.";
     statusEl.appendChild(p);
     return;
   }
   statusEl.innerHTML = "";
   statusEl.hidden = true;
   state.quiz = { questions, sourceName: src.name, result: null };
-  $("quizTakeTitle").textContent = `Quiz — ${src.name}`;
+  $("quizTakeTitle").textContent = `Quiz · ${src.name}`;
   $("attemptName").value = src.name.slice(0, 70) + " quiz";
   renderQuizTake();
   $("quizTakeWrap").hidden = false;
   $("quizResultsWrap").hidden = true;
   $("quizTakeWrap").scrollIntoView({ block: "nearest" });
-  toast(`${questions.length} questions generated — answer them below.`);
+  toast(`${questions.length} questions generated · answer them below.`);
 }
 
 function renderQuizTake() {
@@ -1102,7 +1128,7 @@ function renderQuizResults(result) {
     const badge = document.createElement("span");
     if (!d.scorable) {
       badge.className = "badge warn";
-      badge.textContent = "no answer key — not counted";
+      badge.textContent = "no answer key · not counted";
     } else {
       badge.className = "badge " + (d.correct ? "ok" : "bad");
       badge.textContent = d.correct ? "correct" : "incorrect";
@@ -1344,19 +1370,19 @@ async function generatePlan() {
   $("planDraft").value = res.text;
   $("planDraftWrap").hidden = false;
   $("planDraftWrap").scrollIntoView({ block: "nearest" });
-  toast("Plan drafted — edit it freely, then save or open it in the timetable generator.");
+  toast("Plan drafted · edit it freely, then save or open it in the timetable generator.");
 }
 
 async function savePlanNote() {
   const body = $("planDraft").value;
   if (!body.trim()) {
-    toast("The plan draft is empty — nothing to save.");
+    toast("The plan draft is empty · nothing to save.");
     return;
   }
   try {
     await state.storage.put("notes", {
       id: state.storage.newId("note"),
-      title: "Study plan — " + toISODate(todayLocal()),
+      title: "Study plan · " + toISODate(todayLocal()),
       body,
       folderId: null,
       createdAt: new Date().toISOString(),
@@ -1375,7 +1401,7 @@ function openPlanInTimetable() {
     return;
   }
   try {
-    // Structured inputs — never the AI's prose.
+    // Structured inputs · never the AI's prose.
     const draft = {
       subjects: plan.included.map((s) => ({
         name: s.name,
@@ -1427,7 +1453,7 @@ function refreshNotesMeta() {
   const meta = $("noteActionMeta");
   const prev = $("noteActionPreviewText");
   if (!rec) {
-    meta.textContent = "No notes yet — add some in My Study Space.";
+    meta.textContent = "No notes yet · add some in My Study Space.";
     prev.textContent = "";
     setCost("costNotes", "", notesMaxTokens());
     return;
@@ -1451,7 +1477,7 @@ async function runNoteAction(action, btn) {
   }
   const text = String(rec.body || "");
   if (!text.trim()) {
-    toast("This note is empty — nothing to process.");
+    toast("This note is empty · nothing to process.");
     return;
   }
   state.noteAction = action;
@@ -1472,7 +1498,7 @@ async function runNoteAction(action, btn) {
   state.noteActRecId = rec.id;
   $("noteActActions").hidden = false;
   $("noteActActions").scrollIntoView({ block: "nearest" });
-  toast("Preview ready — review it, then choose Replace or Append. Nothing has changed yet.");
+  toast("Preview ready · review it, then choose Replace or Append. Nothing has changed yet.");
 }
 
 async function applyNoteReplace() {

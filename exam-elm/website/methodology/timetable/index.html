@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
-<title>Timetable generator algorithm — {{brand}} methodology</title>
-<meta name="description" content="Exactly how the timetable generator allocates sessions, schedules spaced-repetition reviews, enforces your daily hour cap, exports .ics files, and encodes share links — with the guarantees and limits written down." />
+<title>Timetable generator algorithm · {{brand}} methodology</title>
+<meta name="description" content="Exactly how the timetable generator allocates sessions, schedules spaced-repetition reviews, enforces your daily hour cap, exports .ics files, and encodes share links · with the guarantees and limits written down." />
 <link rel="canonical" href="https://studypilot.pages.dev/methodology/timetable/" />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
@@ -27,6 +27,7 @@
       <a href="/tools/grade-calculator/">Grade Calculator</a>
       <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
       <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/dashboard/">Dashboard</a>
     </nav>
     <div class="nav-actions">
       <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
@@ -44,6 +45,7 @@
     <a href="/tools/grade-calculator/">Grade Calculator</a>
     <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
     <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/dashboard/">Dashboard</a>
   </nav>
 </header>
 
@@ -52,40 +54,40 @@
     <div class="wrap prose">
       <p class="eyebrow">Methodology</p>
       <h1>Timetable generator: the algorithm, the guarantees, the limits</h1>
-      <p>This is the trust contract behind the <a href="/tools/timetable/">timetable generator</a>. The planner runs entirely in your browser — no server, no account, nothing uploaded — using the method below. If a number in your plan can&rsquo;t be derived from these rules, <a href="/contact/">tell us</a>.</p>
+      <p>This is the trust contract behind the <a href="/tools/timetable/">timetable generator</a>. The planner runs entirely in your browser · no server, no account, nothing uploaded · using the method below. If a number in your plan can&rsquo;t be derived from these rules, <a href="/contact/">tell us</a>.</p>
 
       <h2>The algorithm, step by step</h2>
       <ol>
         <li><strong>Horizon.</strong> The plan runs from your start date (default: today) through your latest exam date. With no exams entered, it plans a 2-week study block.</li>
         <li><strong>Eligible subjects each day.</strong> A subject is studied only while it still has an exam on or after that day. A subject whose exams have all passed is done; a subject with no exams studies through the whole plan.</li>
-        <li><strong>Reviews first.</strong> Any spaced-repetition review due today is placed before new study — 20 minutes each, only if the review&rsquo;s exam date hasn&rsquo;t passed.</li>
-        <li><strong>New study by urgency weight.</strong> For each eligible subject, weight = priority &divide; max(days left, 0.5), where priority is 1&ndash;3. The planner rotates subjects round-robin in weight order (heaviest first, ties broken alphabetically), so no subject starves — an urgent weak subject gets more turns, not the whole day.</li>
+        <li><strong>Reviews first.</strong> Any spaced-repetition review due today is placed before new study · 20 minutes each, only if the review&rsquo;s exam date hasn&rsquo;t passed.</li>
+        <li><strong>New study by urgency weight.</strong> For each eligible subject, weight = priority &divide; max(days left, 0.5), where priority is 1&ndash;3. The planner rotates subjects round-robin in weight order (heaviest first, ties broken alphabetically), so no subject starves · an urgent weak subject gets more turns, not the whole day.</li>
         <li><strong>Session queueing.</strong> New study sessions (25, 50 or 90 minutes, your choice) are placed back-to-back from your chosen day-start time, with your break length between them.</li>
-        <li><strong>Review scheduling.</strong> Each study session queues follow-up reviews at +1, +3, +7 and +14 days — never past the subject&rsquo;s exam date. A review that lands on a rest day, or that doesn&rsquo;t fit in a day&rsquo;s remaining time, is retired, not silently shifted.</li>
+        <li><strong>Review scheduling.</strong> Each study session queues follow-up reviews at +1, +3, +7 and +14 days · never past the subject&rsquo;s exam date. A review that lands on a rest day, or that doesn&rsquo;t fit in a day&rsquo;s remaining time, is retired, not silently shifted.</li>
       </ol>
 
       <h2>Hard guarantees</h2>
       <ul>
-        <li><strong>Daily hour cap.</strong> Sessions + breaks on a day never exceed your stated daily minutes. The cap is checked before every placement — a day that can&rsquo;t fit another session simply ends early.</li>
+        <li><strong>Daily hour cap.</strong> Sessions + breaks on a day never exceed your stated daily minutes. The cap is checked before every placement · a day that can&rsquo;t fit another session simply ends early.</li>
         <li><strong>Rest days.</strong> Days you mark as rest get zero sessions. Reviews due on a rest day are skipped (retired, not moved).</li>
-        <li><strong>Date-only math.</strong> All day counts use calendar-date arithmetic in your local timezone — never timestamps — so daylight-saving transitions cannot shift a day or corrupt a review offset.</li>
+        <li><strong>Date-only math.</strong> All day counts use calendar-date arithmetic in your local timezone · never timestamps · so daylight-saving transitions cannot shift a day or corrupt a review offset.</li>
         <li><strong>Invalid dates rejected.</strong> Non-existent dates (e.g. 2026-02-30), exam dates before the start date, zero available hours, and priorities outside 1&ndash;3 are refused with plain-language errors, never silently &ldquo;fixed&rdquo;.</li>
         <li><strong>Deterministic.</strong> Same inputs &rarr; same plan. Nothing is random; regeneration is reproducible.</li>
       </ul>
 
       <h2>Known limits</h2>
       <ul>
-        <li><strong>Priority weights are relative, not absolute.</strong> A subject with weight 10 gets roughly twice the turns of one with weight 5 — the planner balances, it doesn&rsquo;t compute an exact hour quota per subject.</li>
+        <li><strong>Priority weights are relative, not absolute.</strong> A subject with weight 10 gets roughly twice the turns of one with weight 5 · the planner balances, it doesn&rsquo;t compute an exact hour quota per subject.</li>
         <li><strong>Reviews are a fixed 20 minutes</strong>, not proportional to the session they follow.</li>
-        <li><strong>Overloaded days are flagged, not rebalanced.</strong> If your goals don&rsquo;t fit your hours, the plan tells you — it won&rsquo;t quietly borrow time from other days.</li>
+        <li><strong>Overloaded days are flagged, not rebalanced.</strong> If your goals don&rsquo;t fit your hours, the plan tells you · it won&rsquo;t quietly borrow time from other days.</li>
         <li>The planner places sessions back-to-back from one day-start time; it does not spread sessions across the day or schedule around existing commitments.</li>
       </ul>
 
       <h2>.ics export: UTC, not floating</h2>
       <p>The exported calendar file uses <strong>absolute UTC timestamps</strong> (the <code>Z</code> suffix, e.g. <code>DTSTART:20261105T103000Z</code>), converted from your plan&rsquo;s local times at export. Practically this means:</p>
       <ul>
-        <li>Events appear at the correct local time wherever your calendar is — exporting in Kathmandu and importing on a phone in London still lands the session at the right moment.</li>
-        <li>If your timezone observes daylight saving, a plan exported before a DST change keeps its absolute times — sessions won&rsquo;t drift relative to the clock shift.</li>
+        <li>Events appear at the correct local time wherever your calendar is · exporting in Kathmandu and importing on a phone in London still lands the session at the right moment.</li>
+        <li>If your timezone observes daylight saving, a plan exported before a DST change keeps its absolute times · sessions won&rsquo;t drift relative to the clock shift.</li>
         <li>The file follows the iCalendar spec: folded lines at 75 octets, escaped special characters in titles/descriptions, one <code>VEVENT</code> per session labeled <code>Study:</code> or <code>Review:</code>, with the exam date in the description.</li>
       </ul>
 
@@ -93,8 +95,8 @@
       <ul>
         <li><strong>Encoding.</strong> A share link encodes your <em>inputs</em> (subjects, exam dates, daily minutes, session length, breaks, rest days) as versioned JSON (<code>v:1</code>), serialized to base64url and placed in the URL hash. No link ever leaves your device except when you copy and send it.</li>
         <li><strong>Size guard.</strong> The app refuses to build a link longer than 1,500 encoded characters (<code>SHARE_LIMIT</code>) and tells you to trim inputs instead. This keeps links pasteable in chat apps and emails.</li>
-        <li><strong>Version gate.</strong> A link opens only if its version tag matches (<code>v:1</code>); anything else — or corrupted data — gets a plain &ldquo;broken link&rdquo; error, never a half-loaded plan. Decoded links are re-validated through the real generator before display.</li>
-        <li><strong class="badge warn">PRIVACY NOTE</strong> The link contains your full plan inputs in readable-after-decoding form — <strong>anyone with the link can see your subjects, exam dates and schedule</strong>. Share only with people you trust, and know that anyone who forwards the link forwards your data. There is no way to revoke a link once sent.</li>
+        <li><strong>Version gate.</strong> A link opens only if its version tag matches (<code>v:1</code>); anything else · or corrupted data · gets a plain &ldquo;broken link&rdquo; error, never a half-loaded plan. Decoded links are re-validated through the real generator before display.</li>
+        <li><strong class="badge warn">PRIVACY NOTE</strong> The link contains your full plan inputs in readable-after-decoding form · <strong>anyone with the link can see your subjects, exam dates and schedule</strong>. Share only with people you trust, and know that anyone who forwards the link forwards your data. There is no way to revoke a link once sent.</li>
       </ul>
 
       <h2>Hand-verify any plan</h2>
@@ -110,7 +112,7 @@
 
 <footer class="site">
   <div class="wrap">
-    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <p><strong><span data-brand="name"></span></strong> &middot; <span data-brand="tagline"></span></p>
     <nav aria-label="Footer">
       <a href="/about/">About</a>
       <a href="/contact/">Contact</a>

@@ -1,9 +1,9 @@
 /**
- * StudyPilot — AI document workflows shared library (pure functions).
+ * StudyPilot · AI document workflows shared library (pure functions).
  *
  * SECURITY CONTRACT (read before touching):
  * - Nothing in this module transmits anything. It ASSEMBLES payloads,
- *   builds prompts, parses model output, and scores quizzes — all locally.
+ *   builds prompts, parses model output, and scores quizzes · all locally.
  * - Transmission happens ONLY in the page controller, ONLY through
  *   streamChat(), and ONLY after the user explicitly presses Send with a
  *   "what will be sent" preview on screen.
@@ -13,7 +13,7 @@
  * - No API keys, no endpoints, no fetch in this file. Ever.
  *
  * Persistence: flashcard decks and quiz attempts live in the existing kv
- * store (flashdecks:v1, quizattempts:v1) — no new IndexedDB stores, no
+ * store (flashdecks:v1, quizattempts:v1) · no new IndexedDB stores, no
  * DB_VERSION bump, same convention as tracker:v1 / countdown:v1.
  */
 
@@ -83,7 +83,7 @@ export function assembleContext(items) {
     const kind = it.kind === "file" ? "file" : "note";
     const id = String(it.id || "");
     const roomLeft = CTX.MAX_TOTAL_CHARS - total;
-    if (roomLeft <= 0) break; // payload full — rest are dropped, not silently cut
+    if (roomLeft <= 0) break; // payload full · rest are dropped, not silently cut
     const cap = Math.min(CTX.MAX_ITEM_CHARS, roomLeft);
     let take = text;
     let truncated = false;
@@ -145,7 +145,7 @@ export function flashcardPrompt(text, count) {
   const n = Math.max(1, Math.min(50, Number(count) || 12));
   return (
     `Create exactly ${n} flashcards from the study material below.\n\n` +
-    `OUTPUT FORMAT — repeat this block per card, nothing else:\n` +
+    `OUTPUT FORMAT · repeat this block per card, nothing else:\n` +
     `Q: <a clear, specific question>\n` +
     `A: <a concise, complete answer>\n\n` +
     `Rules: one concept per card; questions must be answerable from the material; ` +
@@ -160,7 +160,7 @@ export function quizPrompt(text, { mcq = 5, short = 3 } = {}) {
   return (
     `Create a quiz from the study material below: ${m} multiple-choice questions ` +
     `and ${s} short-answer questions.\n\n` +
-    `OUTPUT FORMAT — repeat per question, nothing else:\n` +
+    `OUTPUT FORMAT · repeat per question, nothing else:\n` +
     `1. <question text> [MCQ]\n` +
     `A. <option>\nB. <option>\nC. <option>\nD. <option>\n` +
     `Answer: <letter>\nExplanation: <one sentence>\n\n` +
@@ -227,7 +227,7 @@ export function noteActionPrompt(action, text) {
  * Tolerant flashcard parser. Accepts: JSON arrays, Q:/A: blocks,
  * Question:/Answer: or Front:/Back: labels, numbered "1. Q … A …" pairs,
  * or a naive first-line=front / rest=back fallback per blank-line block.
- * Returns [{front, back}]. Never throws on garbage — returns [].
+ * Returns [{front, back}]. Never throws on garbage · returns [].
  */
 export function parseFlashcards(raw) {
   const text = String(raw ?? "").trim();
@@ -435,7 +435,7 @@ function norm(s) {
 
 /**
  * Score a taken quiz. answers: { [qIndex]: number|string }.
- * MCQ: exact option-index match. Short answer: lenient — normalized
+ * MCQ: exact option-index match. Short answer: lenient · normalized
  * equality or mutual containment (min 3 chars). Questions with no answer
  * key are unscorable (reported, not counted wrong).
  * Returns {score, total, scorable, details:[{index,type,correct,scorable,
@@ -502,7 +502,7 @@ export function validatePlannerInput({ subjects, dailyMinutes }) {
   if (!Number.isFinite(mins) || mins <= 0)
     errors.push("Set your daily study time to more than 0 minutes.");
   if (Number.isFinite(mins) && mins > 960)
-    errors.push("Daily study time above 16 hours looks like a typo — please check it.");
+    errors.push("Daily study time above 16 hours looks like a typo · please check it.");
   return errors;
 }
 
@@ -551,7 +551,7 @@ export function plannerDraftToTimetable(draft) {
 /* ===================== note-assistant apply modes ================== */
 
 /**
- * Apply a note-assistant result. 'preview' NEVER mutates — it returns the
+ * Apply a note-assistant result. 'preview' NEVER mutates · it returns the
  * output for on-screen review only. 'replace'/'append' require the caller
  * (UI) to have obtained explicit user confirmation first.
  */

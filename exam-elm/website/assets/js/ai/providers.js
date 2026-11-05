@@ -1,18 +1,18 @@
 /**
- * StudyPilot — BYOK provider registry and credential management.
+ * StudyPilot · BYOK provider registry and credential management.
  *
  * Security contract (non-negotiable):
  * - Requests go DIRECTLY from the browser to the provider. No proxy, no
  *   relay, no StudyPilot server (there isn't one).
  * - API keys live in MEMORY by default. `save()` persists everything EXCEPT
- *   keys — the on-disk record never contains key material.
+ *   keys · the on-disk record never contains key material.
  * - Optional opt-in: passphrase-encrypted key storage (see ai/crypto.js).
  *   Plaintext keys are never written to IndexedDB, localStorage, URLs,
  *   logs, or analytics.
  * - Key deletion purges memory AND any encrypted copy, with UI confirmation.
  *
  * Per-provider direct-browser-access notes are honest: "verified",
- * "supported via header", or "unverified — use Test connection". Never claim
+ * "supported via header", or "unverified · use Test connection". Never claim
  * support that hasn't been verified.
  */
 
@@ -24,9 +24,9 @@ export const KV_KEYS_ENC = "ai_keys_enc"; // encrypted blobs only, opt-in
 
 /**
  * Built-in provider definitions. `cors` is one of:
- *  'blocked'   — provider sends no CORS headers; direct browser calls fail.
- *  'supported' — provider explicitly supports browser calls.
- *  'unverified'— unknown; the Test-connection button is the verification.
+ *  'blocked'   · provider sends no CORS headers; direct browser calls fail.
+ *  'supported' · provider explicitly supports browser calls.
+ *  'unverified'· unknown; the Test-connection button is the verification.
  */
 export const BUILTINS = [
   {
@@ -60,7 +60,7 @@ export const BUILTINS = [
     defaultBaseUrl: "https://api.deepseek.com/v1",
     cors: "unverified",
     corsNote:
-      "DeepSeek's browser (CORS) support is unverified — press Test connection. If the browser blocks it, use a custom endpoint pointed at your own local relay.",
+      "DeepSeek's browser (CORS) support is unverified · press Test connection. If the browser blocks it, use a custom endpoint pointed at your own local relay.",
     modelListing: true,
     docsUrl: "https://api-docs.deepseek.com",
     keyHelp: "Create a key at platform.deepseek.com → API keys.",
@@ -96,7 +96,7 @@ export const BUILTINS = [
     defaultBaseUrl: "",
     cors: "unverified",
     corsNote:
-      "Your own OpenAI-compatible relay or local gateway (for example a small server you run that forwards to a provider). It must send CORS headers allowing this page's origin. NOTE: this page's Content Security Policy currently allowlists only the built-in provider domains above — a custom domain will be blocked by the browser until a future update. Tracked as a known limitation.",
+      "Your own OpenAI-compatible relay or local gateway (for example a small server you run that forwards to a provider). It must send CORS headers allowing this page's origin. NOTE: this page's Content Security Policy currently allowlists only the built-in provider domains above · a custom domain will be blocked by the browser until a future update. Tracked as a known limitation.",
     modelListing: true,
     docsUrl: "",
     keyHelp: "Enter the base URL of your relay (e.g. http://localhost:8787/v1) and the key it expects, if any.",
@@ -114,7 +114,7 @@ function uid() {
 }
 
 function publicConfig(c) {
-  // Everything EXCEPT the key — safe to persist.
+  // Everything EXCEPT the key · safe to persist.
   return {
     id: c.id,
     name: c.name,
@@ -151,7 +151,7 @@ export class ProviderStore {
     for (const r of rows) {
       if (r && r.id && r.type && r.baseUrl !== undefined) this.configs.set(r.id, { ...r });
     }
-    // Encrypted-keys marker (presence only — never the keys).
+    // Encrypted-keys marker (presence only · never the keys).
     try {
       const enc = await this.storage.get("kv", KV_KEYS_ENC);
       this.encryptedAtRest = !!(enc && enc.value && enc.value.items);
@@ -278,7 +278,7 @@ export class ProviderStore {
 
   /**
    * Encrypt every in-memory key with the passphrase and store the blobs.
-   * Plaintext keys NEVER touch storage — verified by save()'s assertion and
+   * Plaintext keys NEVER touch storage · verified by save()'s assertion and
    * by tests that scan the raw kv record.
    */
   async persistEncrypted(passphrase) {
@@ -301,7 +301,7 @@ export class ProviderStore {
       throw new Error("No encrypted keys are stored on this device.");
     const loaded = [];
     for (const [id, blob] of Object.entries(payload.items)) {
-      if (!this.configs.has(id)) continue; // config deleted meanwhile — skip
+      if (!this.configs.has(id)) continue; // config deleted meanwhile · skip
       const key = await decryptString(blob, passphrase); // throws on wrong passphrase
       this.keys.set(id, key);
       loaded.push(id);

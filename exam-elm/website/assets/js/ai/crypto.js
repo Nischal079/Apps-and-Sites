@@ -1,5 +1,5 @@
 /**
- * StudyPilot — Web Crypto helpers for BYOK credential storage.
+ * StudyPilot · Web Crypto helpers for BYOK credential storage.
  *
  * Security contract:
  * - API keys are held in MEMORY by default and never touch disk.
@@ -63,7 +63,7 @@ async function deriveAesKey(passphrase, salt) {
 }
 
 /**
- * Encrypt a string. Returns {v:1, salt, iv, data} — all base64 except v.
+ * Encrypt a string. Returns {v:1, salt, iv, data} · all base64 except v.
  */
 export async function encryptString(plaintext, passphrase) {
   if (!passphrase) throw new Error("A passphrase is required to encrypt.");
@@ -86,7 +86,7 @@ export async function encryptString(plaintext, passphrase) {
 
 /**
  * Decrypt a payload from encryptString. Throws a plain-language error on
- * wrong passphrase or tampered data — never returns partial plaintext.
+ * wrong passphrase or tampered data · never returns partial plaintext.
  */
 export async function decryptString(payload, passphrase) {
   if (!passphrase) throw new Error("A passphrase is required to decrypt.");

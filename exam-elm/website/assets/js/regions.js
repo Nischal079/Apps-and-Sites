@@ -1,9 +1,9 @@
 /**
- * StudyPilot — region configuration loader.
+ * StudyPilot · region configuration loader.
  *
  * Regions are DATA, not code: each education system is a JSON file under
  * config/regions/ validated against _schema.json. The grade calculator and
- * other tools consume these configs generically — adding a country means
+ * other tools consume these configs generically · adding a country means
  * adding one JSON file, never changing tool code.
  *
  * v1 ships `_default` (universal percentage fallback). Full regional configs
@@ -13,7 +13,7 @@
  */
 export const DEFAULT_REGION = "_default";
 
-// Static registry for v1 — avoids a directory listing on static hosting.
+// Static registry for v1 · avoids a directory listing on static hosting.
 const REGISTRY = [
   "_default",
   "us",
@@ -87,6 +87,6 @@ export function regionForLocale(locale) {
   if (l === "en-gb") return "uk";
   if (l === "en-np" || l === "ne") return "np-neb";
   if (l === "en-sg") return "sg-nus-ntu";
-  // en-IN spans CBSE/ICSE/state boards — too ambiguous to guess.
+  // en-IN spans CBSE/ICSE/state boards · too ambiguous to guess.
   return DEFAULT_REGION;
 }

@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
-<title>{{brand}} — Methodology: how every calculation works</title>
-<meta name="description" content="How the calculations work: timetable generation, grade math, syllabus pacing, and countdowns — with per-region transparency." />
+<title>{{brand}} · Methodology: how every calculation works</title>
+<meta name="description" content="How the calculations work: timetable generation, grade math, syllabus pacing, and countdowns · with per-region transparency." />
 <link rel="canonical" href="https://studypilot.pages.dev/methodology/" />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
@@ -27,6 +27,7 @@
       <a href="/tools/grade-calculator/">Grade Calculator</a>
       <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
       <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/dashboard/">Dashboard</a>
     </nav>
     <div class="nav-actions">
       <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
@@ -44,6 +45,7 @@
     <a href="/tools/grade-calculator/">Grade Calculator</a>
     <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
     <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/dashboard/">Dashboard</a>
   </nav>
 </header>
 
@@ -52,7 +54,7 @@
     <div class="wrap prose">
       <p class="eyebrow">Methodology</p>
       <h1>How the calculations work</h1>
-      <p>No black boxes. Every tool on <span data-brand="name"></span> documents the exact method it uses, so you can check any number against your own institution&rsquo;s rules. If you find a discrepancy, <a href="/contact/">tell us</a> — a wrong formula is worse than no formula.</p>
+      <p>No black boxes. Every tool on <span data-brand="name"></span> documents the exact method it uses, so you can check any number against your own institution&rsquo;s rules. If you find a discrepancy, <a href="/contact/">tell us</a> · a wrong formula is worse than no formula.</p>
 
       <h2>Timetable generator</h2>
       <p>The generator turns your subjects, exam dates, and available hours into a day-by-day plan:</p>
@@ -64,49 +66,49 @@
         <li><strong>Rest.</strong> A rest day is preserved when you request one.</li>
       </ol>
       <p>Exam dates in the past and zero available hours are rejected with a plain-language error.</p>
-      <p><a href="/methodology/timetable/">Timetable algorithm reference</a> &mdash; the full allocation algorithm, spaced-repetition schedule, daily-cap enforcement, UTC .ics export, share-link encoding and its privacy trade-off.</p>
+      <p><a href="/methodology/timetable/">Timetable algorithm reference</a> &middot; the full allocation algorithm, spaced-repetition schedule, daily-cap enforcement, UTC .ics export, share-link encoding and its privacy trade-off.</p>
 
       <h2>Grade calculator</h2>
       <p>Grade math is <strong>never hard-coded</strong>. Every region&rsquo;s rules live in a versioned configuration file that the calculator reads:</p>
       <ul>
         <li><strong>Weighted GPA</strong> = &Sigma;(grade points &times; credits) &divide; &Sigma;(credits), using the active region&rsquo;s grade&ndash;point mapping.</li>
         <li><strong>&ldquo;What do I need on the final?&rdquo;</strong> = (target &minus; (1&minus;w) &times; current) &divide; w, where w is the final&rsquo;s weight. If the target is mathematically unreachable, the tool says so plainly instead of showing a number.</li>
-        <li><strong>Percentage &harr; GPA conversions</strong> follow the active region&rsquo;s published formula — never a generic one smuggled in.</li>
+        <li><strong>Percentage &harr; GPA conversions</strong> follow the active region&rsquo;s published formula · never a generic one smuggled in.</li>
       </ul>
-      <p><strong>Per-region transparency promise:</strong> each region config documents its grade&ndash;point mapping, pass thresholds, conversion formulas, and the official source it was taken from. Values not yet confirmed against an official source are marked UNVERIFIED and the tool says so. Adding a country means adding one config file — never changing the math.</p>
-      <p><a href="/methodology/grade-calculator/">Per-region formula reference</a> &mdash; every formula the calculator uses, every regional trap it guards against, and every estimate it labels, with sources so you can hand-verify any number.</p>
+      <p><strong>Per-region transparency promise:</strong> each region config documents its grade&ndash;point mapping, pass thresholds, conversion formulas, and the official source it was taken from. Values not yet confirmed against an official source are marked UNVERIFIED and the tool says so. Adding a country means adding one config file · never changing the math.</p>
+      <p><a href="/methodology/grade-calculator/">Per-region formula reference</a> &middot; every formula the calculator uses, every regional trap it guards against, and every estimate it labels, with sources so you can hand-verify any number.</p>
 
       <h2>Syllabus coverage tracker</h2>
       <ul>
         <li><strong>Coverage %</strong> = (topics marked confident + 0.5 &times; topics in progress) &divide; total topics, per subject and overall.</li>
-        <li><strong>Pace indicator</strong> compares required topics/day (remaining &divide; days left) against your actual topics/day since you started tracking — plain-language &ldquo;on track&rdquo; / &ldquo;behind pace&rdquo; verdicts.</li>
+        <li><strong>Pace indicator</strong> compares required topics/day (remaining &divide; days left) against your actual topics/day since you started tracking · plain-language &ldquo;on track&rdquo; / &ldquo;behind pace&rdquo; verdicts.</li>
         <li><strong>Weakest topics</strong> are ranked by exam proximity &times; low confidence, so revision starts where it matters most.</li>
       </ul>
-      <p><a href="/methodology/syllabus-tracker/">Syllabus tracker formula reference</a> &mdash; every formula, the pace rules, and the ranking math, so you can hand-verify any number.</p>
+      <p><a href="/methodology/syllabus-tracker/">Syllabus tracker formula reference</a> &middot; every formula, the pace rules, and the ranking math, so you can hand-verify any number.</p>
 
       <h2>Exam countdown planner</h2>
       <ul>
-        <li><strong>Days left</strong> use integer date-only math, recomputed on every load — travelling across timezones cannot corrupt a countdown.</li>
+        <li><strong>Days left</strong> use integer date-only math, recomputed on every load · travelling across timezones cannot corrupt a countdown.</li>
         <li><strong>Required daily hours</strong> = remaining syllabus topics &divide; days left, linked to tracker data when it exists.</li>
       </ul>
-      <p><a href="/methodology/exam-countdown/">Exam countdown formula reference</a> &mdash; the timezone guarantees, prep estimates, and what the check-on-load reminders can and can&rsquo;t do.</p>
+      <p><a href="/methodology/exam-countdown/">Exam countdown formula reference</a> &middot; the timezone guarantees, prep estimates, and what the check-on-load reminders can and can&rsquo;t do.</p>
       <p>Details of data handling for all tools are in the <a href="/privacy/">privacy policy</a>.</p>
 
       <h2>AI chat (bring your own key)</h2>
-      <p><a href="/methodology/ai-chat/">AI chat trust contract</a> &mdash; where your API key lives (memory by default, optional passphrase-encrypted storage), exactly what is sent on Send and what is never sent, per-provider direct browser access notes, cost estimates, timeouts and retries.</p>
+      <p><a href="/methodology/ai-chat/">AI chat trust contract</a> &middot; where your API key lives (memory by default, optional passphrase-encrypted storage), exactly what is sent on Send and what is never sent, per-provider direct browser access notes, cost estimates, timeouts and retries.</p>
 
       <h2>AI workflows</h2>
-      <p><a href="/methodology/ai-workflows/">AI workflows reference</a> &mdash; what each of the five workflows sends, the &ldquo;what will be sent&rdquo; preview guarantee, output sanitization, and where generated decks, quizzes and plans are stored.</p>
+      <p><a href="/methodology/ai-workflows/">AI workflows reference</a> &middot; what each of the five workflows sends, the &ldquo;what will be sent&rdquo; preview guarantee, output sanitization, and where generated decks, quizzes and plans are stored.</p>
 
       <h2>Study Space data</h2>
-      <p><a href="/methodology/study-space/">Study Space data reference</a> &mdash; the IndexedDB data model, backup export/import format and the format-stability promise, quota and degraded-mode behavior, file previews, and the everything-local privacy guarantee.</p>
+      <p><a href="/methodology/study-space/">Study Space data reference</a> &middot; the IndexedDB data model, backup export/import format and the format-stability promise, quota and degraded-mode behavior, file previews, and the everything-local privacy guarantee.</p>
     </div>
   </section>
 </main>
 
 <footer class="site">
   <div class="wrap">
-    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <p><strong><span data-brand="name"></span></strong> &middot; <span data-brand="tagline"></span></p>
     <nav aria-label="Footer">
       <a href="/about/">About</a>
       <a href="/contact/">Contact</a>

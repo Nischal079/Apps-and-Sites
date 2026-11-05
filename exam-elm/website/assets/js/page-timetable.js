@@ -1,5 +1,5 @@
 /**
- * StudyPilot — Timetable generator page controller.
+ * StudyPilot · Timetable generator page controller.
  * Runs the shared site bootstrap, then wires the plan builder form,
  * subject rows, ICS export, save/load, and #plan= share links.
  */
@@ -42,9 +42,9 @@ function addSubjectRow(data = {}) {
     '<input type="text" class="s-name" id="' + uid + '-n" placeholder="e.g. Physics" maxlength="60" value="' + esc(data.name || "") + '" /></div>' +
     '<div class="field"><label for="' + uid + '-p">Priority</label>' +
     '<select class="s-priority" id="' + uid + '-p">' +
-    '<option value="3"' + (data.priority === 3 ? " selected" : "") + '>3 — most important</option>' +
-    '<option value="2"' + (data.priority !== 1 && data.priority !== 3 ? " selected" : "") + '>2 — normal</option>' +
-    '<option value="1"' + (data.priority === 1 ? " selected" : "") + '>1 — lower</option>' +
+    '<option value="3"' + (data.priority === 3 ? " selected" : "") + '>3 · most important</option>' +
+    '<option value="2"' + (data.priority !== 1 && data.priority !== 3 ? " selected" : "") + '>2 · normal</option>' +
+    '<option value="1"' + (data.priority === 1 ? " selected" : "") + '>1 · lower</option>' +
     '</select></div>' +
     '<div class="field"><label for="' + uid + '-e">Exam date (optional)</label>' +
     '<input type="date" class="s-exam" id="' + uid + '-e" value="' + esc(data.examDate || "") + '" /></div>' +
@@ -135,9 +135,9 @@ function renderPlan(plan, input) {
     if (day.sessions.length) html += ' <span class="muted">· ' + esc(String(day.totalMinutes)) + " min</span>";
     html += "</h3>";
     if (day.rest) {
-      html += '<ul class="plan-list"><li><span class="muted">Rest day — no sessions scheduled.</span></li></ul>';
+      html += '<ul class="plan-list"><li><span class="muted">Rest day · no sessions scheduled.</span></li></ul>';
     } else if (!day.sessions.length) {
-      html += '<ul class="plan-list"><li><span class="muted">Nothing fits today — try more daily hours or shorter sessions.</span></li></ul>';
+      html += '<ul class="plan-list"><li><span class="muted">Nothing fits today · try more daily hours or shorter sessions.</span></li></ul>';
     } else {
       html += '<ul class="plan-list">';
       for (const s of day.sessions) {
@@ -178,7 +178,7 @@ $("generate").addEventListener("click", () => {
 
 async function getStorage() {
   if (!storage) storage = await openStorage();
-  if (storage.degraded) toast("Browser storage is limited right now — your plan may not persist between visits.");
+  if (storage.degraded) toast("Browser storage is limited right now · your plan may not persist between visits.");
   return storage;
 }
 
@@ -196,7 +196,7 @@ async function refreshSavedList() {
   try {
     const st = await getStorage();
     const rows = await st.list("timetables", { reverse: true, limit: 50 });
-    sel.innerHTML = '<option value="">— choose a saved plan —</option>';
+    sel.innerHTML = '<option value="">Choose a saved plan</option>';
     for (const r of rows) {
       const opt = document.createElement("option");
       opt.value = r.id;
@@ -346,7 +346,7 @@ $("shareBtn").addEventListener("click", async () => {
     return;
   }
   if (!shareAllowed(code)) {
-    showFormError("Link too long — download instead (Export .ics, or save it to this browser).");
+    showFormError("Link too long · download instead (Export .ics, or save it to this browser).");
     return;
   }
   const url = location.origin + location.pathname + "#plan=" + code;
@@ -354,7 +354,7 @@ $("shareBtn").addEventListener("click", async () => {
     await copyText(url);
     toast("Share link copied to your clipboard.");
   } catch (e) {
-    showFormError("Couldn't copy the link automatically — your plan is still shown above.");
+    showFormError("Couldn't copy the link automatically · your plan is still shown above.");
   }
 });
 
@@ -370,7 +370,7 @@ function init() {
   onDayChange((today) => {
     $("startDate").value = today;
     if (currentInput) {
-      toast("Day rolled over — press Generate again to re-plan from today.");
+      toast("Day rolled over · press Generate again to re-plan from today.");
     }
   });
 

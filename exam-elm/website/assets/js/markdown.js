@@ -1,5 +1,5 @@
 /**
- * StudyPilot — tiny safe markdown renderer for notes.
+ * StudyPilot · tiny safe markdown renderer for notes.
  *
  * Security contract: user input is HTML-escaped FIRST, and only then is
  * markdown syntax applied to the escaped text. The output is therefore safe
@@ -39,7 +39,7 @@ export function renderMarkdown(src) {
   while (i < n) {
     const line = lines[i];
 
-    // Fenced code block — content shown verbatim (escaped), no markdown inside.
+    // Fenced code block · content shown verbatim (escaped), no markdown inside.
     if (/^```/.test(line)) {
       const body = [];
       i++;

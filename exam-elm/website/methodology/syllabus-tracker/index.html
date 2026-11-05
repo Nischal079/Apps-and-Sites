@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
-<title>Syllabus tracker methodology — {{brand}}</title>
-<meta name="description" content="Every formula the syllabus coverage tracker uses: coverage %, pace indicator, weakest-topic ranking, and the storage model — so you can hand-verify any number." />
+<title>Syllabus tracker methodology · {{brand}}</title>
+<meta name="description" content="Every formula the syllabus coverage tracker uses: coverage %, pace indicator, weakest-topic ranking, and the storage model · so you can hand-verify any number." />
 <link rel="canonical" href="https://studypilot.pages.dev/methodology/syllabus-tracker/" />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
@@ -27,6 +27,7 @@
       <a href="/tools/grade-calculator/">Grade Calculator</a>
       <a href="/tools/syllabus-tracker/" aria-current="page">Syllabus Tracker</a>
       <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/dashboard/">Dashboard</a>
     </nav>
     <div class="nav-actions">
       <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
@@ -44,6 +45,7 @@
     <a href="/tools/grade-calculator/">Grade Calculator</a>
     <a href="/tools/syllabus-tracker/" aria-current="page">Syllabus Tracker</a>
     <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/dashboard/">Dashboard</a>
   </nav>
 </header>
 
@@ -52,12 +54,12 @@
     <div class="wrap prose">
       <p class="eyebrow">Methodology</p>
       <h1>Syllabus tracker: every formula</h1>
-      <p>This is the trust contract behind the <a href="/tools/syllabus-tracker/">syllabus coverage tracker</a>. Every number the tool shows is computed below — coverage %, the pace indicator, and the weakest-topic ranking. If you can&rsquo;t hand-verify a number from this page, the tool shouldn&rsquo;t show it.</p>
+      <p>This is the trust contract behind the <a href="/tools/syllabus-tracker/">syllabus coverage tracker</a>. Every number the tool shows is computed below · coverage %, the pace indicator, and the weakest-topic ranking. If you can&rsquo;t hand-verify a number from this page, the tool shouldn&rsquo;t show it.</p>
 
       <h2>Coverage %</h2>
       <p>Each topic has one of three confidence states: <strong>Not started</strong> (weight 0), <strong>In progress</strong> (weight 0.5), <strong>Confident</strong> (weight 1).</p>
       <p><strong>Coverage % = (confident topics + 0.5 &times; in-progress topics) &divide; total topics &times; 100</strong>, rounded to one decimal.</p>
-      <p>In-progress work moves the needle; not-started work doesn&rsquo;t. A subject with no topics shows no percentage rather than 0% — 0% would imply &ldquo;you started and finished nothing&rdquo;, which isn&rsquo;t the same as &ldquo;you haven&rsquo;t listed topics yet&rdquo;. Overall coverage applies the same formula across all subjects&rsquo; topics pooled together.</p>
+      <p>In-progress work moves the needle; not-started work doesn&rsquo;t. A subject with no topics shows no percentage rather than 0% · 0% would imply &ldquo;you started and finished nothing&rdquo;, which isn&rsquo;t the same as &ldquo;you haven&rsquo;t listed topics yet&rdquo;. Overall coverage applies the same formula across all subjects&rsquo; topics pooled together.</p>
 
       <h2>Pace indicator</h2>
       <p>The pace indicator answers &ldquo;at my current rate, will I finish before the exam?&rdquo; It compares two rates, both in topics per day:</p>
@@ -69,9 +71,9 @@
       <ul>
         <li>No exam date &rarr; no pace reading (&ldquo;Add an exam date to see your pace&rdquo;).</li>
         <li>Exam date in the past &rarr; &ldquo;This exam date has passed&rdquo;.</li>
-        <li>Exam is today &rarr; &ldquo;Exam is today&rdquo; (no pace math — just focus).</li>
+        <li>Exam is today &rarr; &ldquo;Exam is today&rdquo; (no pace math · just focus).</li>
         <li>Every topic confident &rarr; &ldquo;Syllabus complete&rdquo;.</li>
-        <li>Tracking started today &rarr; no verdict yet (&ldquo;check back tomorrow&rdquo;) — one day of history can&rsquo;t establish a rate.</li>
+        <li>Tracking started today &rarr; no verdict yet (&ldquo;check back tomorrow&rdquo;) · one day of history can&rsquo;t establish a rate.</li>
       </ul>
       <p><strong>Honest limitation:</strong> the pace indicator assumes every remaining topic takes roughly equal effort and that you study every day until the exam. It&rsquo;s a planning signal, not a prediction.</p>
 
@@ -81,10 +83,10 @@
       <p>Subjects with no exam date get a small baseline weight (equivalent to an exam ~100 days out) so they rank below any subject with a real upcoming deadline. Ties break by nearer exam date, then topic name.</p>
 
       <h2>Dates and timezones</h2>
-      <p>All date math is <strong>date-only</strong>: the tool compares calendar dates, never timestamps. Day counts can&rsquo;t shift across timezones or daylight-saving transitions — a student in Kathmandu and one in New York see the same &ldquo;days left&rdquo; for the same exam date on the same local calendar day. Exam dates must be real calendar dates (30 February is rejected, not rolled over) between the years 2000 and 2100.</p>
+      <p>All date math is <strong>date-only</strong>: the tool compares calendar dates, never timestamps. Day counts can&rsquo;t shift across timezones or daylight-saving transitions · a student in Kathmandu and one in New York see the same &ldquo;days left&rdquo; for the same exam date on the same local calendar day. Exam dates must be real calendar dates (30 February is rejected, not rolled over) between the years 2000 and 2100.</p>
 
       <h2>Storage and privacy</h2>
-      <p>Your subjects and topics are stored as a single document in your browser&rsquo;s local database (IndexedDB, with an in-memory fallback if your browser blocks storage) — the same foundation as the rest of <span data-brand="name"></span>. Nothing is uploaded, there are no accounts, and clearing your browser data will delete your tracker. The backup/export story lives in <a href="/study-space/">My Study Space</a>.</p>
+      <p>Your subjects and topics are stored as a single document in your browser&rsquo;s local database (IndexedDB, with an in-memory fallback if your browser blocks storage) · the same foundation as the rest of <span data-brand="name"></span>. Nothing is uploaded, there are no accounts, and clearing your browser data will delete your tracker. The backup/export story lives in <a href="/study-space/">My Study Space</a>.</p>
 
       <p>Details of data handling for all tools are in the <a href="/privacy/">privacy policy</a>.</p>
     </div>
@@ -93,7 +95,7 @@
 
 <footer class="site">
   <div class="wrap">
-    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <p><strong><span data-brand="name"></span></strong> &middot; <span data-brand="tagline"></span></p>
     <nav aria-label="Footer">
       <a href="/about/">About</a>
       <a href="/contact/">Contact</a>

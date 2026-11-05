@@ -1,16 +1,16 @@
 /**
- * StudyPilot service worker — offline foundations.
+ * StudyPilot service worker · offline foundations.
  *
  * Strategy: versioned cache, cache-first for app shell + tool pages.
- * On new deploy: skipWaiting + clients get a "New version available — refresh"
+ * On new deploy: skipWaiting + clients get a "New version available · refresh"
  * toast (page listens for the 'sp-update' message). Update PRECACHE on every
  * release so airplane-mode navigation to each tool keeps working.
  *
- * NOTE: no scheduled background work here — exam reminders are day-level
+ * NOTE: no scheduled background work here · exam reminders are day-level
  * "check on load" banners (a service worker cannot wake itself without a
  * backend). See architecture review §4.
  */
-const CACHE = "studypilot-v8";
+const CACHE = "studypilot-v10";
 
 // Update this list on every release. Every tool page + its assets.
 const PRECACHE = [
@@ -43,6 +43,8 @@ const PRECACHE = [
   "/assets/js/ai/costs.js",
   "/assets/js/ai/crypto.js",
   "/assets/js/ai/workflows.js",
+  "/assets/js/ai/lastused.js",
+  "/assets/js/page-dashboard.js",
   "/config/regions/_default.json",
   "/config/regions/us.json",
   "/config/regions/uk.json",
@@ -57,6 +59,7 @@ const PRECACHE = [
   "/tools/syllabus-tracker/",
   "/tools/exam-countdown/",
   "/study-space/",
+  "/dashboard/",
   "/ai-chat/",
   "/ai-workflows/",
   "/about/",
@@ -80,7 +83,7 @@ self.addEventListener("install", (e) => {
       .then((c) => c.addAll(PRECACHE))
       .then(() => self.skipWaiting())
       .catch(() => {
-        /* offline during install — runtime caching still applies */
+        /* offline during install · runtime caching still applies */
       })
   );
 });

@@ -1,5 +1,5 @@
 /**
- * StudyPilot — My Study Space application.
+ * StudyPilot · My Study Space application.
  *
  * Private, browser-local workspace: notes, files, folders, saved timetables,
  * backup/restore. Built on assets/js/storage.js (versioned IndexedDB with
@@ -7,7 +7,7 @@
  *
  * Security: all user content reaches the DOM via esc()/textContent only
  * (markdown.js escapes before formatting). Blob previews use object URLs
- * created locally — nothing is ever uploaded anywhere.
+ * created locally · nothing is ever uploaded anywhere.
  */
 import { openStorage, validateBackup } from "./storage.js";
 import { esc, toast } from "./ui.js";
@@ -325,7 +325,16 @@ function renderNoteList() {
     d.className = "empty";
     d.innerHTML = state.noteQuery
       ? "<p>No notes match your search.</p>"
-      : "<p>No notes yet.</p><p class=\"muted\">Create your first note — it saves automatically in this browser.</p>";
+      : "<p>No notes yet.</p><p class=\"muted\">Create your first note · it saves automatically in this browser.</p>";
+    if (!state.noteQuery) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn btn-primary btn-sm";
+      b.style.marginTop = "0.7rem";
+      b.textContent = "+ Create your first note";
+      b.addEventListener("click", createNote);
+      d.appendChild(b);
+    }
     list.appendChild(d);
     return;
   }
@@ -375,7 +384,19 @@ function renderEditor() {
   const ed = $("noteEditor");
   const n = currentNote();
   if (!n) {
-    ed.innerHTML = '<div class="empty"><p>Select a note, or create a new one.</p></div>';
+    const d = document.createElement("div");
+    d.className = "empty";
+    const p = document.createElement("p");
+    p.textContent = "Select a note, or create a new one.";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn btn-primary btn-sm";
+    b.style.marginTop = "0.7rem";
+    b.textContent = "+ New note";
+    b.addEventListener("click", createNote);
+    d.append(p, b);
+    ed.innerHTML = "";
+    ed.appendChild(d);
     return;
   }
   ed.innerHTML = "";
@@ -500,9 +521,9 @@ const autosave = debounce(async (noteId) => {
     const st = await getStorage();
     const rec = await st.get("notes", noteId);
     if (!rec) {
-      // Note was deleted elsewhere — keep the text on screen, do not recreate.
+      // Note was deleted elsewhere · keep the text on screen, do not recreate.
       const s = $("saveStatus");
-      if (s) s.textContent = "Note was deleted elsewhere — text kept on screen.";
+      if (s) s.textContent = "Note was deleted elsewhere · text kept on screen.";
       return;
     }
     rec.title = title.value;
@@ -512,13 +533,13 @@ const autosave = debounce(async (noteId) => {
     state.editorDirty = false;
     const s = $("saveStatus");
     if (s) s.textContent = "Saved ✓";
-    // Refresh list + tree only — rebuilding the editor would steal focus
+    // Refresh list + tree only · rebuilding the editor would steal focus
     // and reset the cursor while the user is typing.
     renderNoteTree();
     renderNoteList();
   } catch (e) {
     const s = $("saveStatus");
-    if (s) s.textContent = "Couldn't save — your text is still here. Export a backup to be safe.";
+    if (s) s.textContent = "Couldn't save · your text is still here. Export a backup to be safe.";
     toast("Couldn't save the note: " + friendly(e));
   }
 }, 800);
@@ -647,7 +668,7 @@ async function deleteFolder(id) {
     notes.some((n) => n.folderId === id) ||
     files.some((x) => x.folderId === id);
   if (hasKids) {
-    toast("That folder isn't empty — move its notes, files and subfolders out first. Nothing was deleted.");
+    toast("That folder isn't empty · move its notes, files and subfolders out first. Nothing was deleted.");
     return;
   }
   if (!confirm(`Delete the folder "${f.name}"?`)) return;
@@ -693,7 +714,7 @@ function renderFolderManager() {
   if (!folders.length) {
     const p = document.createElement("p");
     p.className = "muted";
-    p.textContent = "No folders yet — create one above to organize notes and files.";
+    p.textContent = "No folders yet · create one above to organize notes and files.";
     box.appendChild(p);
     return;
   }
@@ -785,7 +806,16 @@ function renderFiles() {
     d.className = "empty";
     d.innerHTML = state.fileQuery
       ? "<p>No files match your search.</p>"
-      : "<p>No files yet.</p><p class=\"muted\">Upload PDFs, images, text or Word documents — they stay in this browser.</p>";
+      : "<p>No files yet.</p><p class=\"muted\">Upload PDFs, images, text or Word documents · they stay in this browser.</p>";
+    if (!state.fileQuery) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn btn-primary btn-sm";
+      b.style.marginTop = "0.7rem";
+      b.textContent = "Choose files";
+      b.addEventListener("click", () => $("fileInput").click());
+      d.appendChild(b);
+    }
     list.appendChild(d);
     return;
   }
@@ -846,7 +876,7 @@ async function handleFileInput(fileList) {
   let ok = 0;
   for (const file of arr) {
     if (file.size > MAX_FILE_BYTES) {
-      toast(`"${file.name}" is too large (${formatBytes(file.size)} — 50 MB max). Skipped, nothing else was affected.`);
+      toast(`"${file.name}" is too large (${formatBytes(file.size)} · 50 MB max). Skipped, nothing else was affected.`);
       continue;
     }
     try {
@@ -1006,7 +1036,7 @@ function renderTimetables() {
   if (!timetables.length) {
     const d = document.createElement("div");
     d.className = "empty";
-    d.innerHTML = "<p>No saved timetables yet.</p><p class=\"muted\">Generate one in the <a href=\"/tools/timetable/\">Timetable Generator</a> and save it — it will appear here.</p>";
+    d.innerHTML = "<p>No saved timetables yet.</p><p class=\"muted\">Generate one in the <a href=\"/tools/timetable/\">Timetable Generator</a> and save it · it will appear here.</p>";
     list.appendChild(d);
     return;
   }
@@ -1082,10 +1112,10 @@ async function refreshBackupPanel() {
         ? await navigator.storage.persisted()
         : false;
     $("persistStatus").textContent = persisted
-      ? "Persistent storage: granted — the browser will try not to delete your data under pressure."
-      : "Persistent storage: not granted — keep regular backups, or tap the button below to request it.";
+      ? "Persistent storage: granted · the browser will try not to delete your data under pressure."
+      : "Persistent storage: not granted · keep regular backups, or tap the button below to request it.";
   } catch {
-    $("persistStatus").textContent = "Persistent storage: not supported by this browser — keep regular backups.";
+    $("persistStatus").textContent = "Persistent storage: not supported by this browser · keep regular backups.";
   }
 }
 
@@ -1125,7 +1155,7 @@ async function importBackupFile(file) {
   try {
     parsed = JSON.parse(await file.text());
   } catch {
-    fail("That file isn't valid JSON — is it a " + BRAND.name + " backup?");
+    fail("That file isn't valid JSON · is it a " + BRAND.name + " backup?");
     return;
   }
   let restored;
@@ -1141,7 +1171,7 @@ async function importBackupFile(file) {
   if (mode === "replace") {
     const confirmed = $("confirmReplace").checked;
     if (!confirmed) {
-      fail("To replace everything, tick the confirmation box first — and consider exporting your current data before you do.");
+      fail("To replace everything, tick the confirmation box first · and consider exporting your current data before you do.");
       return;
     }
     if (!confirm("Replace ALL current " + BRAND.name + " data with this backup? This cannot be undone.")) return;
@@ -1158,7 +1188,7 @@ async function importBackupFile(file) {
     out.className = "result";
     out.textContent = `Import complete: ${res.added} added, ${res.skipped} skipped (already existed), ${res.replaced} replaced.`;
   } catch (e) {
-    fail("Import failed partway: " + friendly(e) + " Your existing data was left as-is where possible — check your notes and files.");
+    fail("Import failed partway: " + friendly(e) + " Your existing data was left as-is where possible · check your notes and files.");
   }
   function fail(msg) {
     out.hidden = false;
@@ -1173,7 +1203,7 @@ async function requestPersistence() {
     const ok = await st.requestPersistence();
     toast(
       ok
-        ? "Persistent storage granted — the browser will try not to evict your data."
+        ? "Persistent storage granted · the browser will try not to evict your data."
         : "The browser declined persistent storage. Export backups regularly to be safe."
     );
     refreshBackupPanel();
@@ -1185,7 +1215,7 @@ async function requestPersistence() {
 /* ---------------- Errors ---------------- */
 function friendly(e) {
   const m = (e && e.message) || String(e || "unknown error");
-  if (/quota/i.test(m)) return "browser storage is full — delete some files or export a backup, then try again.";
+  if (/quota/i.test(m)) return "browser storage is full · delete some files or export a backup, then try again.";
   return m;
 }
 

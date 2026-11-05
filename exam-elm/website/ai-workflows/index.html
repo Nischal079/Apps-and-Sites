@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- connect-src: explicit allowlist of built-in BYOK provider origins ONLY.
      No wildcards. Custom user endpoints are NOT covered by this static CSP and
-     will be blocked by the browser — tracked as a known limitation in
+     will be blocked by the browser · tracked as a known limitation in
      KNOWN-ISSUES.md (a static page cannot grant per-user CSP exceptions). -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://openrouter.ai https://api.deepseek.com https://api.anthropic.com https://generativelanguage.googleapis.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
-<title>AI Study Tools — {{brand}}</title>
-<meta name="description" content="Turn your study notes into flashcards, quizzes, study plans and summaries with AI — using your own API key. Five private, bring-your-own-key workflows that run entirely in your browser: chat with your notes, generate flashcards, build quizzes, plan your study days, and rewrite notes." />
+<title>AI Study Tools · {{brand}}</title>
+<meta name="description" content="Turn your study notes into flashcards, quizzes, study plans and summaries with AI · using your own API key. Five private, bring-your-own-key workflows that run entirely in your browser: chat with your notes, generate flashcards, build quizzes, plan your study days, and rewrite notes." />
 <link rel="canonical" href="https://studypilot.pages.dev/ai-workflows/" />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
@@ -31,6 +31,7 @@
       <a href="/tools/grade-calculator/">Grade Calculator</a>
       <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
       <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/dashboard/">Dashboard</a>
     </nav>
     <div class="nav-actions">
       <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
@@ -48,6 +49,7 @@
     <a href="/tools/grade-calculator/">Grade Calculator</a>
     <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
     <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/dashboard/">Dashboard</a>
   </nav>
 </header>
 
@@ -55,7 +57,7 @@
   <p class="eyebrow">Optional · Bring your own key</p>
   <h1>AI Study Tools</h1>
   <p class="muted" style="max-width: 680px;">
-    Five AI workflows built on your notes and files — chat with your study
+    Five AI workflows built on your notes and files · chat with your study
     materials, generate flashcards, build practice quizzes, draft a study plan
     from your syllabus tracker, and rewrite notes. Free tools stay free; this
     is an opt-in extra that uses <em>your</em> API key with the AI provider of
@@ -65,21 +67,21 @@
   <div class="banner warn" role="note" aria-label="Important disclosures">
     <strong>Before you use these tools, know this:</strong>
     <ul style="margin: 0.5rem 0 0; padding-left: 1.2rem;">
-      <li>Your prompts go <strong>directly from this browser to the provider you choose</strong>. There is no server in between — your prompts and your key are never seen by us.</li>
+      <li>Your prompts go <strong>directly from this browser to the provider you choose</strong>. There is no server in between · your prompts and your key are never seen by us.</li>
       <li>The provider you choose <strong>receives everything you send</strong>, including your notes and files.</li>
       <li><strong>Nothing is sent anywhere until you press Send.</strong> Every tab shows you exactly what will be sent and an estimated cost first.</li>
-      <li><strong>API billing is separate</strong> from any consumer AI subscription — you pay the provider's API rates.</li>
+      <li><strong>API billing is separate</strong> from any consumer AI subscription · you pay the provider's API rates.</li>
     </ul>
   </div>
 
   <section class="card" aria-labelledby="tools-h" style="margin-bottom: 1.2rem;">
     <h2 id="tools-h" style="margin-top: 0;">What you can do here</h2>
     <ul style="margin: 0; padding-left: 1.2rem;">
-      <li><strong>Context Chat</strong> — ask questions answered only from the notes and files you select.</li>
-      <li><strong>Flashcards</strong> — generate question/answer cards from a note or pasted text, review them, and save decks.</li>
-      <li><strong>Quiz</strong> — generate multiple-choice and short-answer quizzes, take them, and track your scores.</li>
-      <li><strong>Study Planner</strong> — draft a day-by-day plan from your syllabus tracker coverage, then open it in the timetable generator.</li>
-      <li><strong>Notes Assistant</strong> — summarize, expand, simplify, or extract key points from any note, with preview before anything changes.</li>
+      <li><strong>Context Chat</strong> · ask questions answered only from the notes and files you select.</li>
+      <li><strong>Flashcards</strong> · generate question/answer cards from a note or pasted text, review them, and save decks.</li>
+      <li><strong>Quiz</strong> · generate multiple-choice and short-answer quizzes, take them, and track your scores.</li>
+      <li><strong>Study Planner</strong> · draft a day-by-day plan from your syllabus tracker coverage, then open it in the timetable generator.</li>
+      <li><strong>Notes Assistant</strong> · summarize, expand, simplify, or extract key points from any note, with preview before anything changes.</li>
     </ul>
   </section>
 
@@ -88,7 +90,7 @@
     <h2 id="prov-h" style="margin-top: 0;">AI provider</h2>
     <div id="provEmpty" class="empty" hidden>
       <p><strong>No provider configured yet.</strong></p>
-      <p>Add a provider in AI Chat first — your key stays in your browser.</p>
+      <p>Add a provider in AI Chat first · your key stays in your browser.</p>
       <p><a class="btn btn-primary" href="/ai-chat/#providers">Add a provider in AI Chat</a></p>
     </div>
     <div id="provBar" hidden>
@@ -171,7 +173,7 @@
       </div>
       <div class="field">
         <label for="cardPaste">Or paste text</label>
-        <textarea id="cardPaste" rows="5" placeholder="Paste study material here — pasted text takes priority over the note above."></textarea>
+        <textarea id="cardPaste" rows="5" placeholder="Paste study material here · pasted text takes priority over the note above."></textarea>
       </div>
       <div class="field">
         <label for="cardCount">Number of cards (1–50)</label>
@@ -192,7 +194,7 @@
     <div class="card" id="cardsReview" style="margin-bottom: 1rem;" hidden>
       <h2 style="margin-top: 0;">Review</h2>
       <p class="hint" id="cardCounter"></p>
-      <div id="cardStage" role="button" tabindex="0" aria-label="Flashcard — activate to flip" style="cursor: pointer;"></div>
+      <div id="cardStage" role="button" tabindex="0" aria-label="Flashcard · activate to flip" style="cursor: pointer;"></div>
       <p><span id="cardKnownBadge" class="badge"></span></p>
       <div class="btn-row left">
         <button type="button" class="btn btn-ghost btn-sm" id="btnCardFlip">Flip</button>
@@ -203,7 +205,7 @@
       </div>
       <div class="field" style="margin-top: 1rem;">
         <label for="deckName">Deck name</label>
-        <input type="text" id="deckName" maxlength="80" placeholder="e.g. Biology — Cell structure" />
+        <input type="text" id="deckName" maxlength="80" placeholder="e.g. Biology · Cell structure" />
       </div>
       <div class="btn-row left">
         <button type="button" class="btn btn-primary btn-sm" id="btnSaveDeck">Save deck</button>
@@ -226,7 +228,7 @@
       </div>
       <div class="field">
         <label for="quizPaste">Or paste text</label>
-        <textarea id="quizPaste" rows="5" placeholder="Paste study material here — pasted text takes priority over the note above."></textarea>
+        <textarea id="quizPaste" rows="5" placeholder="Paste study material here · pasted text takes priority over the note above."></textarea>
       </div>
       <div class="field">
         <label for="quizMcq">Multiple-choice questions (0–20)</label>
@@ -313,7 +315,7 @@
 
       <div id="planDraftWrap" class="card" hidden>
         <h2 style="margin-top: 0;">Review &amp; edit your plan</h2>
-        <p class="hint">Edit freely below. The timetable handoff uses your subject list above — not this text.</p>
+        <p class="hint">Edit freely below. The timetable handoff uses your subject list above · not this text.</p>
         <div class="field">
           <label for="planDraft">Plan draft</label>
           <textarea id="planDraft" rows="12"></textarea>
@@ -370,7 +372,7 @@
 
 <footer class="footer">
   <div class="wrap footer-inner">
-    <p><span data-brand="name"></span> — <span data-brand="tagline"></span></p>
+    <p><span data-brand="name"></span> · <span data-brand="tagline"></span></p>
     <nav aria-label="Footer">
       <a href="/about/">About</a>
       <a href="/contact/">Contact</a>

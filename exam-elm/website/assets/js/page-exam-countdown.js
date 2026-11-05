@@ -1,5 +1,5 @@
 /**
- * StudyPilot — Exam countdown page controller.
+ * StudyPilot · Exam countdown page controller.
  * Runs the shared site bootstrap, then wires multi-exam countdowns
  * with timezone-safe date math and tracker deep-links.
  */
@@ -16,7 +16,7 @@ import {
 import { TRACKER_KV_KEY, TRACKER_VERSION, linkExam } from "/assets/js/tracker.js";
 
 /* ============================================================
- * Exam Countdown — UI WIRING ONLY.
+ * Exam Countdown · UI WIRING ONLY.
  * All math lives in /assets/js/countdown.js (pure, unit-tested).
  * Exam docs persist in kv ("countdown:v1"); linked tracker
  * subjects keep their examDate in sync through tracker:v1.
@@ -179,7 +179,7 @@ $("addExamBtn").addEventListener("click", async () => {
 
     if (editingId) {
       const exam = examsDoc.exams.find((x) => x.id === editingId);
-      if (!exam) throw new Error("That exam no longer exists — it may have been deleted.");
+      if (!exam) throw new Error("That exam no longer exists · it may have been deleted.");
       const oldSubject = trackerDoc.subjects.find((x) => x.examId === exam.id);
       if (oldSubject && (!subjectId || oldSubject.id !== subjectId)) oldSubject.examId = null;
       exam.name = name; exam.date = date; exam.dailyHours = hours;

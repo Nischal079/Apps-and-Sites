@@ -1,8 +1,8 @@
 /**
- * StudyPilot — BYOK cost estimation.
+ * StudyPilot · BYOK cost estimation.
  *
  * Prices are APPROXIMATE public list prices (USD per 1M tokens) captured
- * 2026-11-04. Providers change pricing — the UI labels every figure as an
+ * 2026-11-04. Providers change pricing · the UI labels every figure as an
  * estimate and links the provider's pricing page. Unknown models return
  * known:false so the UI says "unknown" instead of inventing a number.
  */
@@ -56,7 +56,7 @@ export function estimateCost(modelId, promptText, maxOutputTokens) {
   return { known: true, promptTokens, maxOutputTokens: maxOut, estCostUsd, label: price.label };
 }
 
-/** Format $0.00042 as "$0.0004" / "$0.02" — never rounds to misleading $0.00. */
+/** Format $0.00042 as "$0.0004" / "$0.02" · never rounds to misleading $0.00. */
 export function formatUsd(v) {
   if (v == null || Number.isNaN(v)) return "unknown";
   if (v === 0) return "$0.00";

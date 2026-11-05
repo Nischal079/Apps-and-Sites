@@ -1,5 +1,5 @@
 /**
- * StudyPilot — versioned browser storage foundation.
+ * StudyPilot · versioned browser storage foundation.
  *
  * - IndexedDB database "studypilot" for application data (notes, files,
  *   folders, timetables, AI conversations, key-value).
@@ -175,7 +175,7 @@ export function validateBackup(obj) {
   }
   if (obj.schemaVersion > SCHEMA_VERSION) {
     throw new Error(
-      `Import failed: backup was made with a newer version (v${obj.schemaVersion}) than this app (v${SCHEMA_VERSION}). Update the app first — your data was not touched.`
+      `Import failed: backup was made with a newer version (v${obj.schemaVersion}) than this app (v${SCHEMA_VERSION}). Update the app first · your data was not touched.`
     );
   }
   if (!obj.data || typeof obj.data !== "object") {

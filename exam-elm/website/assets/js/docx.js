@@ -1,5 +1,5 @@
 /**
- * StudyPilot — minimal DOCX text extractor. Zero dependencies.
+ * StudyPilot · minimal DOCX text extractor. Zero dependencies.
  *
  * A .docx is a ZIP containing word/document.xml. We parse the ZIP central
  * directory (robust against data descriptors), inflate the entry with the
@@ -109,8 +109,8 @@ export async function extractDocxText(arrayBuffer) {
     return text;
   } catch (e) {
     if (e && /^(not a zip|no document|unsupported|this browser|document appears|zip central)/.test(e.message)) {
-      throw new Error("Couldn't read the text of this .docx file — download it to view instead.");
+      throw new Error("Couldn't read the text of this .docx file · download it to view instead.");
     }
-    throw new Error("Couldn't read the text of this .docx file — download it to view instead.");
+    throw new Error("Couldn't read the text of this .docx file · download it to view instead.");
   }
 }

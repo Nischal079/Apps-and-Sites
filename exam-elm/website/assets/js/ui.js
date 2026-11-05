@@ -1,10 +1,10 @@
 /**
- * StudyPilot — shared UI utilities.
+ * StudyPilot · shared UI utilities.
  * Imported by every page. No dependencies.
  */
 import { BRAND } from "./config.js";
 
-/** XSS-safe text rendering — ALWAYS use instead of innerHTML with user data. */
+/** XSS-safe text rendering · ALWAYS use instead of innerHTML with user data. */
 export function esc(s) {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -14,7 +14,7 @@ export function esc(s) {
 }
 
 /* ---------- Date helpers: DATE-ONLY arithmetic, always local ----------
- * MANDATE (arch review §2): never `new Date("2026-11-04")` — ISO date-only
+ * MANDATE (arch review §2): never `new Date("2026-11-04")` · ISO date-only
  * strings parse as UTC midnight and shift the day west of UTC. Always build
  * via new Date(y, m-1, d). Countdowns/durations use integer day math, never
  * timestamp diffs, so DST transitions cannot corrupt them. */
@@ -76,7 +76,7 @@ export function initTheme() {
     try {
       localStorage.setItem(THEME_KEY, t);
     } catch {
-      /* private mode — theme just won't persist */
+      /* private mode · theme just won't persist */
     }
   };
   apply(saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));

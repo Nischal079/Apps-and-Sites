@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
-<title>Study Space: data, backups, and limits — {{brand}} methodology</title>
+<title>Study Space: data, backups, and limits · {{brand}} methodology</title>
 <meta name="description" content="How Study Space stores your data: the IndexedDB data model, backup export/import format and format-stability promise, quota and degraded-mode behavior, file previews, and the everything-local privacy guarantee." />
 <link rel="canonical" href="https://studypilot.pages.dev/methodology/study-space/" />
 <meta name="theme-color" content="#312e81" />
@@ -27,6 +27,7 @@
       <a href="/tools/grade-calculator/">Grade Calculator</a>
       <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
       <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/dashboard/">Dashboard</a>
     </nav>
     <div class="nav-actions">
       <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle color theme">&#9790;</button>
@@ -44,6 +45,7 @@
     <a href="/tools/grade-calculator/">Grade Calculator</a>
     <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
     <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/dashboard/">Dashboard</a>
   </nav>
 </header>
 
@@ -55,7 +57,7 @@
       <p>This page documents how <a href="/study-space/">My Study Space</a> stores your data. The short version: <strong>everything lives in your browser, in a local database only your device can read</strong>. The rest of this page is the long version, so you can verify that claim.</p>
 
       <h2>The data model</h2>
-      <p>Study Space uses IndexedDB — a database built into your browser — with six stores:</p>
+      <p>Study Space uses IndexedDB · a database built into your browser · with six stores:</p>
       <table class="data">
         <thead><tr><th scope="col">Store</th><th scope="col">Holds</th></tr></thead>
         <tbody>
@@ -63,47 +65,47 @@
           <tr><td><code>files</code></td><td>Uploaded files: the file itself (as a Blob), name, size, MIME type, and any extracted text for search/preview</td></tr>
           <tr><td><code>folders</code></td><td>Folder organization for notes and files</td></tr>
           <tr><td><code>timetables</code></td><td>Saved timetable plans you generated with the <a href="/tools/timetable/">timetable tool</a></td></tr>
-          <tr><td><code>conversations</code></td><td><a href="/methodology/ai-chat/">AI chat</a> history (messages only — API keys are never stored here)</td></tr>
+          <tr><td><code>conversations</code></td><td><a href="/methodology/ai-chat/">AI chat</a> history (messages only · API keys are never stored here)</td></tr>
           <tr><td><code>kv</code></td><td>Small settings and tool state: tracker data, countdowns, flashcard decks (<code>flashdecks:v1</code>), quiz attempts (<code>quizattempts:v1</code>), non-secret provider configs</td></tr>
         </tbody>
       </table>
-      <p>The schema is versioned (currently v1); any future structural change will be applied through a migration, not by dropping your data. There is no sync, no account, no server copy — deleting your browser data deletes your study space.</p>
+      <p>The schema is versioned (currently v1); any future structural change will be applied through a migration, not by dropping your data. There is no sync, no account, no server copy · deleting your browser data deletes your study space.</p>
 
       <h2>Backup export/import</h2>
       <ul>
         <li><strong>Export</strong> downloads a single JSON file (<code>studypilot-backup-YYYYMMDD.json</code>) containing every store. File blobs are converted to <code>data:&lt;mime&gt;;base64,…</code> strings so the whole backup is one portable text file.</li>
-        <li><strong>Format:</strong> <code>{ app: "studypilot", schemaVersion: N, data: { notes: […], files: […], … } }</code> — each section is a plain array of records keyed by its own id field.</li>
-        <li><strong>Import modes:</strong> <em>Merge</em> (default) keeps your existing records and adds the backup&rsquo;s — existing ids are left alone. <em>Replace</em> wipes all current data first and requires <strong>two</strong> confirmations: a tick-box plus a native confirm dialog. Export your current data before replacing.</li>
-        <li><strong>Validation before touching data.</strong> Imports are checked first: valid JSON, recognized app marker, readable schema version, no unknown sections, every record has its id, total under the 100&nbsp;MB import cap. A backup made with a <em>newer</em> schema version is refused with an instruction to update the app — your current data is never touched by a failed import.</li>
+        <li><strong>Format:</strong> <code>{ app: "studypilot", schemaVersion: N, data: { notes: […], files: […], … } }</code> · each section is a plain array of records keyed by its own id field.</li>
+        <li><strong>Import modes:</strong> <em>Merge</em> (default) keeps your existing records and adds the backup&rsquo;s · existing ids are left alone. <em>Replace</em> wipes all current data first and requires <strong>two</strong> confirmations: a tick-box plus a native confirm dialog. Export your current data before replacing.</li>
+        <li><strong>Validation before touching data.</strong> Imports are checked first: valid JSON, recognized app marker, readable schema version, no unknown sections, every record has its id, total under the 100&nbsp;MB import cap. A backup made with a <em>newer</em> schema version is refused with an instruction to update the app · your current data is never touched by a failed import.</li>
       </ul>
 
       <h3>The format-stability promise</h3>
-      <p>Your backup file is yours. The export format is versioned (<code>schemaVersion</code>), and future versions of the app will continue to read older backups — we will not ship an update that orphans your exported data. If the format ever changes, this page will document the migration path.</p>
+      <p>Your backup file is yours. The export format is versioned (<code>schemaVersion</code>), and future versions of the app will continue to read older backups · we will not ship an update that orphans your exported data. If the format ever changes, this page will document the migration path.</p>
 
       <h2>Quota and degraded mode</h2>
       <ul>
         <li><strong>Per-file cap:</strong> uploads are limited to 50&nbsp;MB per file (rejected with a plain message, not a silent failure).</li>
         <li><strong>Storage meter:</strong> the Study Space header shows how much browser storage you&rsquo;re using versus your quota. There is also a &ldquo;keep data&rdquo; button that asks the browser for persistent storage so your data isn&rsquo;t evicted under pressure.</li>
-        <li><strong>Degraded mode:</strong> if IndexedDB is unavailable (private browsing quirks, blocked storage), the page shows a banner and runs on an in-memory fallback with the identical API — everything works, <strong>but nothing persists</strong> past the tab. The banner says so plainly; the app never pretends to save when it can&rsquo;t.</li>
-        <li><strong>Quota-full errors</strong> are translated into plain language (&ldquo;browser storage is full — delete some files or export a backup, then try again&rdquo;) instead of raw error codes.</li>
+        <li><strong>Degraded mode:</strong> if IndexedDB is unavailable (private browsing quirks, blocked storage), the page shows a banner and runs on an in-memory fallback with the identical API · everything works, <strong>but nothing persists</strong> past the tab. The banner says so plainly; the app never pretends to save when it can&rsquo;t.</li>
+        <li><strong>Quota-full errors</strong> are translated into plain language (&ldquo;browser storage is full · delete some files or export a backup, then try again&rdquo;) instead of raw error codes.</li>
       </ul>
 
       <h2>File previews</h2>
       <p>Previews are rendered locally in your browser from the stored file:</p>
       <ul>
-        <li><strong>Images</strong> — shown directly (max width constrained).</li>
-        <li><strong>PDFs</strong> — shown in an embedded viewer.</li>
-        <li><strong>Text files</strong> (<code>.txt</code>, <code>.md</code>, <code>.csv</code>, other <code>text/*</code>) — first 500,000 characters, plain text.</li>
-        <li><strong>Word documents (.docx)</strong> — text is extracted on upload; the preview shows the extracted text, or a &ldquo;couldn&rsquo;t extract&rdquo; note with a download button.</li>
-        <li><strong>Everything else</strong> — no preview; a download button so you can open it in its own app.</li>
+        <li><strong>Images</strong> · shown directly (max width constrained).</li>
+        <li><strong>PDFs</strong> · shown in an embedded viewer.</li>
+        <li><strong>Text files</strong> (<code>.txt</code>, <code>.md</code>, <code>.csv</code>, other <code>text/*</code>) · first 500,000 characters, plain text.</li>
+        <li><strong>Word documents (.docx)</strong> · text is extracted on upload; the preview shows the extracted text, or a &ldquo;couldn&rsquo;t extract&rdquo; note with a download button.</li>
+        <li><strong>Everything else</strong> · no preview; a download button so you can open it in its own app.</li>
       </ul>
-      <p>Previews use temporary object URLs that are revoked when the preview closes. Text previews use <code>textContent</code> — file contents are never interpreted as HTML.</p>
+      <p>Previews use temporary object URLs that are revoked when the preview closes. Text previews use <code>textContent</code> · file contents are never interpreted as HTML.</p>
 
       <h2>Privacy: everything local</h2>
       <ul>
-        <li>Notes, files, folders, timetables, chat history, decks, and quiz attempts never leave your device — except through the two paths <em>you</em> trigger: <strong>Send</strong> in the AI features (covered in the <a href="/methodology/ai-chat/">AI chat</a> and <a href="/methodology/ai-workflows/">AI workflows</a> contracts) and <strong>backup export</strong> (a file <em>you</em> download).</li>
+        <li>Notes, files, folders, timetables, chat history, decks, and quiz attempts never leave your device · except through the two paths <em>you</em> trigger: <strong>Send</strong> in the AI features (covered in the <a href="/methodology/ai-chat/">AI chat</a> and <a href="/methodology/ai-workflows/">AI workflows</a> contracts) and <strong>backup export</strong> (a file <em>you</em> download).</li>
         <li>Plaintext API keys are never written to any store (see <a href="/methodology/ai-chat/">AI chat: your key</a>). Non-secret provider configs (names, endpoints, model lists) are stored in <code>kv</code>; encrypted key blobs only if you opt in.</li>
-        <li>There is no analytics, no tracking, and no account system anywhere in the app — nothing exists to report your data to.</li>
+        <li>There is no analytics, no tracking, and no account system anywhere in the app · nothing exists to report your data to.</li>
       </ul>
 
       <p><a href="/methodology/">&larr; Back to methodology overview</a></p>
@@ -113,7 +115,7 @@
 
 <footer class="site">
   <div class="wrap">
-    <p><strong><span data-brand="name"></span></strong> &mdash; <span data-brand="tagline"></span></p>
+    <p><strong><span data-brand="name"></span></strong> &middot; <span data-brand="tagline"></span></p>
     <nav aria-label="Footer">
       <a href="/about/">About</a>
       <a href="/contact/">Contact</a>

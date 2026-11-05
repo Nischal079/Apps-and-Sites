@@ -1,9 +1,9 @@
 /**
- * StudyPilot — timetable generation engine.
+ * StudyPilot · timetable generation engine.
  *
  * PURE, DOM-free ES module: no browser APIs, no imports. Node tests import
  * this directly. Date handling follows the frozen ui.js mandate:
- * date-only math via local components + Date.UTC diffs — never
+ * date-only math via local components + Date.UTC diffs · never
  * `new Date("YYYY-MM-DD")` (UTC-shift bug) and never timestamp diffs for day
  * counts, so DST transitions cannot corrupt the plan.
  */

@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Timetable Generator — {{brand}}</title>
-<meta name="description" content="Build a free study timetable from your subjects and exam dates. Spaced-repetition reviews included. No signup — everything stays on your device." />
+<title>Timetable Generator · {{brand}}</title>
+<meta name="description" content="Build a free study timetable from your subjects and exam dates. Spaced-repetition reviews included. No signup · everything stays on your device." />
 <link rel="canonical" href="https://studypilot.pages.dev/tools/timetable/" />
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Timetable Generator — {{brand}}","url":"https://studypilot.pages.dev/tools/timetable/","applicationCategory":"EducationalApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Build a free study timetable from your subjects and exam dates. Spaced-repetition reviews included. No signup — everything stays on your device."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Timetable Generator · {{brand}}","url":"https://studypilot.pages.dev/tools/timetable/","applicationCategory":"EducationalApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Build a free study timetable from your subjects and exam dates. Spaced-repetition reviews included. No signup · everything stays on your device."}</script>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="stylesheet" href="/assets/css/main.css" />
@@ -27,6 +27,7 @@
       <a href="/tools/grade-calculator/">Grade Calculator</a>
       <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
       <a href="/tools/exam-countdown/">Exam Countdown</a>
+      <a href="/dashboard/">Dashboard</a>
     </nav>
     <div class="nav-actions">
       <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle light and dark theme">◐</button>
@@ -44,6 +45,7 @@
     <a href="/tools/grade-calculator/">Grade Calculator</a>
     <a href="/tools/syllabus-tracker/">Syllabus Tracker</a>
     <a href="/tools/exam-countdown/">Exam Countdown</a>
+    <a href="/dashboard/">Dashboard</a>
   </nav>
 </header>
 
@@ -60,7 +62,7 @@
 
     <div id="subjectRows"></div>
     <p id="subjectEmpty" class="muted" hidden>
-      No subjects yet — add your first one below to get started.
+      No subjects yet · add your first one below to get started.
     </p>
     <p>
       <button class="btn btn-ghost btn-sm" type="button" id="addSubject">+ Add subject</button>
@@ -79,9 +81,9 @@
       <div class="field">
         <label for="sessionLen">Session length</label>
         <select id="sessionLen">
-          <option value="25">25 min — quick focus</option>
-          <option value="50" selected>50 min — standard</option>
-          <option value="90">90 min — deep dive</option>
+          <option value="25">25 min · quick focus</option>
+          <option value="50" selected>50 min · standard</option>
+          <option value="90">90 min · deep dive</option>
         </select>
       </div>
       <div class="field">
@@ -124,11 +126,11 @@
       <div class="grid grid-2">
         <div class="field">
           <label for="planName">Plan name</label>
-          <input type="text" id="planName" placeholder="e.g. Finals — November" maxlength="80" />
+          <input type="text" id="planName" placeholder="e.g. Finals · November" maxlength="80" />
         </div>
         <div class="field">
           <label for="savedPlans">Saved plans</label>
-          <select id="savedPlans"><option value="">— choose a saved plan —</option></select>
+          <select id="savedPlans"><option value="">Choose a saved plan</option></select>
         </div>
       </div>
       <div class="btn-row" style="justify-content:flex-start;">
@@ -143,7 +145,7 @@
 
 <footer class="site no-print" style="border-top:1px solid var(--border); margin-top:2rem;">
   <div class="wrap section" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center; justify-content:space-between;">
-    <p class="muted" style="margin:0;"><span data-brand="name"></span> — <span data-brand="tagline"></span></p>
+    <p class="muted" style="margin:0;"><span data-brand="name"></span> · <span data-brand="tagline"></span></p>
     <nav aria-label="Footer">
       <a href="/about/" class="muted" style="margin-right:1rem;">About</a>
       <a href="/privacy/" class="muted" style="margin-right:1rem;">Privacy</a>

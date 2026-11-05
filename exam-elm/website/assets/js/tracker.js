@@ -1,5 +1,5 @@
 /**
- * StudyPilot — syllabus coverage tracker: PURE LOGIC, no DOM.
+ * StudyPilot · syllabus coverage tracker: PURE LOGIC, no DOM.
  *
  * Data model (persisted as one document in the kv store under "tracker:v1"):
  *   { version: 1,
@@ -9,7 +9,7 @@
  * examId links to an exam-countdown exam of the same id; prep estimates also
  * fall back to a case-insensitive name match.
  *
- * All date math is DATE-ONLY via parseDateInput()/daysBetween() from ui.js —
+ * All date math is DATE-ONLY via parseDateInput()/daysBetween() from ui.js ·
  * never timestamp diffs, so DST transitions and timezone offsets cannot
  * corrupt a pace or countdown. See methodology/syllabus-tracker/.
  */
@@ -48,7 +48,7 @@ export function isoOf(d) {
 export function validateSubjectName(name) {
   const n = String(name || "").trim();
   if (!n) throw new Error("Give the subject a name, e.g. “Physics”.");
-  if (n.length > 80) throw new Error("Subject names are limited to 80 characters — shorten it a little.");
+  if (n.length > 80) throw new Error("Subject names are limited to 80 characters · shorten it a little.");
   return n;
 }
 
@@ -59,20 +59,20 @@ export function validateExamDate(str) {
   const d = parseStrictDate(s);
   if (!d) throw new Error("Enter a valid exam date, e.g. 2026-12-04.");
   const y = d.getFullYear();
-  if (y < 2000 || y > 2100) throw new Error("That year looks wrong — enter a date between 2000 and 2100.");
+  if (y < 2000 || y > 2100) throw new Error("That year looks wrong · enter a date between 2000 and 2100.");
   return isoOf(d);
 }
 
 export function validateTopicName(name) {
   const n = String(name || "").trim();
   if (!n) throw new Error("Give the topic a name, e.g. “Thermodynamics”.");
-  if (n.length > 120) throw new Error("Topic names are limited to 120 characters — shorten it a little.");
+  if (n.length > 120) throw new Error("Topic names are limited to 120 characters · shorten it a little.");
   return n;
 }
 
 export function validateConfidence(c) {
   if (c !== CONF.NONE && c !== CONF.WIP && c !== CONF.DONE) {
-    throw new Error("Unknown confidence value — this looks like corrupted data.");
+    throw new Error("Unknown confidence value · this looks like corrupted data.");
   }
   return c;
 }
@@ -102,7 +102,7 @@ export function newTopic(name) {
 /**
  * Coverage % = (confident + 0.5 × in-progress) ÷ total topics.
  * In-progress work moves the needle; not-started doesn't.
- * Returns { total, done, wip, percent } — percent is null when total is 0.
+ * Returns { total, done, wip, percent } · percent is null when total is 0.
  */
 export function subjectCoverage(subject) {
   const topics = subject.topics || [];
@@ -136,7 +136,7 @@ export function overallCoverage(subjects) {
 /* ---------------- pace ---------------- */
 
 /**
- * paceFor(subject, todayISO) — plain-language schedule verdict.
+ * paceFor(subject, todayISO) · plain-language schedule verdict.
  * todayISO: "YYYY-MM-DD" (the page passes the device's local date).
  *
  * status: "no-date" | "past" | "today" | "done" | "too-early" | "behind" | "on-track"
@@ -156,13 +156,13 @@ export function paceFor(subject, todayISO) {
   const daysLeft = daysBetween(today, exam);
 
   if (daysLeft < 0) {
-    return { status: "past", daysLeft, remaining, requiredPerDay: null, message: "This exam date has passed — set the next one." };
+    return { status: "past", daysLeft, remaining, requiredPerDay: null, message: "This exam date has passed · set the next one." };
   }
   if (remaining === 0 && cov.total > 0) {
-    return { status: "done", daysLeft, remaining: 0, requiredPerDay: 0, message: "Syllabus complete — use the time for revision." };
+    return { status: "done", daysLeft, remaining: 0, requiredPerDay: 0, message: "Syllabus complete · use the time for revision." };
   }
   if (daysLeft === 0) {
-    return { status: "today", daysLeft: 0, remaining, requiredPerDay: remaining, message: "Exam is today — focus on your weakest topics below." };
+    return { status: "today", daysLeft: 0, remaining, requiredPerDay: remaining, message: "Exam is today · focus on your weakest topics below." };
   }
 
   const requiredPerDay = remaining / daysLeft;
@@ -171,7 +171,7 @@ export function paceFor(subject, todayISO) {
   if (elapsed < 1) {
     return {
       status: "too-early", daysLeft, remaining, requiredPerDay,
-      message: "You just started tracking — check back tomorrow for a pace reading.",
+      message: "You just started tracking · check back tomorrow for a pace reading.",
     };
   }
   const doneWeighted = cov.done + cov.wip * 0.5;
@@ -209,7 +209,7 @@ export function weakestTopics(subjects, todayISO, limit = 5) {
       const exam = parseStrictDate(s.examDate);
       if (exam) {
         daysLeft = daysBetween(today, exam);
-        if (daysLeft < 0) continue; // past exam — nothing to prioritize
+        if (daysLeft < 0) continue; // past exam · nothing to prioritize
       }
     }
     for (const t of s.topics || []) {
@@ -248,7 +248,7 @@ export function weakestReason(entry) {
 export function setConfidence(subject, topicId, conf) {
   validateConfidence(conf);
   const t = (subject.topics || []).find((x) => x.id === topicId);
-  if (!t) throw new Error("Topic not found — it may have been deleted.");
+  if (!t) throw new Error("Topic not found · it may have been deleted.");
   t.confidence = conf;
   return t;
 }
@@ -265,7 +265,7 @@ export function moveTopic(subject, topicId, dir) {
 export function removeTopic(subject, topicId) {
   const arr = subject.topics || [];
   const i = arr.findIndex((x) => x.id === topicId);
-  if (i < 0) throw new Error("Topic not found — it may have been deleted already.");
+  if (i < 0) throw new Error("Topic not found · it may have been deleted already.");
   arr.splice(i, 1);
 }
 

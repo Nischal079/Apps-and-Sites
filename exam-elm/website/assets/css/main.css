@@ -1,4 +1,4 @@
-/* StudyPilot design system — vanilla CSS, mobile-first.
+/* StudyPilot design system · vanilla CSS, mobile-first.
  * Deep indigo + warm amber. Light/dark via [data-theme]. System font stack
  * only (privacy: zero third-party font requests). WCAG 2.1 AA targets. */
 
@@ -354,6 +354,88 @@ details.gc-details table { margin-top: 0.6rem; }
 .kv-line:last-child { border-bottom: 0; }
 .inline-form { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end; }
 .inline-form .field { margin-bottom: 0; flex: 1 1 10rem; }
+
+/* ---------- Restyle: gradient headers, tinted icons, stat cards ---------- */
+:root {
+  --violet-700: #6d28d9;
+  --green-100: #dcfce7;
+  --green-600: #16a34a;
+  --rose-100: #ffe4e6;
+  --rose-600: #e11d48;
+  --sky-100: #e0f2fe;
+  --sky-600: #0284c7;
+  --radius-lg: 18px;
+  --shadow-lg: 0 18px 40px rgba(30, 27, 75, 0.14);
+}
+:root[data-theme="dark"] {
+  --green-100: rgba(22, 163, 74, 0.18);
+  --rose-100: rgba(225, 29, 72, 0.18);
+  --sky-100: rgba(2, 132, 199, 0.2);
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--indigo-600), var(--indigo-700));
+  box-shadow: 0 6px 16px rgba(67, 56, 202, 0.28);
+}
+.btn-primary:hover { filter: brightness(1.1); }
+
+/* Gradient hero band (homepage) and page hero (dashboard, study space). */
+.hero-band {
+  background: linear-gradient(135deg, var(--indigo-700), var(--violet-700) 55%, var(--indigo-900));
+  color: #fff; border-radius: 22px; padding: 2.8rem 1.6rem; box-shadow: var(--shadow-lg);
+}
+.hero-band h1 { color: #fff; }
+.hero-band .lead { color: rgba(255, 255, 255, 0.88); }
+.hero-band .btn-primary { background: #fff; color: var(--indigo-900); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25); }
+.hero-band .btn-ghost { border-color: rgba(255, 255, 255, 0.55); color: #fff; }
+.hero-band .promise-pills li { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.28); color: #fff; }
+.page-hero {
+  background: linear-gradient(135deg, var(--indigo-700), var(--violet-700) 55%, var(--indigo-900));
+  color: #fff; border-radius: var(--radius-lg); padding: 1.7rem 1.5rem; margin: 1.2rem 0 1.6rem; box-shadow: var(--shadow-lg);
+}
+.page-hero h1 { color: #fff; margin: 0 0 0.3rem; }
+.page-hero p { color: rgba(255, 255, 255, 0.88); margin: 0; }
+.page-hero .eyebrow { color: rgba(255, 255, 255, 0.75); }
+.page-hero .muted { color: rgba(255, 255, 255, 0.88); }
+
+/* Tinted icon tiles on tool cards. */
+.tool-card .ticon {
+  width: 48px; height: 48px; border-radius: 13px; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 1.45rem;
+  background: var(--indigo-100);
+}
+.tool-card .ticon.t-amber { background: var(--amber-100); }
+.tool-card .ticon.t-green { background: var(--green-100); }
+.tool-card .ticon.t-rose { background: var(--rose-100); }
+.tool-card .ticon.t-sky { background: var(--sky-100); }
+.tool-card:hover { box-shadow: var(--shadow-lg); }
+
+/* Stat cards: big number + tinted icon, used on the dashboard. */
+.stat-grid { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px) { .stat-grid.cols-4 { grid-template-columns: repeat(4, 1fr); } }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.2rem; box-shadow: var(--shadow); display: flex; gap: 0.9rem; align-items: flex-start;
+}
+.stat-icon {
+  width: 46px; height: 46px; border-radius: 13px; display: inline-flex; flex: none;
+  align-items: center; justify-content: center; font-size: 1.35rem; background: var(--indigo-100);
+}
+.stat-icon.t-amber { background: var(--amber-100); }
+.stat-icon.t-green { background: var(--green-100); }
+.stat-icon.t-rose { background: var(--rose-100); }
+.stat-icon.t-sky { background: var(--sky-100); }
+.stat-num { font-size: 1.65rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; }
+.stat-label { color: var(--muted); font-size: 0.88rem; line-height: 1.4; }
+.stat-sub { font-size: 0.82rem; color: var(--muted); }
+
+/* Dashboard quick-link cards: full-card link with a title + hint. */
+.dash-link { text-decoration: none; color: inherit; }
+.dash-link h3 { margin: 0 0 0.25rem; font-size: 1.05rem; }
+.dash-link p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.dash-link:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 
 /* ---------- Phase 7: AI workflows (additive; no existing rules changed) ---------- */
 /* The `hidden` attribute must always hide: component classes like .btn set

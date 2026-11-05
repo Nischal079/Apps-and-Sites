@@ -1,12 +1,12 @@
 /**
- * ExamElm — centralized brand & shared strings.
+ * ExamElm · centralized brand & shared strings.
  *
  * BRANDING RULE: every user-visible brand reference (name, tagline) MUST come
  * from this module. A rename is a one-line change here plus
- * asset filenames — never scattered string edits through the codebase.
+ * asset filenames · never scattered string edits through the codebase.
  *
  * Brand decided 2026-11-04 by Nischal (was the "StudyPilot" working name;
- * brand clearance returned BLOCKED — active commercial use).
+ * brand clearance returned BLOCKED · active commercial use).
  */
 export const BRAND = {
   name: "ExamElm",
