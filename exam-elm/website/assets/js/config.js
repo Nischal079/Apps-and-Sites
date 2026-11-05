@@ -21,15 +21,15 @@ export const PROMISES = ["FREE", "NO SIGNUP", "PRIVATE", "GLOBAL"];
 
 export const NAV = [
   { href: "/", label: "Home" },
-  { href: "/tools/timetable/", label: "Timetable" },
-  { href: "/tools/grade-calculator/", label: "Grade Calculator" },
-  { href: "/tools/syllabus-tracker/", label: "Syllabus Tracker" },
-  { href: "/tools/exam-countdown/", label: "Exam Countdown" },
+  { href: "/about/", label: "About" },
   { href: "/study-space/", label: "My Study Space" },
   { href: "/ai-chat/", label: "AI Chat" },
   { href: "/ai-workflows/", label: "AI Tools" },
   { href: "/guides/", label: "Guides" },
-  { href: "/about/", label: "About" },
+  { href: "/tools/timetable/", label: "Timetable" },
+  { href: "/tools/grade-calculator/", label: "Grade Calculator" },
+  { href: "/tools/syllabus-tracker/", label: "Syllabus Tracker" },
+  { href: "/tools/exam-countdown/", label: "Exam Countdown" },
 ];
 
 export const FOOTER_LINKS = [
