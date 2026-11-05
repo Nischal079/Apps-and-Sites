@@ -18,6 +18,7 @@ import { ProviderStore, BUILTINS, builtinById } from "./ai/providers.js";
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, formatUsd } from "./ai/costs.js";
+import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions } from "./ai/chatui.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -32,6 +33,7 @@ const state = {
   streaming: false,
   aborter: null,
   editingProvider: null,
+  searchQuery: "",
 };
 
 const SYSTEM_PROMPT =
@@ -46,8 +48,7 @@ document.addEventListener("DOMContentLoaded", init);
 async function init() {
   initTheme();
   injectBrand();
-  wireMenu();
-  wireTabs();
+  wireShell();
   state.storage = await openStorage();
   state.providers = new ProviderStore(state.storage);
   await state.providers.load();
@@ -58,42 +59,78 @@ async function init() {
   wireComposer();
   wireAddForm();
   wireEncButtons();
-  $("gotoProvidersBtn").addEventListener("click", () => activateTab("providers"));
+  $("gotoSettingsBtn").addEventListener("click", openSettings);
   updateChatAvailability();
+  renderMessages(); // greeting empty state when no conversation is selected
 }
 
-function wireMenu() {
-  const menuBtn = $("menuBtn");
-  const mobileMenu = $("mobileMenu");
-  if (!menuBtn || !mobileMenu) return;
-  menuBtn.addEventListener("click", () => {
-    const open = mobileMenu.classList.toggle("open");
-    menuBtn.setAttribute("aria-expanded", String(open));
-    menuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+/* ======================= app shell: sidebar + settings ======================= */
+
+function openSettings() {
+  $("settingsPanel").hidden = false;
+  $("settingsBackdrop").hidden = false;
+  $("closeSettingsBtn").focus();
+}
+
+function closeSettings() {
+  $("settingsPanel").hidden = true;
+  $("settingsBackdrop").hidden = true;
+  $("settingsBtn").focus();
+}
+
+function openSidebar() {
+  $("sidebar").classList.add("open");
+  $("sidebarBackdrop").hidden = false;
+  $("sidebarBtn").setAttribute("aria-expanded", "true");
+  $("sidebarBtn").setAttribute("aria-label", "Close conversation list");
+}
+
+function closeSidebar() {
+  $("sidebar").classList.remove("open");
+  $("sidebarBackdrop").hidden = true;
+  $("sidebarBtn").setAttribute("aria-expanded", "false");
+  $("sidebarBtn").setAttribute("aria-label", "Open conversation list");
+}
+
+function wireShell() {
+  $("settingsBtn").addEventListener("click", openSettings);
+  $("closeSettingsBtn").addEventListener("click", closeSettings);
+  $("settingsBackdrop").addEventListener("click", closeSettings);
+  $("activeModelLine").addEventListener("click", openSettings);
+  $("sidebarBtn").addEventListener("click", () => {
+    if ($("sidebar").classList.contains("open")) closeSidebar();
+    else openSidebar();
   });
-  mobileMenu.addEventListener("click", (e) => {
-    if (e.target.tagName === "A") {
-      mobileMenu.classList.remove("open");
-      menuBtn.setAttribute("aria-expanded", "false");
-      menuBtn.setAttribute("aria-label", "Open menu");
+  $("sidebarBackdrop").addEventListener("click", closeSidebar);
+  $("convSearch").addEventListener("input", (e) => {
+    state.searchQuery = e.target.value;
+    refreshConversations();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("settingsPanel").hidden) {
+      e.preventDefault();
+      closeSettings();
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+        e.preventDefault();
+        $("convSearch").focus();
+      }
     }
   });
 }
 
-function wireTabs() {
-  const tabs = { chat: [$("tabChat"), $("panelChat")], providers: [$("tabProviders"), $("panelProviders")] };
-  for (const [name, [btn, panel]] of Object.entries(tabs)) {
-    btn.addEventListener("click", () => activateTab(name));
+/** Small "provider · model" line under the composer; opens Settings. */
+function updateActiveModelLine() {
+  const el = $("activeModelLine");
+  const configs = state.providers ? state.providers.list() : [];
+  if (!configs.length) {
+    el.textContent = "No provider yet · open Settings to add one";
+    return;
   }
-}
-
-function activateTab(name) {
-  const map = { chat: [$("tabChat"), $("panelChat")], providers: [$("tabProviders"), $("panelProviders")] };
-  for (const [n, [btn, panel]] of Object.entries(map)) {
-    const on = n === name;
-    btn.setAttribute("aria-selected", String(on));
-    panel.hidden = !on;
-  }
+  const c = state.providers.get($("chatProvider").value) || configs[0];
+  const model = $("chatModel").value.trim();
+  el.textContent = model ? `${c.name} · ${model}` : `${c.name} · choose a model in Settings`;
 }
 
 /* ======================= providers & keys UI ======================= */
@@ -372,6 +409,7 @@ function renderChatSelectors() {
     $("chatModel").value = saved.model;
     updateCostLine();
   }
+  updateActiveModelLine();
 }
 
 function syncModelDatalist() {
@@ -386,6 +424,7 @@ function syncModelDatalist() {
   }
   if (c && c.defaultModel && !$("chatModel").value) $("chatModel").value = c.defaultModel;
   updateCostLine();
+  updateActiveModelLine();
 }
 
 function updateCostLine() {
@@ -413,6 +452,7 @@ function wireComposer() {
   });
   $("chatModel").addEventListener("input", () => {
     updateCostLine();
+    updateActiveModelLine();
     saveLastUsed($("chatProvider").value, $("chatModel").value.trim());
   });
   $("promptInput").addEventListener("input", updateCostLine);
@@ -422,42 +462,62 @@ function wireComposer() {
     if (state.aborter) state.aborter.abort();
   });
   $("promptInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    // Enter sends · Shift+Enter adds a new line (the default).
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendPrompt();
     }
   });
   $("newConvBtn").addEventListener("click", newConversation);
   $("messages").addEventListener("click", onMessageAction);
+  $("messages").addEventListener("click", (e) => {
+    const chip = e.target.closest("[data-chip]");
+    if (!chip) return;
+    $("promptInput").value = chip.getAttribute("data-chip");
+    updateCostLine();
+    sendPrompt();
+  });
 }
 
 async function refreshConversations() {
   const rows = await state.storage.list("conversations", { reverse: true });
-  const ul = $("convList");
-  ul.innerHTML = "";
-  if (!rows.length) {
-    ul.innerHTML = '<li class="list-item"><span class="list-item-meta">No chats yet.</span></li>';
+  const box = $("convList");
+  box.innerHTML = "";
+  const visible = filterSessions(rows.slice(0, 50), state.searchQuery);
+  if (!visible.length) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = state.searchQuery ? "No chats match your search." : "No chats yet.";
+    box.appendChild(p);
   }
-  for (const r of rows.slice(0, 50)) {
-    const li = document.createElement("li");
-    li.className = "list-item";
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "list-item-title";
-    b.style.cssText = "background:none;border:0;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit;";
-    b.textContent = r.title || "Untitled chat";
-    b.setAttribute("data-conv", r.id);
-    if (r.id === state.convId) b.style.fontWeight = "700";
-    const del = document.createElement("button");
-    del.type = "button";
-    del.className = "btn btn-sm btn-ghost";
-    del.textContent = "Delete";
-    del.setAttribute("data-del-conv", r.id);
-    del.setAttribute("aria-label", "Delete conversation " + (r.title || ""));
-    li.append(b, del);
-    ul.appendChild(li);
+  for (const group of groupSessions(visible)) {
+    const section = document.createElement("div");
+    section.className = "conv-group";
+    const head = document.createElement("h3");
+    head.className = "conv-group-head";
+    head.textContent = group.label;
+    section.appendChild(head);
+    for (const r of group.items) {
+      const row = document.createElement("div");
+      row.className = "conv-item" + (r.id === state.convId ? " active" : "");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "conv-item-title";
+      b.textContent = sessionTitle(r);
+      b.setAttribute("data-conv", r.id);
+      if (r.id === state.convId) b.setAttribute("aria-current", "true");
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "conv-item-del";
+      del.textContent = "×";
+      del.setAttribute("data-del-conv", r.id);
+      del.setAttribute("aria-label", "Delete conversation " + sessionTitle(r));
+      row.append(b, del);
+      section.appendChild(row);
+    }
+    box.appendChild(section);
   }
-  ul.onclick = async (e) => {
+  box.onclick = async (e) => {
     const open = e.target.closest("[data-conv]");
     const del = e.target.closest("[data-del-conv]");
     if (del) {
@@ -475,6 +535,7 @@ async function refreshConversations() {
     }
     if (open) {
       await selectConversation(open.getAttribute("data-conv"));
+      closeSidebar(); // drawer only matters on mobile; harmless on desktop
     }
   };
   renderChatSelectors();
@@ -512,12 +573,42 @@ async function selectConversation(id) {
   if (rec.maxTokens) $("maxTokens").value = rec.maxTokens;
 }
 
+function renderEmptyState(box) {
+  const wrap = document.createElement("div");
+  wrap.className = "chat-greeting";
+  const h = document.createElement("h1");
+  h.textContent = "Hi, how can I help you study?";
+  wrap.appendChild(h);
+  const chips = document.createElement("div");
+  chips.className = "chip-row";
+  for (const prompt of SUGGESTION_CHIPS) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = prompt;
+    b.setAttribute("data-chip", prompt);
+    chips.appendChild(b);
+  }
+  wrap.appendChild(chips);
+  const note = document.createElement("p");
+  note.className = "hint";
+  note.textContent = "Your prompts go directly to your chosen provider · nothing passes through our servers. ";
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "link-btn";
+  more.textContent = "Full disclosures in Settings";
+  more.addEventListener("click", openSettings);
+  note.appendChild(more);
+  wrap.appendChild(note);
+  box.appendChild(wrap);
+}
+
 function renderMessages() {
   const box = $("messages");
   box.innerHTML = "";
   const msgs = (state.conv && state.conv.messages) || [];
   if (!msgs.filter((m) => m.role !== "system").length) {
-    box.innerHTML = '<div class="empty"><p>Ask your first question below.</p><p class="hint">Tip: Ctrl+Enter sends.</p></div>';
+    renderEmptyState(box);
     return;
   }
   msgs.forEach((m, i) => {
@@ -626,12 +717,12 @@ async function sendPrompt() {
     key = state.providers.getKey(providerId);
   } catch (err) {
     toast(friendly(err));
-    activateTab("providers");
+    openSettings();
     return;
   }
   const model = $("chatModel").value.trim();
   if (!model) {
-    toast("Enter a model ID (or discover models on the Providers tab).");
+    toast("Enter a model ID (or discover models in Settings).");
     return;
   }
   saveLastUsed(providerId, model);

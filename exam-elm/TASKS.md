@@ -80,3 +80,11 @@ Authoritative spec: user's MASTER DEVELOPMENT EXECUTION ORDER + files/architectu
 - [x] Brand-centralization sweep: .ics PRODID/UID, backup strings, titles, body copy — rename checklist documented
 - [x] No unfinished tools public (zero "coming soon" tool placeholders); **files/launch-checklist.md** written — shippable now vs needs-human (visual QA, real-provider smoke tests, deploy, rename decision)
 - [x] Tests: 261/261 green (11 files), run twice, stable
+
+### AI Chat redesign — llama.ui-style shell ✅ COMPLETE (2026-11-05, committed, NOT pushed)
+- [x] ai-chat page rebuilt as a full-height app shell (this page only): sidebar with brand, pencil new-chat button, search filtering sessions by title, Today/Earlier groups from the unchanged conversations store, IndexedDB footer note, Back to ExamElm link; mobile drawer via hamburger
+- [x] Main panel: gear-icon settings, centered greeting + 4 suggestion chips (click fills AND sends), messages with existing markdown/copy/regenerate/save-as-note, composer pinned at bottom (Enter sends, Shift+Enter newline), AI-inaccuracy footer line, active provider + model line opening Settings, cost estimate kept near composer
+- [x] Settings slide-over holds ALL provider/model config (list with test/edit/remove, add form, encrypted key storage, model picker + max tokens) + full five BYOK disclosures; Providers tab removed; ProviderStore logic untouched; last-used provider/model memory, streaming + Stop, persistence preserved
+- [x] Pure logic in assets/js/ai/chatui.js + tests/aichat-ui.test.js (13 tests); full suite 282/282 green (269 baseline + 13 new), node --check clean, CSP/ID/external-resource/innerHTML/em-dash audits clean; sw.js precache + v11 bump; TESTING.md + KNOWN-ISSUES.md updated
+- [x] Pre-existing uncommitted work preserved in the same commit: costs.js price re-verification + launch-checklist.md note
+- [ ] Visual QA + real-provider smoke pass outstanding — flagged in KNOWN-ISSUES.md (needs human eyes / live browser); deployment handled separately by coordinator (NOT pushed)
