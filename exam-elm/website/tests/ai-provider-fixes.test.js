@@ -384,7 +384,7 @@ test("RC-9: streamChat zero-token JSON falls back once to completeOnce", async (
     maxTokens: 10,
     fetchImpl: fakeFetch,
   });
-  assertEq(r, { text: "fallback hello", usage: null });
+  assertEq(r, { text: "fallback hello", usage: null, reasoning: "" });
   assertEq(calls, 2, "exactly one fallback attempt");
 });
 
@@ -408,16 +408,20 @@ test("RC-9: streamChat zero-token JSON with empty fallback returns empty", async
     model: "m",
     fetchImpl: fakeFetch,
   });
-  assertEq(r, { text: "", usage: null });
+  assertEq(r, { text: "", usage: null, reasoning: "" });
   assertEq(calls, 2, "fallback ran once even though it came back empty");
 });
 
-test("RC-9: streamChat zero-token SSE does NOT fall back", async () => {
+test("RC-9: streamChat zero-token SSE DOES fall back (reasoning-model fix)", async () => {
+  // Reasoning models stream only reasoning deltas (or nothing) over SSE
+  // and answer solely non-streaming, so an empty SSE stream must fall
+  // back once — the old JSON-content-type gate hid exactly this case.
   const a = new OpenAICompatibleAdapter();
   let calls = 0;
-  const fakeFetch = async () => {
+  const fakeFetch = async (url, opts) => {
     calls++;
-    return sseResponse(["data: [DONE]\n\n"]);
+    if (JSON.parse(opts.body).stream === true) return sseResponse(["data: [DONE]\n\n"]);
+    return jsonResponse({ choices: [{ message: { content: "fallback hello" } }] });
   };
   const r = await streamChat({
     adapter: a,
@@ -426,8 +430,8 @@ test("RC-9: streamChat zero-token SSE does NOT fall back", async () => {
     model: "m",
     fetchImpl: fakeFetch,
   });
-  assertEq(r, { text: "", usage: null });
-  assertEq(calls, 1, "an empty SSE stream must not trigger a fallback call");
+  assertEq(r, { text: "fallback hello", usage: null, reasoning: "" });
+  assertEq(calls, 2, "an empty SSE stream triggers exactly one fallback call");
 });
 
 test("RC-9: streamChat with tokens never falls back", async () => {

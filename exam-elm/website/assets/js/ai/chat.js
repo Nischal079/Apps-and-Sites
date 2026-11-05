@@ -93,8 +93,12 @@ function abortRejected(ctrl) {
  * Stream one chat completion.
  *
  * opts: { adapter, config (with apiKey), messages, model, maxTokens,
- *         signal (user abort), timeoutMs, fetchImpl, onToken, onUsage }
- * Returns { text, usage } · throws AIError on failure.
+ *         signal (user abort), timeoutMs, fetchImpl, onToken, onUsage,
+ *         onReasoning }
+ * Returns { text, usage, reasoning } · throws AIError on failure.
+ * Reasoning deltas are accumulated and reported via onReasoning
+ * (onReasoning(chunk, fullReasoning)) and in the returned `reasoning`
+ * string; they never count as content text.
  */
 export async function streamChat(opts) {
   const {
@@ -108,6 +112,7 @@ export async function streamChat(opts) {
     fetchImpl,
     onToken,
     onUsage,
+    onReasoning,
   } = opts;
   const f = fetchImpl || globalThis.fetch;
   const info = adapter.requestInfo(config, { messages, model, maxTokens, stream: true });
@@ -158,6 +163,7 @@ export async function streamChat(opts) {
 
     // Stream the body.
     let text = "";
+    let reasoningText = "";
     let usage = null;
     try {
       const reader = res.body.getReader();
@@ -168,6 +174,9 @@ export async function streamChat(opts) {
         if (r.type === "token" && r.text) {
           text += r.text;
           if (onToken) onToken(r.text, text);
+        } else if (r.type === "reasoning" && r.text) {
+          reasoningText += r.text;
+          if (onReasoning) onReasoning(r.text, reasoningText);
         } else if (r.type === "usage") {
           usage = r;
           if (onUsage) onUsage(r);
@@ -189,33 +198,31 @@ export async function streamChat(opts) {
       throw new AIError("network", `Stream interrupted: ${e && e.message ? e.message : e}`);
     }
     clearTimeout(timer);
-    // Non-streaming fallback (RC-9): some endpoints ignore `stream: true`
-    // and answer with a plain JSON body. The SSE parser then yields zero
-    // tokens. In that case, and only then, retry once, non-streaming,
-    // via completeOnce. Only one fallback per attempt; a JSON content type
-    // is required, so a genuinely empty SSE stream never falls back.
+    // Non-streaming fallback (RC-9, extended): some endpoints ignore
+    // `stream: true` and answer with a plain JSON body — and some
+    // reasoning models stream ONLY reasoning deltas, answering solely
+    // in a non-streaming response. In both cases the SSE parser yields
+    // zero content tokens. So when streaming yields no content, retry
+    // once, non-streaming, via completeOnce — regardless of the stream's
+    // content type (the old JSON-only gate meant a reasoning-only SSE
+    // stream never fell back and the chat sat in "thinking" forever).
+    // Only one fallback per attempt. A fallback that errors propagates
+    // its (informative) error; a fallback that also returns empty falls
+    // through, and the caller shows a clear "no response" message.
     if (!text) {
-      let contentType = "";
-      try {
-        contentType = (res.headers && res.headers.get ? res.headers.get("content-type") : "") || "";
-      } catch {
-        contentType = "";
-      }
-      if (contentType.toLowerCase().includes("application/json")) {
-        const fb = await completeOnce({
-          adapter,
-          config,
-          messages,
-          model,
-          maxTokens,
-          signal,
-          timeoutMs,
-          fetchImpl: f,
-        });
-        if (fb && fb.text) return { text: fb.text, usage: null };
-      }
+      const fb = await completeOnce({
+        adapter,
+        config,
+        messages,
+        model,
+        maxTokens,
+        signal,
+        timeoutMs,
+        fetchImpl: f,
+      });
+      if (fb && fb.text) return { text: fb.text, usage: null, reasoning: reasoningText };
     }
-    return { text, usage };
+    return { text, usage, reasoning: reasoningText };
   }
 }
 

@@ -10,7 +10,11 @@
  *   requestInfo(config, {messages, model, maxTokens, stream})
  *     -> { url, headers, body }          // exact fetch() inputs
  *   parseSseEvent(eventName, dataString)
- *     -> {type:'token',text} | {type:'done'} | {type:'usage',...} | null
+ *     -> {type:'token',text} | {type:'reasoning',text} | {type:'done'} |
+ *        {type:'usage',...} | null
+ *   Reasoning deltas (delta.reasoning_content / delta.reasoning) are
+ *   reported as 'reasoning', never dropped: some models answer only
+ *   through them, and dropping them makes the chat look stalled.
  *   parseJsonResponse(json) -> { text }   // non-streaming calls
  *   mapHttpError(status, bodyText) -> AIError
  *   listModelsRequest(config) -> {url, headers} | null
@@ -127,6 +131,17 @@ export class OpenAICompatibleAdapter extends BaseAdapter {
     if (delta && typeof delta.content === "string" && delta.content) {
       return { type: "token", text: delta.content };
     }
+    // Reasoning models (notably OpenRouter free tiers) stream their
+    // chain-of-thought in delta.reasoning_content (or delta.reasoning).
+    // Report it as 'reasoning' so the UI can show live thinking progress
+    // instead of a silent stall — and so a reasoning-only stream is
+    // never mistaken for an empty one.
+    if (delta && typeof delta.reasoning_content === "string" && delta.reasoning_content) {
+      return { type: "reasoning", text: delta.reasoning_content };
+    }
+    if (delta && typeof delta.reasoning === "string" && delta.reasoning) {
+      return { type: "reasoning", text: delta.reasoning };
+    }
     if (json.usage) {
       return {
         type: "usage",
@@ -139,7 +154,13 @@ export class OpenAICompatibleAdapter extends BaseAdapter {
 
   parseJsonResponse(json) {
     const c = json.choices && json.choices[0];
-    const text = c && c.message && typeof c.message.content === "string" ? c.message.content : "";
+    const msg = c && c.message;
+    let text = msg && typeof msg.content === "string" ? msg.content : "";
+    if (!text && msg) {
+      // Reasoning models sometimes answer only in reasoning fields.
+      if (typeof msg.reasoning_content === "string") text = msg.reasoning_content;
+      else if (typeof msg.reasoning === "string") text = msg.reasoning;
+    }
     return { text };
   }
 

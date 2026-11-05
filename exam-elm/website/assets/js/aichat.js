@@ -18,7 +18,7 @@ import { ProviderStore, BUILTINS, builtinById, formatTestResult } from "./ai/pro
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, formatUsd } from "./ai/costs.js";
-import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage, modelsForProvider, usableProviders, validateMaxTokens, accordionToggle, nextAddForm, providerReadiness, modelSuggestions } from "./ai/chatui.js";
+import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage, modelsForProvider, usableProviders, validateMaxTokens, accordionToggle, nextAddForm, providerReadiness, modelSuggestions, chatModelListScope } from "./ai/chatui.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -216,49 +216,7 @@ function renderProviders() {
       keyStoreState === "unavailable"
         ? `<p class="hint">${esc(state.providers.keyStoreNote)}</p>`
         : `<p class="hint">Stored encrypted in this browser.</p>`;
-    const models = modelsForProvider(c);
-    const modelRows = models.length
-      ? models
-          .map((m) => {
-            const selected = c.defaultModel === m;
-            if (
-              state.editingModel &&
-              state.editingModel.providerId === c.id &&
-              state.editingModel.modelId === m
-            ) {
-              return (
-                `<div class="model-row editing">` +
-                `<input type="text" data-role="model-edit-input" maxlength="120" value="${esc(m)}" aria-label="Edit model ID" />` +
-                `<button type="button" class="btn btn-sm btn-primary" data-act="model-edit-save" data-id="${esc(c.id)}" data-model="${esc(m)}">Save</button>` +
-                `<button type="button" class="btn btn-sm btn-ghost" data-act="model-edit-cancel" data-id="${esc(c.id)}">Cancel</button>` +
-                `</div>`
-              );
-            }
-            return (
-              `<div class="model-row">` +
-              `<code class="model-id">${esc(m)}</code>` +
-              (selected ? '<span class="badge ok">selected</span>' : "") +
-              `<span class="model-actions">` +
-              (selected
-                ? ""
-                : `<button type="button" class="btn btn-sm btn-ghost" data-act="model-select" data-id="${esc(c.id)}" data-model="${esc(m)}">Set selected</button>`) +
-              `<button type="button" class="btn btn-sm btn-ghost" data-act="model-edit" data-id="${esc(c.id)}" data-model="${esc(m)}">Edit</button>` +
-              `<button type="button" class="btn btn-sm btn-ghost" data-act="model-remove" data-id="${esc(c.id)}" data-model="${esc(m)}">Remove</button>` +
-              `</span></div>`
-            );
-          })
-          .join("")
-      : '<p class="hint">No models yet · add one below, or discover them from the provider.</p>';
-    const inlineAddHtml =
-      state.addingModelFor === c.id
-        ? `<div class="field" style="margin-top: 0.6rem;">` +
-          `<label for="inline-model-${esc(c.id)}">Model ID</label>` +
-          `<input type="text" id="inline-model-${esc(c.id)}" data-role="model-add-input" maxlength="120" autocomplete="off" placeholder="e.g. gpt-4o" />` +
-          `<div class="btn-row left" style="margin-top: 0.5rem;">` +
-          `<button type="button" class="btn btn-sm btn-primary" data-act="model-add-save" data-id="${esc(c.id)}">Add model</button>` +
-          `<button type="button" class="btn btn-sm btn-ghost" data-act="model-add-cancel" data-id="${esc(c.id)}">Cancel</button>` +
-          `</div></div>`
-        : `<div class="btn-row left"><button type="button" class="btn btn-sm" data-act="model-add-show" data-id="${esc(c.id)}">Add model</button></div>`;
+
     card.innerHTML =
       `<button type="button" class="provider-row-head" data-act="toggle" data-id="${esc(c.id)}" aria-expanded="${expanded}" aria-controls="prov-body-${esc(c.id)}">` +
       `<span class="provider-icon" aria-hidden="true">${esc(initial)}</span>` +
@@ -279,12 +237,6 @@ function renderProviders() {
          <button type="button" class="btn btn-sm" data-act="keep-key" data-id="${esc(c.id)}">Save key</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="forget-key" data-id="${esc(c.id)}">Forget key</button>
        </div>` +
-      `<h4 class="provider-subhead">Models</h4>` +
-      `<div class="model-list">${modelRows}</div>` +
-      inlineAddHtml +
-      (c.modelsCache && c.modelsCache.length
-        ? `<div class="list-item-meta">${c.modelsCache.length} models discovered</div>`
-        : "") +
       `<div class="btn-row left">
          <button type="button" class="btn btn-sm" data-act="test" data-id="${esc(c.id)}">Test connection</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="discover" data-id="${esc(c.id)}">Discover models</button>
@@ -298,6 +250,76 @@ function renderProviders() {
     list.appendChild(card);
   }
   list.onclick = onProviderAction;
+  renderChatModelList();
+}
+
+/**
+ * The Models list lives in the Chat Model section (below Providers),
+ * scoped to the provider currently selected in Chat Model — never inside
+ * a provider's expanded config. Same rows and actions as before (set
+ * selected / edit / remove / add model, discovered count); the model
+ * search + scrolling input above it is untouched. Re-rendered whenever
+ * the provider selection or the provider data changes.
+ */
+function renderChatModelList() {
+  const wrap = $("chatModelListWrap");
+  if (!wrap) return;
+  const c = chatModelListScope(state.providers.list(), $("chatProvider").value);
+  if (!c) {
+    wrap.innerHTML = "";
+    return;
+  }
+  const models = modelsForProvider(c);
+  const modelRows = models.length
+    ? models
+        .map((m) => {
+          const selected = c.defaultModel === m;
+          if (
+            state.editingModel &&
+            state.editingModel.providerId === c.id &&
+            state.editingModel.modelId === m
+          ) {
+            return (
+              `<div class="model-row editing">` +
+              `<input type="text" data-role="model-edit-input" maxlength="120" value="${esc(m)}" aria-label="Edit model ID" />` +
+              `<button type="button" class="btn btn-sm btn-primary" data-act="model-edit-save" data-id="${esc(c.id)}" data-model="${esc(m)}">Save</button>` +
+              `<button type="button" class="btn btn-sm btn-ghost" data-act="model-edit-cancel" data-id="${esc(c.id)}">Cancel</button>` +
+              `</div>`
+            );
+          }
+          return (
+            `<div class="model-row">` +
+            `<code class="model-id">${esc(m)}</code>` +
+            (selected ? '<span class="badge ok">selected</span>' : "") +
+            `<span class="model-actions">` +
+            (selected
+              ? ""
+              : `<button type="button" class="btn btn-sm btn-ghost" data-act="model-select" data-id="${esc(c.id)}" data-model="${esc(m)}">Set selected</button>`) +
+            `<button type="button" class="btn btn-sm btn-ghost" data-act="model-edit" data-id="${esc(c.id)}" data-model="${esc(m)}">Edit</button>` +
+            `<button type="button" class="btn btn-sm btn-ghost" data-act="model-remove" data-id="${esc(c.id)}" data-model="${esc(m)}">Remove</button>` +
+            `</span></div>`
+          );
+        })
+        .join("")
+    : '<p class="hint">No models yet · add one below, or discover them from the provider.</p>';
+  const inlineAddHtml =
+    state.addingModelFor === c.id
+      ? `<div class="field" style="margin-top: 0.6rem;">` +
+        `<label for="inline-model-${esc(c.id)}">Model ID</label>` +
+        `<input type="text" id="inline-model-${esc(c.id)}" data-role="model-add-input" maxlength="120" autocomplete="off" placeholder="e.g. gpt-4o" />` +
+        `<div class="btn-row left" style="margin-top: 0.5rem;">` +
+        `<button type="button" class="btn btn-sm btn-primary" data-act="model-add-save" data-id="${esc(c.id)}">Add model</button>` +
+        `<button type="button" class="btn btn-sm btn-ghost" data-act="model-add-cancel" data-id="${esc(c.id)}">Cancel</button>` +
+        `</div></div>`
+      : `<div class="btn-row left"><button type="button" class="btn btn-sm" data-act="model-add-show" data-id="${esc(c.id)}">Add model</button></div>`;
+  wrap.innerHTML =
+    `<h4 class="provider-subhead">Models</h4>` +
+    `<div class="model-list">${modelRows}</div>` +
+    inlineAddHtml +
+    (c.modelsCache && c.modelsCache.length
+      ? `<div class="list-item-meta">${c.modelsCache.length} models discovered</div>`
+      : "");
+  wrap.onclick = onProviderAction;
 }
 
 /** Expand one provider's row in Settings (collapsing the others) and
@@ -320,7 +342,7 @@ async function onProviderAction(e) {
   const id = btn.getAttribute("data-id");
   const act = btn.getAttribute("data-act");
   const card = btn.closest(".card");
-  const resultEl = card.querySelector('[data-role="test-result"]');
+  const resultEl = card ? card.querySelector('[data-role="test-result"]') : null;
   const say = (msg, ok) => {
     if (!resultEl) return;
     resultEl.textContent = msg;
@@ -368,13 +390,13 @@ async function onProviderAction(e) {
       renderProviders();
       // The render rebuilt the DOM, so query the fresh tree, not the
       // detached card.
-      const input = $("providerList").querySelector('[data-role="model-edit-input"]');
+      const input = document.querySelector('[data-role="model-edit-input"]');
       if (input) {
         input.focus();
         input.select();
       }
     } else if (act === "model-edit-save") {
-      const input = card.querySelector('[data-role="model-edit-input"]');
+      const input = document.querySelector('[data-role="model-edit-input"]');
       await state.providers.editModel(id, btn.getAttribute("data-model"), input ? input.value : "");
       state.editingModel = null;
       toast("Model renamed.");
@@ -393,10 +415,10 @@ async function onProviderAction(e) {
     } else if (act === "model-add-show") {
       state.addingModelFor = id;
       renderProviders();
-      const input = $("providerList").querySelector('[data-role="model-add-input"]');
+      const input = document.querySelector('[data-role="model-add-input"]');
       if (input) input.focus();
     } else if (act === "model-add-save") {
-      const input = card.querySelector('[data-role="model-add-input"]');
+      const input = document.querySelector('[data-role="model-add-input"]');
       await state.providers.addModel(id, input ? input.value : "");
       state.addingModelFor = null;
       toast("Model added.");
@@ -769,6 +791,7 @@ function renderChatSelectors() {
   }
   updateChatGuidance();
   updateActiveModelLine();
+  renderChatModelList();
 }
 
 function syncModelDatalist() {
@@ -1235,9 +1258,10 @@ async function runCompletion(config, key, model, maxTokens) {
   setStreaming(true);
   state.aborter = new AbortController();
   let text = "";
+  let reasoning = "";
   let firstToken = true;
   try {
-    const { text: finalText } = await streamChat({
+    const { text: finalText, reasoning: finalReasoning } = await streamChat({
       adapter,
       config: withKey,
       messages: state.conv.messages.map((m) => ({ role: m.role, content: m.content })),
@@ -1253,18 +1277,45 @@ async function runCompletion(config, key, model, maxTokens) {
         body.innerHTML = renderMarkdown(text);
         box.scrollTop = box.scrollHeight;
       },
+      onReasoning: (_t, full) => {
+        // Reasoning models think before they answer: show the thinking
+        // live, so the chat never looks stalled while the model works.
+        reasoning = full;
+        if (firstToken) {
+          body.innerHTML = '<p class="hint">Thinking…</p>' + renderMarkdown(full);
+          box.scrollTop = box.scrollHeight;
+        }
+      },
     });
     text = finalText;
-    if (!text) body.innerHTML = '<p class="hint">The provider returned an empty reply.</p>';
-    state.conv.messages.push({ role: "assistant", content: text, ts: Date.now() });
+    reasoning = finalReasoning || reasoning;
+    if (!text) {
+      // No answer arrived, even after the non-streaming fallback: never
+      // leave a silent empty bubble. The message is saved to history so
+      // the finally re-render keeps it visible — a DOM-only hint would
+      // be wiped by renderMessages() and look exactly like a stall.
+      // The model's thinking is kept (when there is any) so the user can
+      // read what it was doing.
+      const note = "The model returned no response — try another model.";
+      const content = reasoning ? reasoning + "\n\n" + note : note;
+      body.innerHTML = renderMarkdown(content);
+      state.conv.messages.push({ role: "assistant", content, ts: Date.now() });
+    } else {
+      state.conv.messages.push({ role: "assistant", content: text, ts: Date.now() });
+    }
   } catch (err) {
     const msg = friendly(err);
+    const content = "Couldn't complete: " + msg;
     body.innerHTML = "";
     const p = document.createElement("p");
     p.className = "hint";
-    p.textContent = "Couldn't complete: " + msg;
+    p.textContent = content;
     body.appendChild(p);
-    // Keep the failed attempt out of history so Regenerate stays clean.
+    // Save the failure to history too, for the same reason as above:
+    // the finally re-render wipes DOM-only content, so an unsaved error
+    // would vanish and look exactly like a silent stall. Regenerate
+    // still works — it drops this message and re-runs.
+    state.conv.messages.push({ role: "assistant", content, ts: Date.now() });
   } finally {
     setStreaming(false);
     state.aborter = null;

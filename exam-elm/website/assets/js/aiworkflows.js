@@ -316,6 +316,7 @@ async function runStream({ messages, maxTokens, outputEl, sendBtn, stopBtn, plac
   setBusy(sendBtn, stopBtn, true);
   state.aborter = new AbortController();
   let text = "";
+  let reasoning = "";
   let started = false;
   try {
     const res = await streamChat({
@@ -333,9 +334,26 @@ async function runStream({ messages, maxTokens, outputEl, sendBtn, stopBtn, plac
         text += t;
         outputEl.innerHTML = renderMarkdown(text); // safe: escaped before formatting
       },
+      onReasoning: (_t, full) => {
+        // Reasoning models think before they answer: show the thinking
+        // live, so the output never looks stalled while the model works.
+        reasoning = full;
+        if (!started) {
+          outputEl.innerHTML = '<p class="hint">Thinking…</p>' + renderMarkdown(full);
+        }
+      },
     });
     text = res.text;
-    if (!text) outputEl.innerHTML = '<p class="hint">The provider returned an empty reply.</p>';
+    reasoning = res.reasoning || reasoning;
+    if (!text) {
+      // No answer arrived, even after the non-streaming fallback: say so
+      // plainly instead of leaving an empty output. Keep the model's
+      // thinking (when there is any) so the user can read what it did.
+      const note = "The model returned no response — try another model.";
+      outputEl.innerHTML = reasoning
+        ? renderMarkdown(reasoning + "\n\n" + note)
+        : '<p class="hint">' + note + "</p>";
+    }
     return { text, providerId: prov.config.id, model: prov.model, maxTokens: maxTok };
   } catch (err) {
     outputEl.innerHTML = "";

@@ -736,3 +736,132 @@ test("streamChat: user abort -> aborted, no partial save confusion", async () =>
     assertEq(e.code, "aborted");
   }
 });
+
+/* ---------------- reasoning models + empty-stream fallback ----------------
+ * Regression tests for the free-reasoning-model bug: models that stream
+ * only reasoning deltas (or nothing) and answer solely non-streaming.
+ * Mocked fetch only — zero real API calls. */
+
+function jsonResponse(obj, status = 200) {
+  return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json" } });
+}
+
+test("parseSseEvent: reasoning_content delta -> reasoning type", () => {
+  const a = new OpenAICompatibleAdapter();
+  const r = a.parseSseEvent("", '{"choices":[{"delta":{"reasoning_content":"Let me think"}}]}');
+  assertEq(r, { type: "reasoning", text: "Let me think" });
+});
+
+test("parseSseEvent: reasoning delta -> reasoning type", () => {
+  const a = new OpenAICompatibleAdapter();
+  const r = a.parseSseEvent("", '{"choices":[{"delta":{"reasoning":"Step 1"}}]}');
+  assertEq(r, { type: "reasoning", text: "Step 1" });
+});
+
+test("parseSseEvent: content wins over reasoning when both present", () => {
+  const a = new OpenAICompatibleAdapter();
+  const r = a.parseSseEvent("", '{"choices":[{"delta":{"content":"answer","reasoning_content":"thought"}}]}');
+  assertEq(r, { type: "token", text: "answer" });
+});
+
+test("parseJsonResponse: reasoning_content-only message -> text", () => {
+  const a = new OpenAICompatibleAdapter();
+  const r = a.parseJsonResponse({ choices: [{ message: { content: "", reasoning_content: "The answer is 42." } }] });
+  assertEq(r.text, "The answer is 42.");
+});
+
+test("parseJsonResponse: content takes precedence over reasoning_content", () => {
+  const a = new OpenAICompatibleAdapter();
+  const r = a.parseJsonResponse({ choices: [{ message: { content: "Hi", reasoning_content: "thought" } }] });
+  assertEq(r.text, "Hi");
+});
+
+test("streamChat: reasoning-only SSE stream reports reasoning, returns empty text", async () => {
+  const a = new OpenAICompatibleAdapter();
+  const sse = sseResponse(
+    [
+      'data: {"choices":[{"delta":{"reasoning_content":"Let me"}}]}\n\ndata: {"choices":[{"delta":{"reasoning_content":" think"}}]}\n\ndata: [DONE]\n\n',
+    ],
+    200,
+    { "content-type": "text/event-stream" }
+  );
+  const calls = [];
+  const fakeFetch = async (url, opts) => {
+    // Non-streaming requests omit the stream field entirely, so compare
+    // strictly against true.
+    calls.push(JSON.parse(opts.body).stream === true);
+    return calls[0] === true ? sse : jsonResponse({ choices: [{ message: { content: "" } }] });
+  };
+  const seen = [];
+  const r = await streamChat({
+    adapter: a,
+    config: cfg(),
+    messages: [{ role: "user", content: "hi" }],
+    model: "m",
+    fetchImpl: fakeFetch,
+    onReasoning: (t, full) => seen.push([t, full]),
+  });
+  assertEq(r.text, "");
+  assertEq(r.reasoning, "Let me think");
+  assertEq(seen, [
+    ["Let me", "Let me"],
+    [" think", "Let me think"],
+  ]);
+  assertEq(calls, [true, false], "fallback still ran for the empty stream");
+});
+
+test("streamChat: empty SSE stream falls back to non-streaming (no JSON content-type gate)", async () => {
+  const a = new OpenAICompatibleAdapter();
+  const fakeFetch = async (url, opts) => {
+    const stream = JSON.parse(opts.body).stream;
+    if (stream) return sseResponse(["data: [DONE]\n\n"], 200, { "content-type": "text/event-stream" });
+    return jsonResponse({ choices: [{ message: { content: "Hello from fallback" } }] });
+  };
+  const r = await streamChat({ adapter: a, config: cfg(), messages: [], model: "m", fetchImpl: fakeFetch });
+  assertEq(r.text, "Hello from fallback");
+  assertEq(r.reasoning, "");
+});
+
+test("streamChat: reasoning-only stream + non-streaming fallback returns both", async () => {
+  const a = new OpenAICompatibleAdapter();
+  const fakeFetch = async (url, opts) => {
+    const stream = JSON.parse(opts.body).stream;
+    if (stream)
+      return sseResponse(
+        ['data: {"choices":[{"delta":{"reasoning_content":"Step 1"}}]}\n\ndata: [DONE]\n\n'],
+        200,
+        { "content-type": "text/event-stream" }
+      );
+    return jsonResponse({ choices: [{ message: { content: "Final answer" } }] });
+  };
+  const r = await streamChat({ adapter: a, config: cfg(), messages: [], model: "m", fetchImpl: fakeFetch });
+  assertEq(r.text, "Final answer");
+  assertEq(r.reasoning, "Step 1");
+});
+
+test("streamChat: empty stream + empty fallback -> empty text, no throw", async () => {
+  const a = new OpenAICompatibleAdapter();
+  const fakeFetch = async (url, opts) => {
+    const stream = JSON.parse(opts.body).stream;
+    if (stream) return sseResponse(["data: [DONE]\n\n"], 200, { "content-type": "text/event-stream" });
+    return jsonResponse({ choices: [{ message: { content: "" } }] });
+  };
+  const r = await streamChat({ adapter: a, config: cfg(), messages: [], model: "m", fetchImpl: fakeFetch });
+  assertEq(r.text, "");
+  assertEq(r.reasoning, "");
+});
+
+test("streamChat: fallback error propagates (model-not-found)", async () => {
+  const a = new OpenAICompatibleAdapter();
+  const fakeFetch = async (url, opts) => {
+    const stream = JSON.parse(opts.body).stream;
+    if (stream) return sseResponse(["data: [DONE]\n\n"], 200, { "content-type": "text/event-stream" });
+    return new Response("no such model", { status: 404 });
+  };
+  try {
+    await streamChat({ adapter: a, config: cfg(), messages: [], model: "m", fetchImpl: fakeFetch });
+    throw new Error("should have thrown");
+  } catch (e) {
+    assertEq(e.code, "model-not-found");
+  }
+});

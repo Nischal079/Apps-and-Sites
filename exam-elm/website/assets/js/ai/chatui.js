@@ -61,6 +61,17 @@ export function modelsForProvider(config) {
 }
 
 /**
+ * Which provider the Chat Model section's Models list shows: the provider
+ * currently selected in Chat Model, or null when the selection names no
+ * known provider. The list is scoped to that provider only — it never
+ * merges models across providers. Pure.
+ */
+export function chatModelListScope(configs, selectedProviderId) {
+  if (!Array.isArray(configs) || !selectedProviderId) return null;
+  return configs.find((c) => c.id === selectedProviderId) || null;
+}
+
+/**
  * Only the configs that can be chatted with: those having at least one
  * configured model (via modelsForProvider). Key status is deliberately
  * NOT a filter — a provider with models but no key is still listed, and

@@ -18,6 +18,7 @@ import {
   modelsForProvider,
   usableProviders,
   modelForProviderChange,
+  chatModelListScope,
   validateMaxTokens,
   MAX_TOKENS_MIN,
   MAX_TOKENS_MAX,
@@ -212,4 +213,20 @@ test("validateMaxTokens: send-path clamping (string input, bounds, garbage)", ()
   assertEq(validateMaxTokens("not-a-number"), { value: 1024, clamped: true });
   assertEq(validateMaxTokens(999999), { value: 128000, clamped: true });
   assertEq(validateMaxTokens(512.9), { value: 512, clamped: true });
+});
+
+test("chatModelListScope: returns the Chat-Model-selected provider only", () => {
+  const a = { id: "p-a", name: "A", models: ["m1"] };
+  const b = { id: "p-b", name: "B", models: ["m2", "m3"] };
+  assertEq(chatModelListScope([a, b], "p-b"), b);
+  assertEq(chatModelListScope([a, b], "p-a"), a);
+});
+
+test("chatModelListScope: null for unknown id, empty selection, bad input", () => {
+  const a = { id: "p-a", name: "A", models: ["m1"] };
+  assertEq(chatModelListScope([a], "nope"), null);
+  assertEq(chatModelListScope([a], ""), null);
+  assertEq(chatModelListScope([a], null), null);
+  assertEq(chatModelListScope(null, "p-a"), null);
+  assertEq(chatModelListScope("x", "p-a"), null);
 });
