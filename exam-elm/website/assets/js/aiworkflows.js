@@ -241,7 +241,7 @@ function updateKeyBadge() {
   const b = document.createElement("span");
   if (state.providers.hasKey(id)) {
     b.className = "badge ok";
-    b.textContent = "Key in memory";
+    b.textContent = "Key saved";
   } else {
     b.className = "badge warn";
     b.textContent = "No key set · add it in AI Chat";
@@ -270,7 +270,7 @@ function setCost(elId, promptText, maxTokens) {
   }
   const est = estimateCost(model, promptText, maxTokens);
   el.textContent = !est.known
-    ? `Cost unknown for this model · check your provider's pricing page. Nothing is sent until you press Send.`
+    ? `Nothing is sent until you press Send.`
     : est.free
       ? `Free model · estimated cost $0. Nothing is sent until you press Send.`
       : `Estimated max cost ≈ ${formatUsd(est.estCostUsd)} (estimate). Nothing is sent until you press Send.`;
@@ -342,16 +342,11 @@ async function runStream({ messages, maxTokens, outputEl, sendBtn, stopBtn, plac
     const p = document.createElement("p");
     p.className = "hint";
     const cancelled = err instanceof AIError && err.code === "aborted";
-    // RC-1: a missing key for a previously verified or last-used provider
-    // was most likely lost on a page reload (memory-only) — say so.
+    // Keys auto-persist encrypted, so a missing key simply means none was
+    // ever entered for this provider — point at Settings.
     let msg = friendly(err);
     if (!cancelled && err instanceof AIError && err.code === "invalid-key") {
-      const lastUsed = loadLastUsed();
-      const hadVerified = !!(prov.config.lastTest && prov.config.lastTest.ok);
-      const wasLastUsed = !!(lastUsed && lastUsed.providerId === prov.config.id);
-      if (hadVerified || wasLastUsed) {
-        msg = missingKeyMessage({ hadVerified, wasLastUsed });
-      }
+      msg = missingKeyMessage();
     }
     p.textContent = cancelled ? "Cancelled." : "Couldn't complete: " + msg;
     outputEl.appendChild(p);

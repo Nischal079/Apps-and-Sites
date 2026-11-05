@@ -4,12 +4,31 @@
  * Security contract (non-negotiable):
  * - Requests go DIRECTLY from the browser to the provider. No proxy, no
  *   relay, no StudyPilot server (there isn't one).
- * - API keys live in MEMORY by default. `save()` persists everything EXCEPT
- *   keys · the on-disk record never contains key material.
- * - Optional opt-in: passphrase-encrypted key storage (see ai/crypto.js).
- *   Plaintext keys are never written to IndexedDB, localStorage, URLs,
+ * - API keys are stored ENCRYPTED in this browser (IndexedDB) by default.
+ *   The first key entry asks for an encryption passphrase ONCE, in the
+ *   same form as the key; the passphrase derives a non-extractable device
+ *   key (see ai/keystore.js) that auto-decrypts stored keys on later
+ *   visits — no passphrase prompt, no key prompt. `save()` persists
+ *   everything EXCEPT keys · the on-disk config record never contains
+ *   key material, and key blobs (kv `ai_keys_enc`) never contain plaintext.
+ * - Plaintext keys are never written to IndexedDB, localStorage, URLs,
  *   logs, or analytics.
  * - Key deletion purges memory AND any encrypted copy, with UI confirmation.
+ *   Forgetting the LAST stored key also deletes the stored device key, so
+ *   a fresh start asks for a passphrase again (see forgetKey).
+ *
+ * Security honesty: the passphrase protects the ciphertext at rest
+ * (someone copying the stored ciphertext alone cannot decrypt without it)
+ * and the derived key is non-extractable. It does NOT protect against
+ * scripts running on the ExamElm origin or a fully compromised device,
+ * which can use the stored key through the Crypto API.
+ *
+ * Legacy: keys stored by the old opt-in scheme (v:1 payloads, see
+ * ai/crypto.js) are NEVER dropped. load() flags them
+ * (legacyKeysPresent) and leaves the record untouched; they are migrated
+ * to v:2 blobs only when the user happens to reuse their old passphrase
+ * at first new-scheme setup (tryMigrateLegacy), and unlock() remains as
+ * the legacy-only reader for a future one-off recovery.
  *
  * Per-provider direct-browser-access notes are honest: "verified",
  * "supported via header", or "unverified · use Test connection". Never claim
@@ -17,10 +36,18 @@
  */
 
 import { adapterFor, AIError, networkError } from "./adapters.js";
-import { encryptString, decryptString } from "./crypto.js";
+import { decryptString } from "./crypto.js";
+import {
+  getDeviceKey,
+  createDeviceKey,
+  deleteDeviceKey,
+  encryptKey,
+  decryptKey,
+  keystoreAvailable,
+} from "./keystore.js";
 
 export const KV_PROVIDERS = "ai_providers"; // non-secret configs only
-export const KV_KEYS_ENC = "ai_keys_enc"; // encrypted blobs only, opt-in
+export const KV_KEYS_ENC = "ai_keys_enc"; // encrypted blobs only (v:2; legacy v:1 may be embedded)
 
 /**
  * Built-in provider definitions. `cors` is one of:
@@ -243,8 +270,19 @@ export class ProviderStore {
   constructor(storage) {
     this.storage = storage; // openStorage() handle (kv store)
     this.configs = new Map(); // id -> config (no keys inside)
-    this.keys = new Map(); // id -> apiKey (MEMORY ONLY)
-    this.encryptedAtRest = false;
+    this.keys = new Map(); // id -> apiKey (memory; auto-decrypted on load when stored)
+    // Encrypted key storage state:
+    //   "ready"            · a device key exists; keys auto-persist encrypted
+    //   "needs-passphrase" · no device key yet; first setKey asks for one
+    //   "unavailable"      · no IndexedDB / no Web Crypto; memory-only this tab
+    this.keyStoreState = "unavailable";
+    // Short honest string shown in the UI when keyStoreState is "unavailable".
+    this.keyStoreNote = "";
+    // True when a legacy v:1 payload is stored (never dropped; see
+    // tryMigrateLegacy). Set by load(); cleared only by a successful migration.
+    this.legacyKeysPresent = false;
+    // In-memory handle on the stored device key (a CryptoKey, never its bytes).
+    this._deviceKey = null;
   }
 
   /* ---------------- configs (non-secret, persisted) ---------------- */
@@ -265,12 +303,43 @@ export class ProviderStore {
         this.configs.set(r.id, migrateModels({ ...r }));
       }
     }
-    // Encrypted-keys marker (presence only · never the keys).
+    // Encrypted keys: auto-decrypt on load when a device key exists.
+    // load() NEVER throws because of key handling — a corrupt blob skips
+    // that one key, a device-key load failure falls through to
+    // needs-passphrase/unavailable, and a legacy v:1 payload is flagged
+    // and left untouched.
+    this.keyStoreState = "unavailable";
+    this.keyStoreNote = "";
+    this.legacyKeysPresent = false;
+    this._deviceKey = null;
     try {
-      const enc = await this.storage.get("kv", KV_KEYS_ENC);
-      this.encryptedAtRest = !!(enc && enc.value && enc.value.items);
+      if (!keystoreAvailable(this.storage)) {
+        this.keyStoreState = "unavailable";
+        this.keyStoreNote =
+          "Encrypted storage is unavailable in this browser. Keys are kept in memory for this tab only.";
+      } else {
+        const deviceKey = await getDeviceKey(this.storage);
+        const { items, legacy } = await this._readKeyBlobs();
+        if (legacy) this.legacyKeysPresent = true;
+        if (deviceKey) {
+          this._deviceKey = deviceKey;
+          this.keyStoreState = "ready";
+          for (const [id, blob] of Object.entries(items)) {
+            if (!this.configs.has(id)) continue; // config deleted meanwhile · skip
+            try {
+              this.keys.set(id, await decryptKey(deviceKey, blob));
+            } catch {
+              /* one bad blob skips that key, never the whole load */
+            }
+          }
+        } else {
+          this.keyStoreState = "needs-passphrase";
+        }
+      }
     } catch {
-      this.encryptedAtRest = false;
+      // Key handling is best-effort: fall back to asking for a passphrase.
+      if (this.keyStoreState !== "unavailable") this.keyStoreState = "needs-passphrase";
+      this._deviceKey = null;
     }
     return [...this.configs.values()];
   }
@@ -422,8 +491,9 @@ export class ProviderStore {
   /** Remove a config AND purge its key from memory and encrypted storage. */
   async remove(id) {
     this.configs.delete(id);
-    this.keys.delete(id);
-    await this._removeEncryptedKey(id);
+    // Routes through forgetKey so the device-key cleanup rule applies
+    // (forgetting the last stored key also deletes the device key).
+    await this.forgetKey(id);
     await this.save();
     // Keep exactly one default if any configs remain.
     const rest = this.list();
@@ -433,13 +503,48 @@ export class ProviderStore {
     }
   }
 
-  /* ---------------- keys: memory by default ---------------- */
+  /* ---------------- keys: auto-persisted encrypted ---------------- */
 
-  setKey(id, key) {
+  /**
+   * Set a key in memory and auto-persist it encrypted (unless the store
+   * is unavailable, where it stays memory-only for this tab).
+   * - state "ready": encrypts with the stored device key, no passphrase needed.
+   * - state "needs-passphrase": `passphrase` is REQUIRED (at least 8
+   *   characters); creates the device key, persists the key, then
+   *   best-effort migrates any legacy v:1 keys (tryMigrateLegacy).
+   * - state "unavailable": memory only, no throw.
+   * Plaintext keys NEVER touch storage · verified by save()'s assertion
+   * and by tests that scan the raw kv record.
+   */
+  async setKey(id, key, passphrase) {
     if (!this.configs.has(id)) throw new Error("Provider not found.");
     const k = String(key || "").trim();
     if (!k) throw new Error("Key is empty.");
+    // Validate the passphrase BEFORE mutating anything: a refused setKey
+    // leaves no trace (no memory key, no device key, no blob).
+    if (this.keyStoreState === "needs-passphrase") {
+      const p = String(passphrase || "");
+      if (!p || p.length < 8)
+        throw new Error("Enter an encryption passphrase (at least 8 characters).");
+    }
     this.keys.set(id, k);
+    if (this.keyStoreState === "ready" && this._deviceKey) {
+      const { items, legacy } = await this._readKeyBlobs();
+      items[id] = await encryptKey(this._deviceKey, k);
+      await this._writeKeyBlobs(items, legacy);
+    } else if (this.keyStoreState === "needs-passphrase") {
+      const p = String(passphrase || "");
+      this._deviceKey = await createDeviceKey(this.storage, p);
+      this.keyStoreState = "ready";
+      const { items, legacy } = await this._readKeyBlobs();
+      items[id] = await encryptKey(this._deviceKey, k);
+      await this._writeKeyBlobs(items, legacy);
+      // Best-effort: a legacy v:1 payload migrates only when the user
+      // happened to reuse their old passphrase here; otherwise it stays
+      // stored (never dropped) and legacyKeysPresent stays true.
+      await this.tryMigrateLegacy(p);
+    }
+    // "unavailable": memory only, nothing persisted.
   }
 
   getKey(id) {
@@ -447,7 +552,7 @@ export class ProviderStore {
     if (!k)
       throw new AIError(
         "invalid-key",
-        "No API key is set for this provider. Enter the key (kept in memory only) or unlock encrypted storage."
+        "No API key is set for this provider. Add its key in Settings."
       );
     return k;
   }
@@ -456,74 +561,149 @@ export class ProviderStore {
     return this.keys.has(id);
   }
 
-  forgetKey(id) {
+  /**
+   * Forget a key: deletes it from memory AND its encrypted blob.
+   *
+   * FORGET RULE: when the last stored key is forgotten, the stored device
+   * key + salt are ALSO deleted and the state returns to
+   * "needs-passphrase", so a fresh start asks for a passphrase again.
+   * (A stored legacy v:1 payload is not a v:2 key and never triggers
+   * this; it stays stored until a successful migration.)
+   */
+  async forgetKey(id) {
     this.keys.delete(id);
+    const { items, legacy } = await this._readKeyBlobs();
+    if (items[id]) {
+      delete items[id];
+      await this._writeKeyBlobs(items, legacy);
+    }
+    if (Object.keys(items).length === 0 && this.keyStoreState === "ready") {
+      try {
+        await deleteDeviceKey(this.storage);
+      } catch {
+        /* already gone */
+      }
+      this._deviceKey = null;
+      this.keyStoreState = "needs-passphrase";
+    }
   }
 
   forgetAllKeys() {
     this.keys.clear();
   }
 
-  /* ---------------- optional encrypted persistence ---------------- */
-
   /**
-   * Encrypt every in-memory key with the passphrase and store the blobs.
-   * Plaintext keys NEVER touch storage · verified by save()'s assertion and
-   * by tests that scan the raw kv record.
+   * Read the v:2 key-blob record. Returns { items, legacy } where items
+   * is the id -> v:2 blob map ({} when none) and legacy is the untouched
+   * v:1 payload when one is stored (null otherwise — either as its own
+   * v:1 record, or embedded in a v:2 record's `legacy` field after a new
+   * key was persisted while migration had not yet succeeded). Never throws.
    */
-  async persistEncrypted(passphrase) {
-    if (!passphrase) throw new Error("A passphrase is required.");
-    if (this.keys.size === 0) throw new Error("No keys in memory to store.");
-    const items = {};
-    for (const [id, key] of this.keys) {
-      if (!this.configs.has(id)) continue;
-      items[id] = await encryptString(key, passphrase);
+  async _readKeyBlobs() {
+    try {
+      const rec = await this.storage.get("kv", KV_KEYS_ENC);
+      const v = rec && rec.value;
+      if (!v || typeof v !== "object") return { items: {}, legacy: null };
+      if (v.v === 2) {
+        return {
+          items: v.items && typeof v.items === "object" ? { ...v.items } : {},
+          legacy: v.legacy && typeof v.legacy === "object" ? v.legacy : null,
+        };
+      }
+      if (v.v === 1) return { items: {}, legacy: v };
+      return { items: {}, legacy: null };
+    } catch {
+      return { items: {}, legacy: null };
     }
-    await this.storage.put("kv", { key: KV_KEYS_ENC, value: { v: 1, items } });
-    this.encryptedAtRest = true;
   }
 
-  /** Decrypt stored keys into memory. Wrong passphrase fails closed. */
+  /**
+   * Write the v:2 key-blob record. `legacy` (when given) is carried along
+   * untouched in the record's `legacy` field so a not-yet-migrated v:1
+   * payload is never dropped by writing a new key. Deletes the whole
+   * record when there are neither blobs nor a legacy payload left.
+   */
+  async _writeKeyBlobs(items, legacy) {
+    const hasItems = items && Object.keys(items).length > 0;
+    if (!hasItems && !legacy) {
+      try {
+        await this.storage.del("kv", KV_KEYS_ENC);
+      } catch {
+        /* already gone */
+      }
+      return;
+    }
+    const value = { v: 2, items: { ...(items || {}) } };
+    if (legacy) value.legacy = legacy;
+    await this.storage.put("kv", { key: KV_KEYS_ENC, value });
+  }
+
+  /**
+   * LEGACY-ONLY reader for v:1 payloads (the old opt-in scheme). Kept so
+   * keys stored before the auto-persist change can be recovered or
+   * migrated; new keys never go through here. Wrong passphrase fails
+   * closed (decryptString throws; nothing is left half-loaded).
+   */
   async unlock(passphrase) {
-    const rec = await this.storage.get("kv", KV_KEYS_ENC);
-    const payload = rec && rec.value;
-    if (!payload || !payload.items || Object.keys(payload.items).length === 0)
+    const { legacy } = await this._readKeyBlobs();
+    if (!legacy || !legacy.items || Object.keys(legacy.items).length === 0)
       throw new Error("No encrypted keys are stored on this device.");
-    const loaded = [];
-    for (const [id, blob] of Object.entries(payload.items)) {
+    // Atomic: decrypt everything first, commit to memory only on full
+    // success — a failure halfway must not leave half the keys loaded.
+    const pending = new Map();
+    for (const [id, blob] of Object.entries(legacy.items)) {
       if (!this.configs.has(id)) continue; // config deleted meanwhile · skip
-      const key = await decryptString(blob, passphrase); // throws on wrong passphrase
+      pending.set(id, await decryptString(blob, passphrase)); // throws on wrong passphrase
+    }
+    const loaded = [];
+    for (const [id, key] of pending) {
       this.keys.set(id, key);
       loaded.push(id);
     }
     return loaded;
   }
 
-  /** Wipe memory keys AND the encrypted copy. UI must confirm first. */
-  async wipeEncrypted() {
-    this.forgetAllKeys();
+  /**
+   * Migrate legacy v:1 keys to v:2 blobs under the current device key.
+   * Only runs when legacyKeysPresent is true. On success each migrated
+   * key is re-stored as a v:2 blob, the legacy payload is dropped and
+   * legacyKeysPresent becomes false; returns the migrated ids. On ANY
+   * failure (wrong passphrase, tampered data, no device key yet) returns
+   * [] and leaves the legacy record FULLY intact. Never throws.
+   *
+   * Decision (see KNOWN-ISSUES.md): legacy keys migrate only when the
+   * user happens to reuse their old passphrase at first new-scheme
+   * setup; otherwise they stay stored (not dropped) and this store-level
+   * unlock() path remains for a future one-off recovery.
+   */
+  async tryMigrateLegacy(passphrase) {
+    if (!this.legacyKeysPresent || !this._deviceKey) return [];
     try {
-      await this.storage.del("kv", KV_KEYS_ENC);
-    } catch {
-      /* already gone */
-    }
-    this.encryptedAtRest = false;
-  }
-
-  async _removeEncryptedKey(id) {
-    try {
-      const rec = await this.storage.get("kv", KV_KEYS_ENC);
-      if (rec && rec.value && rec.value.items && rec.value.items[id]) {
-        delete rec.value.items[id];
-        if (Object.keys(rec.value.items).length === 0) {
-          await this.storage.del("kv", KV_KEYS_ENC);
-          this.encryptedAtRest = false;
-        } else {
-          await this.storage.put("kv", { key: KV_KEYS_ENC, value: rec.value });
-        }
+      // A key already stored as a v:2 blob (e.g. just entered, possibly a
+      // rotation) wins over its legacy copy: snapshot it before unlock()
+      // loads the legacy key into memory, then restore it.
+      const before = await this._readKeyBlobs();
+      const protectedIds = new Set(Object.keys(before.items));
+      const savedMemory = new Map();
+      for (const id of protectedIds) {
+        if (this.keys.has(id)) savedMemory.set(id, this.keys.get(id));
       }
+      const migrated = await this.unlock(passphrase);
+      if (!migrated.length) return [];
+      for (const [id, key] of savedMemory) this.keys.set(id, key);
+      const { items } = await this._readKeyBlobs();
+      for (const id of migrated) {
+        if (items[id]) continue; // fresh key already stored · legacy copy loses
+        const key = this.keys.get(id);
+        if (key) items[id] = await encryptKey(this._deviceKey, key);
+      }
+      // Legacy payload dropped (items survive); delete the whole record
+      // only when nothing remains — handled by _writeKeyBlobs.
+      await this._writeKeyBlobs(items, null);
+      this.legacyKeysPresent = false;
+      return migrated;
     } catch {
-      /* non-fatal */
+      return [];
     }
   }
 

@@ -1,9 +1,9 @@
 /**
  * StudyPilot · AI Chat page controller (BYOK).
  *
- * Wires: provider management, key handling (memory-first), encrypted
- * opt-in storage, streaming chat with cancel/regenerate/copy/save-as-note,
- * cost estimates, and disclosures.
+ * Wires: provider management, key handling (auto-persisted encrypted in
+ * this browser — passphrase asked once, with the key), streaming chat
+ * with cancel/regenerate/copy/save-as-note, cost estimates, and disclosures.
  *
  * Security: model output is rendered ONLY through renderMarkdown() (which
  * escapes first). User/provider strings go through esc() or textContent.
@@ -14,7 +14,7 @@ import { esc, initTheme, injectBrand, toast } from "./ui.js";
 import { openStorage } from "./storage.js";
 import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
-import { ProviderStore, BUILTINS, builtinById, formatTestResult, KV_KEYS_ENC } from "./ai/providers.js";
+import { ProviderStore, BUILTINS, builtinById, formatTestResult } from "./ai/providers.js";
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, formatUsd } from "./ai/costs.js";
@@ -34,10 +34,6 @@ const state = {
   aborter: null,
   editingProvider: null,
   searchQuery: "",
-  // Provider id whose card shows the inline "encrypt & store" offer after a
-  // key was just kept in memory (RC-1). Session-only; cleared on dismiss or
-  // once the keys are encrypted.
-  encOfferFor: null,
   // Step 3 Settings redesign (all session-only, never persisted):
   // id of the one expanded provider row (accordion — null when all are
   // collapsed), which "+" add-form is open (null | "provider" | "model"),
@@ -73,12 +69,10 @@ async function init() {
   await state.providers.load();
   renderBuiltinSelect();
   renderProviders();
-  renderEncPanel();
   await refreshConversations();
   wireComposer();
   wireAddForm();
   wireAddMenu();
-  wireEncButtons();
   $("gotoSettingsBtn").addEventListener("click", openSettings);
   updateChatAvailability();
   renderMessages(); // greeting empty state when no conversation is selected
@@ -173,6 +167,7 @@ function corsBadge(cors) {
 }
 
 function renderProviders() {
+  syncPassphraseFields();
   const list = $("providerList");
   const configs = state.providers.list();
   if (!configs.length) {
@@ -187,7 +182,7 @@ function renderProviders() {
     card.className = "card provider-row";
     card.dataset.providerId = c.id;
     const keyState = state.providers.hasKey(c.id)
-      ? '<span class="badge ok">Key in memory</span>'
+      ? '<span class="badge ok">Key saved</span>'
       : '<span class="badge">No key set</span>';
     // Compact status for the collapsed row: verified / failed / untested.
     const shortTest = !c.lastTest
@@ -203,26 +198,24 @@ function renderProviders() {
       `<p class="hint" data-role="test-result" aria-live="polite"` +
       (c.lastTest && c.lastTest.ok ? ` style="color: var(--ok, #15803d)"` : "") +
       `>${esc(testLine)}</p>`;
-    // Inline encrypted-storage offer (RC-1): shown after a key was just kept
-    // in memory, only while that key is still in memory and no encrypted
-    // storage is set up yet (the setup form is hidden once it exists, so
-    // the shortcut would have nowhere to scroll to).
-    const encOfferHtml =
-      state.encOfferFor === c.id && state.providers.hasKey(c.id) && !state.providers.encryptedAtRest
-        ? `<p class="hint">Key kept in memory for this tab only.</p>` +
-          `<div class="btn-row left">` +
-          `<button type="button" class="btn btn-sm" data-act="enc-offer" data-id="${esc(c.id)}">Encrypt &amp; store on this device</button>` +
-          `<button type="button" class="btn btn-sm btn-ghost" data-act="enc-dismiss" data-id="${esc(c.id)}">Dismiss</button>` +
-          `</div>`
+    // Key area: the passphrase field shows ONLY while no device key exists
+    // yet (keyStoreState "needs-passphrase") — it is asked once, together
+    // with the key, and never again on this browser. Once a device key
+    // exists ("ready") the hint says so; when encrypted storage is
+    // unavailable the honest note replaces the passphrase field.
+    const keyStoreState = state.providers.keyStoreState;
+    const passFieldHtml =
+      keyStoreState === "needs-passphrase"
+        ? `<div class="field" style="max-width: 420px;">
+             <label for="pass-${esc(c.id)}">Encryption passphrase</label>
+             <input type="password" id="pass-${esc(c.id)}" autocomplete="new-password" placeholder="At least 8 characters" />
+             <p class="hint">Asked once. Your key is encrypted with this passphrase and stored on this device. You will not be asked again on this browser.</p>
+           </div>`
         : "";
-    // Step 3 §E: once encrypted storage exists its setup form is hidden,
-    // so a newly entered key has no way into encrypted storage. Offer a
-    // "Store encrypted" action here that reveals the setup form (guarded
-    // in the handler so locked stored keys are never dropped).
-    const encStoreHtml =
-      state.providers.encryptedAtRest && state.providers.hasKey(c.id)
-        ? `<div class="btn-row left"><button type="button" class="btn btn-sm" data-act="enc-store" data-id="${esc(c.id)}">Store encrypted</button></div>`
-        : "";
+    const keyHintHtml =
+      keyStoreState === "unavailable"
+        ? `<p class="hint">${esc(state.providers.keyStoreNote)}</p>`
+        : `<p class="hint">Stored encrypted in this browser.</p>`;
     const models = modelsForProvider(c);
     const modelRows = models.length
       ? models
@@ -278,15 +271,14 @@ function renderProviders() {
       `<p class="hint">${esc(b.corsNote || "")}</p>` +
       `<div class="field" style="max-width: 420px;">
          <label for="key-${esc(c.id)}">API key</label>
-         <input type="password" id="key-${esc(c.id)}" autocomplete="off" placeholder="Paste key · kept in memory only" />
-         <p class="hint">Stored in this tab's memory. Never written to disk unless you opt into encrypted storage below.</p>
+         <input type="password" id="key-${esc(c.id)}" autocomplete="off" placeholder="Paste key" />
+         ${keyHintHtml}
        </div>` +
+      passFieldHtml +
       `<div class="btn-row left">
-         <button type="button" class="btn btn-sm" data-act="keep-key" data-id="${esc(c.id)}">Keep key in memory</button>
+         <button type="button" class="btn btn-sm" data-act="keep-key" data-id="${esc(c.id)}">Save key</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="forget-key" data-id="${esc(c.id)}">Forget key</button>
        </div>` +
-      encOfferHtml +
-      encStoreHtml +
       `<h4 class="provider-subhead">Models</h4>` +
       `<div class="model-list">${modelRows}</div>` +
       inlineAddHtml +
@@ -350,57 +342,20 @@ async function onProviderAction(e) {
   try {
     if (act === "keep-key") {
       const input = $("key-" + CSS.escape(id));
-      state.providers.setKey(id, input.value);
+      const passInput = $("pass-" + CSS.escape(id));
+      await state.providers.setKey(id, input.value, passInput ? passInput.value : undefined);
       input.value = "";
-      state.encOfferFor = id; // offer encrypted storage inline (RC-1)
-      toast("Key kept in memory for this tab.");
+      if (passInput) passInput.value = "";
+      toast(
+        state.providers.keyStoreState === "ready"
+          ? "Key saved (encrypted in this browser)."
+          : "Key kept in memory for this tab only."
+      );
       renderProviders();
       renderChatSelectors();
-    } else if (act === "enc-offer") {
-      // Shortcut only: scroll to the passphrase field in the encrypted
-      // storage panel and focus it. The encrypt flow itself is unchanged.
-      const pass = $("encPassNew");
-      if (pass) {
-        pass.scrollIntoView({ block: "center" });
-        pass.focus();
-      }
-    } else if (act === "enc-store") {
-      // Step 3 §E: encrypted storage already exists, so the setup form is
-      // hidden — a key entered for a new provider has no way into encrypted
-      // storage. Reveal the setup form and focus the passphrase, but ONLY
-      // when every already-stored key is also in memory: persistEncrypted()
-      // overwrites the whole stored set with the in-memory keys, so storing
-      // while a stored key is still locked would silently drop it. In that
-      // case, send the user to unlock first instead.
-      let storedIds = [];
-      try {
-        const enc = await state.storage.get("kv", KV_KEYS_ENC);
-        storedIds = enc && enc.value && enc.value.items ? Object.keys(enc.value.items) : [];
-      } catch {
-        storedIds = [];
-      }
-      const locked = storedIds.filter((storedId) => !state.providers.hasKey(storedId));
-      if (locked.length) {
-        toast("Unlock your stored keys first, so storing this key does not drop them.");
-        const pass = $("encPassUnlock");
-        if (pass) {
-          pass.scrollIntoView({ block: "center" });
-          pass.focus();
-        }
-      } else {
-        $("encSetup").hidden = false;
-        const pass = $("encPassNew");
-        if (pass) {
-          pass.scrollIntoView({ block: "center" });
-          pass.focus();
-        }
-      }
-    } else if (act === "enc-dismiss") {
-      state.encOfferFor = null;
-      renderProviders();
     } else if (act === "forget-key") {
-      state.providers.forgetKey(id);
-      toast("Key forgotten.");
+      await state.providers.forgetKey(id);
+      toast("Key forgotten and deleted from this browser.");
       renderProviders();
       renderChatSelectors();
     } else if (act === "model-select") {
@@ -567,20 +522,23 @@ function wireAddForm() {
         baseUrl: $("pvBaseUrl").value,
         defaultModel: $("pvModel").value,
       });
-      // Key entered in the creation form is stored independently in
-      // memory, exactly like Keep key in memory — never persisted.
+      // A key entered in the creation form is saved with the provider
+      // (auto-persisted encrypted; the passphrase is asked once, in the
+      // same form, when no device key exists yet).
       const key = $("pvKey").value.trim();
       if (key) {
-        state.providers.setKey(c.id, key);
-        state.encOfferFor = c.id; // offer encrypted storage inline (RC-1)
+        await state.providers.setKey(c.id, key, $("pvPassphrase").value || undefined);
       }
       $("pvName").value = "";
       $("pvModel").value = "";
       $("pvKey").value = "";
+      $("pvPassphrase").value = "";
       hideAddForms();
       toast(
         key
-          ? `Provider "${c.name}" added with its key kept in memory.`
+          ? state.providers.keyStoreState === "ready"
+            ? `Provider "${c.name}" added. Key saved encrypted in this browser.`
+            : `Provider "${c.name}" added. Key kept in memory for this tab only.`
           : `Provider "${c.name}" added. Now set its API key above.`
       );
       // New providers join the compact list COLLAPSED (expandedProviderId
@@ -744,55 +702,25 @@ function hideAddForms() {
 
 /* ================== encrypted key storage UI ================== */
 
-function renderEncPanel() {
-  const has = state.providers.encryptedAtRest;
-  $("encStatus").textContent = has
-    ? "Encrypted keys are stored on this device. Unlock them into memory to chat."
-    : "No encrypted keys stored. Keys you enter above live in memory only.";
-  $("encSetup").hidden = has;
-  $("encUnlock").hidden = !has;
-}
-
-function wireEncButtons() {
-  $("encStoreBtn").addEventListener("click", async () => {
-    const p1 = $("encPassNew").value;
-    const p2 = $("encPassConfirm").value;
-    try {
-      if (!p1 || p1.length < 8) throw new Error("Use a passphrase of at least 8 characters.");
-      if (p1 !== p2) throw new Error("Passphrases do not match.");
-      await state.providers.persistEncrypted(p1);
-      $("encPassNew").value = "";
-      $("encPassConfirm").value = "";
-      state.encOfferFor = null; // keys are stored now · the inline offer is moot
-      toast("Keys encrypted and stored on this device.");
-      renderEncPanel();
-      renderProviders();
-    } catch (err) {
-      toast(friendly(err));
-    }
-  });
-  $("encUnlockBtn").addEventListener("click", async () => {
-    try {
-      const n = await state.providers.unlock($("encPassUnlock").value);
-      $("encPassUnlock").value = "";
-      toast(`Unlocked ${n.length} key${n.length === 1 ? "" : "s"} into memory.`);
-      renderProviders();
-    } catch (err) {
-      toast(friendly(err));
-    }
-  });
-  $("encLockBtn").addEventListener("click", () => {
-    state.providers.forgetAllKeys();
-    toast("In-memory keys forgotten. Encrypted copy remains on device.");
-    renderProviders();
-  });
-  $("encWipeBtn").addEventListener("click", async () => {
-    if (!confirm("Delete the encrypted keys from this device? You will need to re-enter them.")) return;
-    await state.providers.wipeEncrypted();
-    toast("Encrypted keys deleted.");
-    renderEncPanel();
-    renderProviders();
-  });
+/**
+ * Show/hide the Add Provider form's passphrase field (and its hint) by
+ * the store's keyStoreState — the same gate as the per-provider rows.
+ * Called from renderProviders (so it re-runs after every setKey/forget)
+ * and once at init. When the state is "ready" or "unavailable" the field
+ * stays hidden; the pvKey hint carries the state-appropriate text.
+ */
+function syncPassphraseFields() {
+  if (!state.providers) return;
+  const st = state.providers.keyStoreState;
+  const field = $("pvPassphraseField");
+  if (field) field.hidden = st !== "needs-passphrase";
+  const hint = $("pvKeyHint");
+  if (hint) {
+    hint.textContent =
+      st === "unavailable"
+        ? state.providers.keyStoreNote
+        : "Stored encrypted in this browser.";
+  }
 }
 
 /* ============================ chat UI ============================ */
@@ -931,7 +859,7 @@ function updateCostLine() {
   }
   const est = estimateCost(model, prompt, maxTokens);
   if (!est.known) {
-    line.textContent = `Cost unknown for "${model}" · check your provider's pricing page. Nothing is sent until you press Send.`;
+    line.textContent = "Nothing is sent until you press Send.";
   } else if (est.free) {
     line.textContent = `Free model · estimated cost $0. Nothing is sent until you press Send.`;
   } else {
@@ -1240,15 +1168,9 @@ async function sendPrompt() {
   try {
     key = state.providers.getKey(providerId);
   } catch (err) {
-    // RC-1: if this provider was verified or was last used, the key was
-    // most likely lost on a page reload (memory-only) — say so explicitly.
-    const lastUsed = loadLastUsed();
-    toast(
-      missingKeyMessage({
-        hadVerified: !!(config.lastTest && config.lastTest.ok),
-        wasLastUsed: !!(lastUsed && lastUsed.providerId === providerId),
-      })
-    );
+    // Keys auto-persist encrypted, so a missing key simply means none was
+    // ever entered for this provider — point at Settings.
+    toast(missingKeyMessage());
     openSettings();
     return;
   }

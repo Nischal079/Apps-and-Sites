@@ -163,7 +163,7 @@ test("removeModel: removing the selected model moves selection, never the provid
   const { ps } = await freshStore();
   const a = await ps.add({ name: "A", builtinId: "openai", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4o-mini" });
   await ps.addModel(a.id, "gpt-4o");
-  ps.setKey(a.id, SECRET);
+  await ps.setKey(a.id, SECRET);
   const after = await ps.removeModel(a.id, "gpt-4o-mini");
   assertEq(after.models, ["gpt-4o"]);
   assertEq(after.defaultModel, "gpt-4o", "selection falls to the next model");

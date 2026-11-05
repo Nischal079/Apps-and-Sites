@@ -35,7 +35,7 @@ async function addProvider(ps, over = {}) {
     defaultModel: "gpt-4o-mini",
     ...over,
   });
-  ps.setKey(c.id, SECRET);
+  await ps.setKey(c.id, SECRET);
   return c;
 }
 

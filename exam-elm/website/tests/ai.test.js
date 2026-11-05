@@ -306,7 +306,7 @@ test("add: trims slashes, rejects bad URL and unknown builtin", async () => {
 test("persisted configs never contain key material", async () => {
   const { storage, ps } = await freshStore();
   const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
-  ps.setKey(c.id, SECRET);
+  await ps.setKey(c.id, SECRET);
   await ps.save();
   const raw = await storage.get("kv", "ai_providers");
   const dumped = JSON.stringify(raw);
@@ -314,7 +314,7 @@ test("persisted configs never contain key material", async () => {
   assert(!dumped.includes("apiKey"), "no apiKey field persisted");
 });
 
-test("keys live in memory only; getKey throws friendly error when missing", async () => {
+test("setKey/forgetKey round-trip; getKey throws friendly error when missing", async () => {
   const { ps } = await freshStore();
   const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
   try {
@@ -322,41 +322,220 @@ test("keys live in memory only; getKey throws friendly error when missing", asyn
     throw new Error("should have thrown");
   } catch (e) {
     assert(e instanceof AIError && e.code === "invalid-key");
+    assert(e.message.includes("Add its key in Settings"), "points at Settings, got: " + e.message);
   }
-  ps.setKey(c.id, SECRET);
+  await ps.setKey(c.id, SECRET);
   assert(ps.hasKey(c.id));
   assertEq(ps.getKey(c.id), SECRET);
-  ps.forgetKey(c.id);
+  await ps.forgetKey(c.id);
   assert(!ps.hasKey(c.id));
 });
 
-test("encrypted persistence: no plaintext at rest; unlock works; wrong passphrase fails", async () => {
+test("memory backend: keyStoreState unavailable, setKey stays memory-only", async () => {
   const { storage, ps } = await freshStore();
+  assertEq(ps.keyStoreState, "unavailable");
+  assert(ps.keyStoreNote.length > 10, "honest note set");
   const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
-  ps.setKey(c.id, SECRET);
-  await ps.persistEncrypted("my-secret-passphrase");
-  const raw = await storage.get("kv", "ai_keys_enc");
-  assert(!JSON.stringify(raw).includes(SECRET), "plaintext key at rest!");
+  await ps.setKey(c.id, SECRET); // no passphrase needed, nothing persisted
+  assert(ps.hasKey(c.id));
+  assertEq(ps.getKey(c.id), SECRET);
+  const keys = await storage.get("kv", "ai_keys_enc");
+  assert(keys === null, "nothing persisted on the memory backend");
+  const dev = await storage.get("kv", "ai_device_key");
+  assert(dev === null, "no device key on the memory backend");
+});
 
-  ps.forgetAllKeys();
+/**
+ * Reference store stub for keystore tests: a plain Map, get/put/del by
+ * reference (like real IndexedDB, which stores CryptoKey objects intact),
+ * backend "indexeddb". The memory backend mangles CryptoKey objects, so
+ * keystore tests must NOT use freshStore() (memory backend).
+ */
+function refStore() {
+  const kv = new Map();
+  return {
+    backend: "indexeddb",
+    degraded: false,
+    async get(store, key) {
+      const v = kv.get(store + ":" + key);
+      return v === undefined ? null : v;
+    },
+    async put(store, value) {
+      kv.set(store + ":" + (value.key ?? value.id), value);
+      return value;
+    },
+    async del(store, key) {
+      kv.delete(store + ":" + key);
+    },
+    async list() {
+      return [];
+    },
+  };
+}
+
+async function freshRefStore() {
+  const storage = refStore();
+  const ps = new ProviderStore(storage);
+  await ps.load();
+  return { storage, ps };
+}
+
+test("keystore: first setKey with passphrase auto-stores ciphertext + device key", async () => {
+  const { storage, ps } = await freshRefStore();
+  assertEq(ps.keyStoreState, "needs-passphrase");
+  const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
+  await ps.setKey(c.id, SECRET, "correct horse battery staple");
+  assertEq(ps.keyStoreState, "ready");
+  assertEq(ps.getKey(c.id), SECRET);
+  const raw = await storage.get("kv", "ai_keys_enc");
+  assert(raw && raw.value && raw.value.v === 2, "v:2 payload stored");
+  assert(!JSON.stringify(raw).includes(SECRET), "ciphertext must not contain plaintext");
+  assert(raw.value.items[c.id] && raw.value.items[c.id].v === 2, "blob for the provider");
+  const dev = await storage.get("kv", "ai_device_key");
+  assert(dev && dev.value && dev.value.v === 2 && dev.value.salt && dev.value.key, "device-key record exists");
+});
+
+test("keystore: decrypt-on-load, no passphrase supplied", async () => {
+  const { storage, ps } = await freshRefStore();
+  const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
+  await ps.setKey(c.id, SECRET, "correct horse battery staple");
+  const ps2 = new ProviderStore(storage);
+  await ps2.load();
+  assertEq(ps2.keyStoreState, "ready");
+  assert(ps2.hasKey(c.id), "key auto-decrypted on load");
+  assertEq(ps2.getKey(c.id), SECRET);
+});
+
+test("keystore: later setKey needs no passphrase", async () => {
+  const { storage, ps } = await freshRefStore();
+  const a = await ps.add({ name: "a", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
+  await ps.setKey(a.id, SECRET, "correct horse battery staple");
+  const b = await ps.add({ name: "b", builtinId: "openrouter", baseUrl: "https://openrouter.ai/api/v1" });
+  await ps.setKey(b.id, "sk-test-fake-key-67890"); // no passphrase
+  assertEq(ps.getKey(b.id), "sk-test-fake-key-67890");
+  const raw = await storage.get("kv", "ai_keys_enc");
+  assert(raw.value.items[a.id] && raw.value.items[b.id], "both blobs stored");
+});
+
+test("keystore: forgetKey deletes the blob; last key also deletes the device key", async () => {
+  const { storage, ps } = await freshRefStore();
+  const a = await ps.add({ name: "a", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
+  const b = await ps.add({ name: "b", builtinId: "openrouter", baseUrl: "https://openrouter.ai/api/v1" });
+  await ps.setKey(a.id, SECRET, "correct horse battery staple");
+  await ps.setKey(b.id, "sk-test-fake-key-67890");
+  await ps.forgetKey(a.id);
+  assert(!ps.hasKey(a.id));
+  let raw = await storage.get("kv", "ai_keys_enc");
+  assert(raw && raw.value.items[b.id] && !raw.value.items[a.id], "only b's blob remains");
+  assertEq(ps.keyStoreState, "ready", "device key kept while keys remain");
+  await ps.forgetKey(b.id);
+  assert(!ps.hasKey(b.id));
+  raw = await storage.get("kv", "ai_keys_enc");
+  assert(raw === null, "key record gone after the last key");
+  const dev = await storage.get("kv", "ai_device_key");
+  assert(dev === null, "device key deleted with the last key");
+  assertEq(ps.keyStoreState, "needs-passphrase", "fresh start asks for a passphrase again");
+});
+
+test("keystore: short/missing passphrase rejected on first setKey, no trace left", async () => {
+  const { storage, ps } = await freshRefStore();
+  const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
+  await assertThrowsAsync(() => ps.setKey(c.id, SECRET), "at least 8 characters");
+  await assertThrowsAsync(() => ps.setKey(c.id, SECRET, "short"), "at least 8 characters");
+  assert(!ps.hasKey(c.id), "refused setKey leaves no memory key");
+  assertEq(ps.keyStoreState, "needs-passphrase");
+  assert((await storage.get("kv", "ai_device_key")) === null, "no device key created");
+  assert((await storage.get("kv", "ai_keys_enc")) === null, "no blob written");
+});
+
+test("legacy v:1: load flags it, leaves the record untouched, no crash", async () => {
+  const { storage, ps } = await freshRefStore();
+  const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
+  const legacyBlob = await encryptString(SECRET, "old-passphrase-123");
+  const legacyPayload = { v: 1, items: { [c.id]: legacyBlob } };
+  await storage.put("kv", { key: "ai_keys_enc", value: legacyPayload });
+  const ps2 = new ProviderStore(storage);
+  await ps2.load();
+  assertEq(ps2.legacyKeysPresent, true);
+  assertEq(ps2.keyStoreState, "needs-passphrase");
+  assert(!ps2.hasKey(c.id), "legacy keys are NOT auto-decrypted");
+  const raw = await storage.get("kv", "ai_keys_enc");
+  assertEq(JSON.parse(JSON.stringify(raw.value)), legacyPayload, "legacy record untouched");
+});
+
+test("legacy v:1: matching passphrase migrates to v:2 on first new-scheme setKey", async () => {
+  const { storage, ps } = await freshRefStore();
+  const a = await ps.add({ name: "a", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
+  const b = await ps.add({ name: "b", builtinId: "openrouter", baseUrl: "https://openrouter.ai/api/v1" });
+  const legacyBlob = await encryptString(SECRET, "old-passphrase-123");
+  await storage.put("kv", { key: "ai_keys_enc", value: { v: 1, items: { [a.id]: legacyBlob } } });
+  const ps2 = new ProviderStore(storage);
+  await ps2.load();
+  assertEq(ps2.legacyKeysPresent, true);
+  await ps2.setKey(b.id, "sk-test-fake-key-67890", "old-passphrase-123");
+  assertEq(ps2.legacyKeysPresent, false, "migration cleared the flag");
+  assertEq(ps2.getKey(a.id), SECRET, "legacy key migrated");
+  assertEq(ps2.getKey(b.id), "sk-test-fake-key-67890");
+  const raw = await storage.get("kv", "ai_keys_enc");
+  assertEq(raw.value.v, 2, "record is now v:2");
+  assert(!raw.value.legacy, "legacy payload dropped");
+  assert(raw.value.items[a.id] && raw.value.items[b.id], "both keys stored as v:2 blobs");
+  assert(!JSON.stringify(raw).includes(SECRET), "no plaintext at rest");
+  // Reload proves the migrated key decrypts with the device key alone.
+  const ps3 = new ProviderStore(storage);
+  await ps3.load();
+  assertEq(ps3.getKey(a.id), SECRET);
+});
+
+test("legacy v:1: wrong passphrase leaves the legacy record fully intact", async () => {
+  const storage = refStore();
+  const ps = new ProviderStore(storage);
+  await ps.load();
+  const c = await ps.add({ name: "c", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
+  const d = await ps.add({ name: "d", builtinId: "openrouter", baseUrl: "https://openrouter.ai/api/v1" });
+  const legacyBlob = await encryptString(SECRET, "old-passphrase-123");
+  const legacyPayload = { v: 1, items: { [c.id]: legacyBlob } };
+  await storage.put("kv", { key: "ai_keys_enc", value: legacyPayload });
+  const ps2 = new ProviderStore(storage);
+  await ps2.load();
+  await ps2.setKey(d.id, "sk-test-fake-key-67890", "different-passphrase");
+  assertEq(ps2.legacyKeysPresent, true, "failed migration keeps the flag");
+  const raw = await storage.get("kv", "ai_keys_enc");
+  assertEq(raw.value.v, 2, "new key still persisted as v:2");
+  assert(raw.value.items[d.id], "new key blob present");
+  assertEq(JSON.parse(JSON.stringify(raw.value.legacy)), legacyPayload, "legacy payload fully intact");
+  assert(!ps2.hasKey(c.id), "unmigrated legacy key stays out of memory");
+  // A later load still sees the legacy flag and decrypts the new key.
+  const ps3 = new ProviderStore(storage);
+  await ps3.load();
+  assertEq(ps3.legacyKeysPresent, true);
+  assertEq(ps3.getKey(d.id), "sk-test-fake-key-67890");
+});
+
+test("legacy v:1 unlock: right passphrase loads keys, wrong passphrase fails closed", async () => {
+  const { storage, ps } = await freshRefStore();
+  const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
+  const blob = await encryptString(SECRET, "my-secret-passphrase");
+  await storage.put("kv", { key: "ai_keys_enc", value: { v: 1, items: { [c.id]: blob } } });
   const loaded = await ps.unlock("my-secret-passphrase");
   assertEq(loaded, [c.id]);
   assertEq(ps.getKey(c.id), SECRET);
-
   ps.forgetAllKeys();
   await assertThrowsAsync(() => ps.unlock("wrong-passphrase"), "Wrong passphrase");
   assert(!ps.hasKey(c.id), "failed unlock must not leave keys in memory");
 });
 
-test("remove() purges memory key and encrypted copy", async () => {
-  const { storage, ps } = await freshStore();
+test("remove() purges memory key, encrypted blob, and device key when last", async () => {
+  const { storage, ps } = await freshRefStore();
   const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
-  ps.setKey(c.id, SECRET);
-  await ps.persistEncrypted("pass12345");
+  await ps.setKey(c.id, SECRET, "pass12345");
   await ps.remove(c.id);
   assert(!ps.hasKey(c.id));
   const raw = await storage.get("kv", "ai_keys_enc");
   assert(raw === null, "encrypted copy must be gone after remove");
+  const dev = await storage.get("kv", "ai_device_key");
+  assert(dev === null, "device key gone with the last key");
+  assertEq(ps.keyStoreState, "needs-passphrase");
 });
 
 test("builtins carry honest CORS notes", () => {
@@ -371,7 +550,7 @@ test("builtins carry honest CORS notes", () => {
 test("testConnection: success caches models (mocked fetch)", async () => {
   const { ps } = await freshStore();
   const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
-  ps.setKey(c.id, SECRET);
+  await ps.setKey(c.id, SECRET);
   const calls = [];
   const fakeFetch = async (url, opts) => {
     calls.push([url, opts]);
@@ -391,7 +570,7 @@ test("testConnection: success caches models (mocked fetch)", async () => {
 test("testConnection: 401 -> invalid-key; TypeError -> cors-blocked", async () => {
   const { ps } = await freshStore();
   const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1" });
-  ps.setKey(c.id, SECRET);
+  await ps.setKey(c.id, SECRET);
   const bad = async () => new Response("bad key", { status: 401 });
   try {
     await ps.testConnection(c.id, bad);

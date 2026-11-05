@@ -8,7 +8,6 @@
  */
 import { modelForProviderChange, missingKeyMessage } from "../assets/js/ai/chatui.js";
 
-const KEY_LOST = "lost when the page reloaded";
 const GENERIC = "No API key is set for this provider.";
 
 test("modelForProviderChange: carries nothing across providers", () => {
@@ -29,27 +28,21 @@ test("modelForProviderChange: empty previous model takes the new default", () =>
   assertEq(modelForProviderChange("", "claude-sonnet-4-5"), "claude-sonnet-4-5");
 });
 
-test("missingKeyMessage: verified provider gets the key-lost text", () => {
+test("missingKeyMessage: always the same plain text, flags ignored", () => {
   const m = missingKeyMessage({ hadVerified: true, wasLastUsed: false });
-  assert(m.includes(KEY_LOST), "key-lost wording, got: " + m);
-  assert(m.includes("encrypted storage"), "points at encrypted storage");
-  assert(!m.includes(GENERIC), "not the generic text");
+  assertEq(m, GENERIC + " Add its key in Settings.");
+  assertEq(missingKeyMessage({ hadVerified: false, wasLastUsed: true }), m);
+  assertEq(missingKeyMessage({ hadVerified: false, wasLastUsed: false }), m);
+  assertEq(missingKeyMessage(), m);
+  assertEq(missingKeyMessage({}), m);
 });
 
-test("missingKeyMessage: last-used provider gets the key-lost text", () => {
-  const m = missingKeyMessage({ hadVerified: false, wasLastUsed: true });
-  assert(m.includes(KEY_LOST), "key-lost wording, got: " + m);
-});
-
-test("missingKeyMessage: neither verified nor last-used gets the generic text", () => {
-  const m = missingKeyMessage({ hadVerified: false, wasLastUsed: false });
-  assert(m.startsWith(GENERIC), "generic text, got: " + m);
-  assert(!m.includes(KEY_LOST), "no key-lost claim without evidence");
-});
-
-test("missingKeyMessage: defaults to the generic text with no arguments", () => {
-  assert(missingKeyMessage().startsWith(GENERIC));
-  assert(missingKeyMessage({}).startsWith(GENERIC));
+test("missingKeyMessage: never mentions memory-only, reload loss, or unlocking", () => {
+  const m = missingKeyMessage({ hadVerified: true, wasLastUsed: true });
+  assert(!m.includes("memory"), "no memory wording, got: " + m);
+  assert(!m.includes("reload"), "no reload wording, got: " + m);
+  assert(!m.includes("unlock"), "no unlock wording, got: " + m);
+  assert(!m.includes("lost when the page reloaded"), "no key-lost wording, got: " + m);
 });
 
 test("missingKeyMessage: never contains key material", () => {

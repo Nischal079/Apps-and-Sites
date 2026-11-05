@@ -179,16 +179,18 @@ test("removeModel: removes from list; default falls to next; provider + key unto
   const { storage, ps } = await freshStore();
   const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4o-mini" });
   await ps.addModel(c.id, "gpt-4o");
-  ps.setKey(c.id, SECRET);
-  await ps.persistEncrypted("test-passphrase");
+  await ps.setKey(c.id, SECRET);
   const after = await ps.removeModel(c.id, "gpt-4o-mini");
   assertEq(after.models, ["gpt-4o"]);
   assertEq(after.defaultModel, "gpt-4o", "default falls to the next model");
-  // The provider config, its memory key and its encrypted copy all survive.
+  // The provider config and its memory key both survive. (On the memory
+  // backend the store is "unavailable", so the key is memory-only and
+  // there is no encrypted copy to check — auto-persist is covered by
+  // the keystore tests in ai.test.js.)
   assert(ps.get(c.id) !== null, "provider config still exists");
   assertEq(ps.getKey(c.id), SECRET, "memory key still exists");
   const enc = await storage.get("kv", "ai_keys_enc");
-  assert(enc && enc.value && enc.value.items && enc.value.items[c.id], "encrypted copy still exists");
+  assert(enc === null, "no encrypted copy on the memory backend");
   const last = await ps.removeModel(c.id, "gpt-4o");
   assertEq(last.models, []);
   assertEq(last.defaultModel, "", "no models left -> no default");
@@ -246,7 +248,7 @@ test("publicConfig includes models and save() still refuses key material", async
   const { storage, ps } = await freshStore();
   const c = await ps.add({ name: "t", builtinId: "openai", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4o-mini" });
   await ps.addModel(c.id, "gpt-4o");
-  ps.setKey(c.id, SECRET);
+  await ps.setKey(c.id, SECRET);
   await ps.save();
   const raw = await storage.get("kv", "ai_providers");
   const dumped = JSON.stringify(raw);
