@@ -557,18 +557,32 @@ function wireAddForm() {
       $("pvKey").value = "";
       $("pvPassphrase").value = "";
       hideAddForms();
+      // A provider with no model can't appear in the Chat Model dropdown
+      // (it lists usable providers only) — say so plainly instead of
+      // leaving the user wondering why the dropdown is empty.
+      const needsModel = !c.defaultModel;
       toast(
-        key
-          ? state.providers.keyStoreState === "ready"
-            ? `Provider "${c.name}" added. Key saved encrypted in this browser.`
-            : `Provider "${c.name}" added. Key kept in memory for this tab only.`
-          : `Provider "${c.name}" added. Now set its API key above.`
+        needsModel
+          ? `Provider "${c.name}" added. Pick a model to start chatting.`
+          : key
+            ? state.providers.keyStoreState === "ready"
+              ? `Provider "${c.name}" added. Key saved encrypted in this browser.`
+              : `Provider "${c.name}" added. Key kept in memory for this tab only.`
+            : `Provider "${c.name}" added. Now set its API key above.`
       );
       // New providers join the compact list COLLAPSED (expandedProviderId
       // is left untouched).
       renderProviders();
       renderChatSelectors();
       updateChatAvailability();
+      if (needsModel) {
+        // Don't dead-end on a model-less provider: open Add Model for
+        // it and auto-run discovery, so the user can tap a model from
+        // the discovered list instead of typing an ID blind.
+        showAddForm("model");
+        $("amProvider").value = c.id;
+        $("amDiscoverBtn").click();
+      }
     } catch (err) {
       toast(friendly(err));
     }
