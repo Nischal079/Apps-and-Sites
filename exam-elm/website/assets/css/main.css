@@ -383,31 +383,35 @@ details.gc-details table { margin-top: 0.6rem; }
 }
 .btn-primary:hover { filter: brightness(1.1); }
 
-/* Full-bleed indigo header band for tool pages (Grade App style header).
+/* Full-bleed light-yellow header band for tool pages.
    Lives inside a .wrap container and bleeds to the viewport edges via
    negative margins. Pages using it add class="tool-page" to <main> to drop
-   the section top padding so the band sits flush under the nav. */
+   the section top padding so the band sits flush under the nav.
+   Light yellow (#FFFFE0) with dark text: readable in both themes, and the
+   ghost buttons stay visible because the band is light, not dark. */
 html, body { overflow-x: clip; }
 .tool-page { padding-top: 0; }
 .tool-header {
   margin: 0 calc(50% - 50vw) 2rem; padding: 2.4rem 0 2.6rem;
-  background: linear-gradient(120deg, #4f46e5, #6d28d9 55%, #312e81); color: #fff;
+  background: #FFFFE0; color: #1e293b;
+  border-bottom: 1px solid #f0e6b8;
 }
-.tool-header .eyebrow { color: rgba(255, 255, 255, 0.75); }
-.tool-header h1 { color: #fff; font-size: clamp(1.9rem, 4vw, 2.6rem); margin: 0.3rem 0 0.6rem; }
-.tool-header p { color: rgba(255, 255, 255, 0.88); max-width: 680px; margin: 0; }
-.tool-header .muted { color: rgba(255, 255, 255, 0.88); }
+.tool-header .eyebrow { color: var(--indigo-700); }
+.tool-header h1 { color: #0f172a; font-size: clamp(1.9rem, 4vw, 2.6rem); margin: 0.3rem 0 0.6rem; }
+.tool-header p { color: #475569; max-width: 680px; margin: 0; }
+.tool-header .muted { color: #475569; }
 
-/* Homepage hero: same gradient, full-bleed, centered. */
+/* Homepage hero: same light-yellow band, full-bleed, centered. */
 .hero-gradient {
-  background: linear-gradient(120deg, #4f46e5, #6d28d9 55%, #312e81); color: #fff;
+  background: #FFFFE0; color: #1e293b;
   padding: 3.4rem 0 3rem; text-align: center;
+  border-bottom: 1px solid #f0e6b8;
 }
-.hero-gradient h1 { color: #fff; }
-.hero-gradient .lead { color: rgba(255, 255, 255, 0.88); }
-.hero-gradient .btn-primary { background: #fff; color: var(--indigo-900); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); }
-.hero-gradient .btn-ghost { border-color: rgba(255, 255, 255, 0.55); color: #fff; }
-.hero-gradient .promise-pills li { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.28); color: #fff; }
+.hero-gradient h1 { color: #0f172a; }
+.hero-gradient .lead { color: #475569; }
+.hero-gradient .btn-primary { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35); }
+.hero-gradient .btn-ghost { background: #fff; color: var(--indigo-700); border-color: #c7d2fe; }
+.hero-gradient .promise-pills li { background: #fff; border-color: #e0e7ff; color: var(--indigo-700); }
 
 /* Tinted icon tiles on tool cards. */
 .tool-card .ticon {
@@ -470,13 +474,12 @@ html, body { overflow-x: clip; }
 }
 
 h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
-.btn-ghost { background: var(--surface); }
 input::placeholder, textarea::placeholder { color: #94a3b8; }
 input[type="text"], input[type="number"], input[type="date"], input[type="time"], input[type="password"], input[type="url"], select, textarea {
   border-radius: 12px;
 }
 
-/* Tabs: Grade App style — gray labels, indigo underline on active. */
+/* Tabs: Grade App style · gray labels, indigo underline on active. */
 .tabs button { font-size: 0.95rem; padding: 0.85rem 1.1rem; }
 .tabs button.active { color: var(--primary); }
 
@@ -540,6 +543,63 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
 
 /* AI Tools: provider bar as a card. */
 #provBar { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.1rem 1.2rem; box-shadow: var(--shadow-sm); }
+
+/* ---------- Motion system: entrance, reveals, micro-interactions ---------- */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 150ms;
+  --dur-med: 300ms;
+  --dur-slow: 600ms;
+}
+
+@keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wordUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes barGrow { from { width: 0; } }
+
+/* Page entrance: a short fade on every load. */
+body { animation: pageIn 0.35s var(--ease-out) both; }
+body.page-leaving { opacity: 0; transition: opacity var(--dur-fast) ease; }
+
+/* Header stagger: eyebrow, headline, description, actions in sequence. */
+.tool-header .eyebrow, .tool-header p { animation: fadeUp var(--dur-slow) var(--ease-out) both; }
+.tool-header p { animation-delay: 0.18s; }
+.tool-header h1:not(:has(.w)) { animation: fadeUp var(--dur-slow) 0.08s var(--ease-out) both; }
+.tool-header h1 .w { display: inline-block; opacity: 0; animation: wordUp 0.55s var(--ease-out) forwards; }
+.hero-gradient h1 { animation: fadeUp var(--dur-slow) 0.08s var(--ease-out) both; }
+.hero-gradient .lead { animation: fadeUp var(--dur-slow) 0.18s var(--ease-out) both; }
+.hero-gradient .lead + .lead { animation-delay: 0.26s; }
+.hero-gradient .hero-rotate { animation: fadeUp var(--dur-slow) 0.3s var(--ease-out) both; }
+.hero-gradient .btn-row { animation: fadeUp var(--dur-slow) 0.34s var(--ease-out) both; }
+.hero-gradient .promise-pills { animation: fadeUp var(--dur-slow) 0.42s var(--ease-out) both; }
+
+/* Rotating hero word. */
+.hero-rotate { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 1rem 0 0; }
+.hero-rotate strong { color: var(--indigo-700); display: inline-block; transition: opacity 0.25s ease, transform 0.25s ease; }
+.hero-rotate strong.rot-out { opacity: 0; transform: translateY(6px); }
+
+/* Scroll reveals (class added by motion.js; .in added when in view, once). */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out); }
+.reveal.in { opacity: 1; transform: none; }
+
+/* Micro-interactions: buttons, clickable cards, inputs, tabs, progress. */
+.btn { transition: transform var(--dur-fast) var(--ease-soft), box-shadow var(--dur-fast) var(--ease-soft), background-color var(--dur-fast) var(--ease-soft), border-color var(--dur-fast) var(--ease-soft); }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0) scale(0.98); }
+.tool-card, .dash-link, .stat-card, .file-row, .list-item { transition: transform 0.2s var(--ease-soft), box-shadow 0.2s var(--ease-soft), border-color 0.2s var(--ease-soft); }
+.tool-card:hover, .dash-link:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], input[type="password"], input[type="url"], select, textarea { transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease; }
+.tabs button { transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease; }
+.tab-panel { animation: fadeIn var(--dur-med) ease-out; }
+.progress > span { animation: barGrow 0.8s var(--ease-out) both; }
+
+/* Respect the user's motion preference: everything becomes instant. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
 
 /* ---------- Phase 7: AI workflows (additive; no existing rules changed) ---------- */
 /* The `hidden` attribute must always hide: component classes like .btn set

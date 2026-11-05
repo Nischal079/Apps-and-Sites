@@ -11,6 +11,7 @@
  * Keys never touch the DOM. No keys, endpoints, or fetch outside streamChat.
  */
 import { initTheme, injectBrand, toast, todayLocal, toISODate } from "./ui.js";
+import "./motion.js";
 import { openStorage } from "./storage.js";
 import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";

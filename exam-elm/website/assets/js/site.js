@@ -13,6 +13,7 @@
  * theme toggle without errors.
  */
 import { initTheme, injectBrand, toast } from "/assets/js/ui.js";
+import "/assets/js/motion.js";
 
 initTheme();
 injectBrand();
