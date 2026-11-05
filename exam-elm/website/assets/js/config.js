@@ -21,7 +21,7 @@ export const PROMISES = ["FREE", "NO SIGNUP", "PRIVATE", "GLOBAL"];
 
 export const NAV = [
   { href: "/", label: "Home" },
-  { href: "/about/", label: "About" },
+  { href: "/dashboard/", label: "Dashboard" },
   { href: "/study-space/", label: "My Study Space" },
   { href: "/ai-chat/", label: "AI Chat" },
   { href: "/ai-workflows/", label: "AI Tools" },
@@ -30,6 +30,7 @@ export const NAV = [
   { href: "/tools/grade-calculator/", label: "Grade Calculator" },
   { href: "/tools/syllabus-tracker/", label: "Syllabus Tracker" },
   { href: "/tools/exam-countdown/", label: "Exam Countdown" },
+  { href: "/about/", label: "About" },
 ];
 
 export const FOOTER_LINKS = [
