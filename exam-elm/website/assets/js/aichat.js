@@ -14,11 +14,11 @@ import { esc, initTheme, injectBrand, toast } from "./ui.js";
 import { openStorage } from "./storage.js";
 import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
-import { ProviderStore, BUILTINS, builtinById, formatTestResult } from "./ai/providers.js";
+import { ProviderStore, BUILTINS, builtinById, formatTestResult, KV_KEYS_ENC } from "./ai/providers.js";
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, formatUsd } from "./ai/costs.js";
-import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage } from "./ai/chatui.js";
+import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage, modelsForProvider, usableProviders, validateMaxTokens, accordionToggle, nextAddForm, providerReadiness, modelSuggestions } from "./ai/chatui.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -38,6 +38,21 @@ const state = {
   // key was just kept in memory (RC-1). Session-only; cleared on dismiss or
   // once the keys are encrypted.
   encOfferFor: null,
+  // Step 3 Settings redesign (all session-only, never persisted):
+  // id of the one expanded provider row (accordion — null when all are
+  // collapsed), which "+" add-form is open (null | "provider" | "model"),
+  // whether the "+" menu is open, which provider's inline model-edit row
+  // is being renamed ({ providerId, modelId } | null), which provider's
+  // inline add-model form is open (provider id | null), the discovered
+  // models shown in the Add Model form, and what the Chat Model guidance
+  // button should do ("add-provider" | "add-model" | "add-key" | null).
+  expandedProviderId: null,
+  addForm: null,
+  addMenuOpen: false,
+  editingModel: null,
+  addingModelFor: null,
+  addModelDiscovered: [],
+  chatGuidanceAction: null,
 };
 
 const SYSTEM_PROMPT =
@@ -62,6 +77,7 @@ async function init() {
   await refreshConversations();
   wireComposer();
   wireAddForm();
+  wireAddMenu();
   wireEncButtons();
   $("gotoSettingsBtn").addEventListener("click", openSettings);
   updateChatAvailability();
@@ -117,7 +133,11 @@ function wireShell() {
     refreshConversations();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !$("settingsPanel").hidden) {
+    if (e.key === "Escape" && state.addMenuOpen) {
+      // Close the "+" menu first; a second Escape closes Settings.
+      e.preventDefault();
+      closeAddMenu();
+    } else if (e.key === "Escape" && !$("settingsPanel").hidden) {
       e.preventDefault();
       closeSettings();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -138,7 +158,8 @@ function updateActiveModelLine() {
     el.textContent = "No provider yet · open Settings to add one";
     return;
   }
-  const c = state.providers.get($("chatProvider").value) || configs[0];
+  const usable = usableProviders(configs);
+  const c = state.providers.get($("chatProvider").value) || usable[0] || configs[0];
   const model = $("chatModel").value.trim();
   el.textContent = model ? `${c.name} · ${model}` : `${c.name} · choose a model in Settings`;
 }
@@ -155,18 +176,26 @@ function renderProviders() {
   const list = $("providerList");
   const configs = state.providers.list();
   if (!configs.length) {
-    list.innerHTML = '<div class="empty"><p>No providers yet. Add one below to get started.</p></div>';
+    list.innerHTML = '<div class="empty"><p>No providers yet. Use the + button above to add one.</p></div>';
     return;
   }
   list.innerHTML = "";
   for (const c of configs) {
     const b = builtinById(c.builtinId) || {};
+    const expanded = state.expandedProviderId === c.id;
     const card = document.createElement("div");
-    card.className = "card";
-    card.style.marginBottom = "0.9rem";
+    card.className = "card provider-row";
+    card.dataset.providerId = c.id;
     const keyState = state.providers.hasKey(c.id)
       ? '<span class="badge ok">Key in memory</span>'
       : '<span class="badge">No key set</span>';
+    // Compact status for the collapsed row: verified / failed / untested.
+    const shortTest = !c.lastTest
+      ? ""
+      : c.lastTest.ok
+        ? '<span class="provider-test ok">Connected</span>'
+        : '<span class="provider-test bad">Test failed</span>';
+    const initial = (c.name.trim()[0] || "?").toUpperCase();
     // Persisted last-test line (RC-2): survives re-renders, so a verified
     // provider stays visibly verified. Empty when never tested.
     const testLine = formatTestResult(c.lastTest || null);
@@ -181,39 +210,116 @@ function renderProviders() {
     const encOfferHtml =
       state.encOfferFor === c.id && state.providers.hasKey(c.id) && !state.providers.encryptedAtRest
         ? `<p class="hint">Key kept in memory for this tab only.</p>` +
-          `<div class="btn-row">` +
+          `<div class="btn-row left">` +
           `<button type="button" class="btn btn-sm" data-act="enc-offer" data-id="${esc(c.id)}">Encrypt &amp; store on this device</button>` +
           `<button type="button" class="btn btn-sm btn-ghost" data-act="enc-dismiss" data-id="${esc(c.id)}">Dismiss</button>` +
           `</div>`
         : "";
+    // Step 3 §E: once encrypted storage exists its setup form is hidden,
+    // so a newly entered key has no way into encrypted storage. Offer a
+    // "Store encrypted" action here that reveals the setup form (guarded
+    // in the handler so locked stored keys are never dropped).
+    const encStoreHtml =
+      state.providers.encryptedAtRest && state.providers.hasKey(c.id)
+        ? `<div class="btn-row left"><button type="button" class="btn btn-sm" data-act="enc-store" data-id="${esc(c.id)}">Store encrypted</button></div>`
+        : "";
+    const models = modelsForProvider(c);
+    const modelRows = models.length
+      ? models
+          .map((m) => {
+            const selected = c.defaultModel === m;
+            if (
+              state.editingModel &&
+              state.editingModel.providerId === c.id &&
+              state.editingModel.modelId === m
+            ) {
+              return (
+                `<div class="model-row editing">` +
+                `<input type="text" data-role="model-edit-input" maxlength="120" value="${esc(m)}" aria-label="Edit model ID" />` +
+                `<button type="button" class="btn btn-sm btn-primary" data-act="model-edit-save" data-id="${esc(c.id)}" data-model="${esc(m)}">Save</button>` +
+                `<button type="button" class="btn btn-sm btn-ghost" data-act="model-edit-cancel" data-id="${esc(c.id)}">Cancel</button>` +
+                `</div>`
+              );
+            }
+            return (
+              `<div class="model-row">` +
+              `<code class="model-id">${esc(m)}</code>` +
+              (selected ? '<span class="badge ok">selected</span>' : "") +
+              `<span class="model-actions">` +
+              (selected
+                ? ""
+                : `<button type="button" class="btn btn-sm btn-ghost" data-act="model-select" data-id="${esc(c.id)}" data-model="${esc(m)}">Set selected</button>`) +
+              `<button type="button" class="btn btn-sm btn-ghost" data-act="model-edit" data-id="${esc(c.id)}" data-model="${esc(m)}">Edit</button>` +
+              `<button type="button" class="btn btn-sm btn-ghost" data-act="model-remove" data-id="${esc(c.id)}" data-model="${esc(m)}">Remove</button>` +
+              `</span></div>`
+            );
+          })
+          .join("")
+      : '<p class="hint">No models yet · add one below, or discover them from the provider.</p>';
+    const inlineAddHtml =
+      state.addingModelFor === c.id
+        ? `<div class="field" style="margin-top: 0.6rem;">` +
+          `<label for="inline-model-${esc(c.id)}">Model ID</label>` +
+          `<input type="text" id="inline-model-${esc(c.id)}" data-role="model-add-input" maxlength="120" autocomplete="off" placeholder="e.g. gpt-4o" />` +
+          `<div class="btn-row left" style="margin-top: 0.5rem;">` +
+          `<button type="button" class="btn btn-sm btn-primary" data-act="model-add-save" data-id="${esc(c.id)}">Add model</button>` +
+          `<button type="button" class="btn btn-sm btn-ghost" data-act="model-add-cancel" data-id="${esc(c.id)}">Cancel</button>` +
+          `</div></div>`
+        : `<div class="btn-row left"><button type="button" class="btn btn-sm" data-act="model-add-show" data-id="${esc(c.id)}">Add model</button></div>`;
     card.innerHTML =
-      `<div class="list-item-title">${esc(c.name)} ${c.isDefault ? '<span class="badge">default</span>' : ""} ${keyState}</div>` +
+      `<button type="button" class="provider-row-head" data-act="toggle" data-id="${esc(c.id)}" aria-expanded="${expanded}" aria-controls="prov-body-${esc(c.id)}">` +
+      `<span class="provider-icon" aria-hidden="true">${esc(initial)}</span>` +
+      `<span class="provider-row-name">${esc(c.name)}${c.isDefault ? ' <span class="badge">default</span>' : ""}</span>` +
+      `${keyState}${shortTest}` +
+      `<span class="provider-chevron" aria-hidden="true">${expanded ? "▴" : "▾"}</span>` +
+      `</button>` +
+      `<div class="provider-row-body" id="prov-body-${esc(c.id)}" ${expanded ? "" : "hidden"}>` +
       `<div class="list-item-meta">${esc(b.label || c.type)} · <code>${esc(c.baseUrl)}</code></div>` +
-      (c.defaultModel ? `<div class="list-item-meta">Default model: <code>${esc(c.defaultModel)}</code></div>` : "") +
-      (c.modelsCache && c.modelsCache.length
-        ? `<div class="list-item-meta">${c.modelsCache.length} models discovered</div>`
-        : "") +
       `<p class="hint">${esc(b.corsNote || "")}</p>` +
       `<div class="field" style="max-width: 420px;">
          <label for="key-${esc(c.id)}">API key</label>
          <input type="password" id="key-${esc(c.id)}" autocomplete="off" placeholder="Paste key · kept in memory only" />
          <p class="hint">Stored in this tab's memory. Never written to disk unless you opt into encrypted storage below.</p>
        </div>` +
-      `<div class="btn-row">
+      `<div class="btn-row left">
          <button type="button" class="btn btn-sm" data-act="keep-key" data-id="${esc(c.id)}">Keep key in memory</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="forget-key" data-id="${esc(c.id)}">Forget key</button>
+       </div>` +
+      encOfferHtml +
+      encStoreHtml +
+      `<h4 class="provider-subhead">Models</h4>` +
+      `<div class="model-list">${modelRows}</div>` +
+      inlineAddHtml +
+      (c.modelsCache && c.modelsCache.length
+        ? `<div class="list-item-meta">${c.modelsCache.length} models discovered</div>`
+        : "") +
+      `<div class="btn-row left">
          <button type="button" class="btn btn-sm" data-act="test" data-id="${esc(c.id)}">Test connection</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="discover" data-id="${esc(c.id)}">Discover models</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="default" data-id="${esc(c.id)}">Set default</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="edit" data-id="${esc(c.id)}">Edit</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="remove" data-id="${esc(c.id)}">Remove</button>
        </div>` +
-      encOfferHtml +
       testLineHtml +
-      `<div data-role="edit-form" hidden></div>`;
+      `<div data-role="edit-form" hidden></div>` +
+      `</div>`;
     list.appendChild(card);
   }
   list.onclick = onProviderAction;
+}
+
+/** Expand one provider's row in Settings (collapsing the others) and
+ *  scroll it into view; optionally focus its key input. */
+function openProviderConfig(id, { focusKey = false } = {}) {
+  if (!state.providers.get(id)) return;
+  state.expandedProviderId = id;
+  renderProviders();
+  const card = $("providerList").querySelector(`[data-provider-id="${CSS.escape(id)}"]`);
+  if (card) card.scrollIntoView({ block: "nearest" });
+  if (focusKey) {
+    const input = $("key-" + CSS.escape(id));
+    if (input) input.focus();
+  }
 }
 
 async function onProviderAction(e) {
@@ -224,9 +330,22 @@ async function onProviderAction(e) {
   const card = btn.closest(".card");
   const resultEl = card.querySelector('[data-role="test-result"]');
   const say = (msg, ok) => {
+    if (!resultEl) return;
     resultEl.textContent = msg;
     resultEl.style.color = ok ? "var(--ok, #15803d)" : "";
   };
+
+  // Accordion toggle: expanding one row collapses the others (session
+  // state only). Restore focus to the rebuilt row head for keyboard users.
+  if (act === "toggle") {
+    state.expandedProviderId = accordionToggle(state.expandedProviderId, id);
+    renderProviders();
+    const head = $("providerList").querySelector(
+      `[data-provider-id="${CSS.escape(id)}"] [data-act="toggle"]`
+    );
+    if (head) head.focus();
+    return;
+  }
 
   try {
     if (act === "keep-key") {
@@ -245,12 +364,91 @@ async function onProviderAction(e) {
         pass.scrollIntoView({ block: "center" });
         pass.focus();
       }
+    } else if (act === "enc-store") {
+      // Step 3 §E: encrypted storage already exists, so the setup form is
+      // hidden — a key entered for a new provider has no way into encrypted
+      // storage. Reveal the setup form and focus the passphrase, but ONLY
+      // when every already-stored key is also in memory: persistEncrypted()
+      // overwrites the whole stored set with the in-memory keys, so storing
+      // while a stored key is still locked would silently drop it. In that
+      // case, send the user to unlock first instead.
+      let storedIds = [];
+      try {
+        const enc = await state.storage.get("kv", KV_KEYS_ENC);
+        storedIds = enc && enc.value && enc.value.items ? Object.keys(enc.value.items) : [];
+      } catch {
+        storedIds = [];
+      }
+      const locked = storedIds.filter((storedId) => !state.providers.hasKey(storedId));
+      if (locked.length) {
+        toast("Unlock your stored keys first, so storing this key does not drop them.");
+        const pass = $("encPassUnlock");
+        if (pass) {
+          pass.scrollIntoView({ block: "center" });
+          pass.focus();
+        }
+      } else {
+        $("encSetup").hidden = false;
+        const pass = $("encPassNew");
+        if (pass) {
+          pass.scrollIntoView({ block: "center" });
+          pass.focus();
+        }
+      }
     } else if (act === "enc-dismiss") {
       state.encOfferFor = null;
       renderProviders();
     } else if (act === "forget-key") {
       state.providers.forgetKey(id);
       toast("Key forgotten.");
+      renderProviders();
+      renderChatSelectors();
+    } else if (act === "model-select") {
+      await state.providers.update(id, { defaultModel: btn.getAttribute("data-model") });
+      toast("Selected model updated.");
+      renderProviders();
+      renderChatSelectors();
+    } else if (act === "model-edit") {
+      state.editingModel = { providerId: id, modelId: btn.getAttribute("data-model") };
+      renderProviders();
+      // The render rebuilt the DOM, so query the fresh tree, not the
+      // detached card.
+      const input = $("providerList").querySelector('[data-role="model-edit-input"]');
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    } else if (act === "model-edit-save") {
+      const input = card.querySelector('[data-role="model-edit-input"]');
+      await state.providers.editModel(id, btn.getAttribute("data-model"), input ? input.value : "");
+      state.editingModel = null;
+      toast("Model renamed.");
+      renderProviders();
+      renderChatSelectors();
+    } else if (act === "model-edit-cancel") {
+      state.editingModel = null;
+      renderProviders();
+    } else if (act === "model-remove") {
+      // Removing a model never deletes the provider or its key (store
+      // guarantee); it only drops that ID from the provider's list.
+      await state.providers.removeModel(id, btn.getAttribute("data-model"));
+      toast("Model removed.");
+      renderProviders();
+      renderChatSelectors();
+    } else if (act === "model-add-show") {
+      state.addingModelFor = id;
+      renderProviders();
+      const input = $("providerList").querySelector('[data-role="model-add-input"]');
+      if (input) input.focus();
+    } else if (act === "model-add-save") {
+      const input = card.querySelector('[data-role="model-add-input"]');
+      await state.providers.addModel(id, input ? input.value : "");
+      state.addingModelFor = null;
+      toast("Model added.");
+      renderProviders();
+      renderChatSelectors();
+    } else if (act === "model-add-cancel") {
+      state.addingModelFor = null;
       renderProviders();
     } else if (act === "test") {
       btn.disabled = true;
@@ -288,6 +486,7 @@ async function onProviderAction(e) {
       const c = state.providers.get(id);
       if (confirm(`Remove provider "${c.name}"? Its key will be forgotten too.`)) {
         await state.providers.remove(id);
+        if (state.expandedProviderId === id) state.expandedProviderId = null;
         toast("Provider removed.");
         renderProviders();
         renderChatSelectors();
@@ -368,9 +567,24 @@ function wireAddForm() {
         baseUrl: $("pvBaseUrl").value,
         defaultModel: $("pvModel").value,
       });
+      // Key entered in the creation form is stored independently in
+      // memory, exactly like Keep key in memory — never persisted.
+      const key = $("pvKey").value.trim();
+      if (key) {
+        state.providers.setKey(c.id, key);
+        state.encOfferFor = c.id; // offer encrypted storage inline (RC-1)
+      }
       $("pvName").value = "";
       $("pvModel").value = "";
-      toast(`Provider "${c.name}" added. Now set its API key above.`);
+      $("pvKey").value = "";
+      hideAddForms();
+      toast(
+        key
+          ? `Provider "${c.name}" added with its key kept in memory.`
+          : `Provider "${c.name}" added. Now set its API key above.`
+      );
+      // New providers join the compact list COLLAPSED (expandedProviderId
+      // is left untouched).
       renderProviders();
       renderChatSelectors();
       updateChatAvailability();
@@ -378,6 +592,154 @@ function wireAddForm() {
       toast(friendly(err));
     }
   });
+  $("addProviderCancelBtn").addEventListener("click", hideAddForms);
+  $("addModelCancelBtn").addEventListener("click", hideAddForms);
+
+  $("addModelForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const providerId = $("amProvider").value;
+    try {
+      await state.providers.addModel(providerId, $("amModel").value);
+      $("amModel").value = "";
+      state.addModelDiscovered = [];
+      renderAmDiscovered();
+      hideAddForms();
+      // Afterwards the provider's section is expanded so the new model
+      // is visible.
+      openProviderConfig(providerId);
+      renderChatSelectors();
+      toast("Model added.");
+    } catch (err) {
+      toast(friendly(err));
+    }
+  });
+  $("amDiscoverBtn").addEventListener("click", async () => {
+    const providerId = $("amProvider").value;
+    const btn = $("amDiscoverBtn");
+    btn.disabled = true;
+    btn.textContent = "Discovering…";
+    try {
+      const { models } = await state.providers.discoverModels(providerId);
+      state.addModelDiscovered = models || [];
+      renderAmDiscovered();
+      if (!state.addModelDiscovered.length) toast("No models discovered for this provider.");
+    } catch (err) {
+      toast(friendly(err));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Discover models";
+    }
+  });
+  $("amDiscovered").addEventListener("click", (e) => {
+    const pick = e.target.closest("[data-pick-model]");
+    if (!pick) return;
+    $("amModel").value = pick.getAttribute("data-pick-model");
+    $("amModel").focus();
+  });
+}
+
+/** Discovered models for the Add Model form, as pick buttons (only those
+ *  not already in the provider's list). Clicking one fills the input. */
+function renderAmDiscovered() {
+  const box = $("amDiscovered");
+  box.innerHTML = "";
+  const c = state.providers.get($("amProvider").value);
+  if (!c) return;
+  const known = new Set(modelsForProvider(c));
+  const fresh = state.addModelDiscovered.filter((m) => !known.has(m));
+  if (state.addModelDiscovered.length && !fresh.length) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = "All discovered models are already in this provider's list.";
+    box.appendChild(p);
+    return;
+  }
+  for (const m of fresh.slice(0, 50)) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn btn-sm btn-ghost";
+    b.textContent = m;
+    b.setAttribute("data-pick-model", m);
+    box.appendChild(b);
+  }
+}
+
+function populateAmProviders() {
+  const sel = $("amProvider");
+  const prev = sel.value;
+  sel.innerHTML = "";
+  for (const c of state.providers.list()) {
+    const o = document.createElement("option");
+    o.value = c.id;
+    o.textContent = c.name;
+    sel.appendChild(o);
+  }
+  if (prev && state.providers.get(prev)) sel.value = prev;
+}
+
+/* ================== "+" menu: Add Provider / Add Model ================== */
+
+function wireAddMenu() {
+  const btn = $("addMenuBtn");
+  const menu = $("addMenu");
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (state.addMenuOpen) closeAddMenu();
+    else {
+      state.addMenuOpen = true;
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+    }
+  });
+  $("addProviderMenuItem").addEventListener("click", () => {
+    closeAddMenu();
+    showAddForm("provider");
+  });
+  $("addModelMenuItem").addEventListener("click", () => {
+    closeAddMenu();
+    showAddForm("model");
+  });
+  // Clicking anywhere outside the menu closes it (the button's own click
+  // is stopPropagation'd above, so it never reaches here).
+  document.addEventListener("click", (e) => {
+    if (state.addMenuOpen && !menu.contains(e.target)) closeAddMenu();
+  });
+}
+
+function closeAddMenu() {
+  state.addMenuOpen = false;
+  $("addMenu").hidden = true;
+  $("addMenuBtn").setAttribute("aria-expanded", "false");
+}
+
+/** Show one add-form (the other stays hidden); both forms are hidden by
+ *  default. Focuses the form's first field. */
+function showAddForm(form) {
+  if (form === "model" && !state.providers.list().length) {
+    // No provider exists yet — adding a model has no target.
+    toast("Add a provider first.");
+    form = "provider";
+  }
+  state.addForm = nextAddForm(state.addForm, form);
+  const show = state.addForm;
+  $("addProviderCard").hidden = show !== "provider";
+  $("addModelCard").hidden = show !== "model";
+  if (show === "provider") {
+    $("addProviderCard").scrollIntoView({ block: "nearest" });
+    $("pvName").focus();
+  } else if (show === "model") {
+    populateAmProviders();
+    state.addModelDiscovered = [];
+    renderAmDiscovered();
+    $("addModelCard").scrollIntoView({ block: "nearest" });
+    $("amModel").focus();
+  }
+}
+
+function hideAddForms() {
+  state.addForm = null;
+  $("addProviderCard").hidden = true;
+  $("addModelCard").hidden = true;
 }
 
 /* ================== encrypted key storage UI ================== */
@@ -443,15 +805,23 @@ function updateChatAvailability() {
 
 function renderChatSelectors() {
   const sel = $("chatProvider");
-  const configs = state.providers.list();
+  // Step 3: only providers with at least one configured model can be
+  // chatted with. Key status is deliberately NOT a filter — a provider
+  // with models but no key is still listed, and the guidance line below
+  // tells the user to add its key.
+  const usable = usableProviders(state.providers.list());
+  const prev = sel.value;
   sel.innerHTML = "";
-  for (const c of configs) {
+  for (const c of usable) {
     const o = document.createElement("option");
     o.value = c.id;
     o.textContent = c.name + (state.providers.hasKey(c.id) ? "" : " (no key)");
     if (c.isDefault) o.selected = true;
     sel.appendChild(o);
   }
+  // Keep the current selection when it is still usable; otherwise fall
+  // back to the default (or first usable) provider.
+  if (prev && usable.some((c) => c.id === prev)) sel.value = prev;
   // First render only: restore the provider + model used last time, so the
   // user doesn't re-pick them on every visit. Later re-renders (adding a
   // provider, setting a new default) keep the current selection instead.
@@ -460,8 +830,8 @@ function renderChatSelectors() {
     lastUsedApplied = true;
     saved = loadLastUsed();
     if (saved && saved.providerId) {
-      if (state.providers.get(saved.providerId)) sel.value = saved.providerId;
-      else clearLastUsed(); // stale provider · fall back to the default
+      if (usable.some((c) => c.id === saved.providerId)) sel.value = saved.providerId;
+      else clearLastUsed(); // stale or model-less provider · fall back
     }
   }
   syncModelDatalist();
@@ -469,6 +839,7 @@ function renderChatSelectors() {
     $("chatModel").value = saved.model;
     updateCostLine();
   }
+  updateChatGuidance();
   updateActiveModelLine();
 }
 
@@ -476,8 +847,8 @@ function syncModelDatalist() {
   const c = state.providers.get($("chatProvider").value);
   const dl = $("modelDatalist");
   dl.innerHTML = "";
-  const models = (c && c.modelsCache) || [];
-  for (const m of models.slice(0, 200)) {
+  // User-managed models first, then the discovered cache (union, deduped).
+  for (const m of modelSuggestions(c)) {
     const o = document.createElement("option");
     o.value = m;
     dl.appendChild(o);
@@ -487,6 +858,66 @@ function syncModelDatalist() {
   // would wipe a user's typed model on every unrelated re-render.
   updateCostLine();
   updateActiveModelLine();
+}
+
+/**
+ * Guidance under the Chat Model section: when the chosen provider has no
+ * valid key or no configured model, say so plainly and offer a shortcut
+ * button that opens that provider's expanded config (or the Add Provider
+ * form when nothing usable exists). Hidden when everything is ready.
+ */
+function updateChatGuidance() {
+  const line = $("chatModelGuidance");
+  const actions = $("chatModelGuidanceActions");
+  const btn = $("chatModelFixBtn");
+  const configs = state.providers.list();
+  const c = state.providers.get($("chatProvider").value) || null;
+  const readiness = providerReadiness(c, c ? state.providers.hasKey(c.id) : false);
+  if (readiness.kind === "ready") {
+    line.hidden = true;
+    actions.hidden = true;
+    state.chatGuidanceAction = null;
+    return;
+  }
+  line.hidden = false;
+  actions.hidden = false;
+  if (readiness.kind === "none") {
+    line.textContent = configs.length
+      ? "None of your providers has a model yet. Add a model to one of them to start chatting."
+      : "No provider configured yet. Add a provider with a model to start chatting.";
+    btn.textContent = configs.length ? "Add a model" : "Add a provider";
+    state.chatGuidanceAction = configs.length ? "add-model" : "add-provider";
+  } else if (readiness.kind === "no-model") {
+    line.textContent = `Provider "${c.name}" has no models yet. Add a model to it to start chatting.`;
+    btn.textContent = "Add a model";
+    state.chatGuidanceAction = "add-model";
+  } else {
+    // no-key
+    line.textContent = `No API key is set for "${c.name}". Add its key to start chatting.`;
+    btn.textContent = "Add a key";
+    state.chatGuidanceAction = "add-key";
+  }
+}
+
+/** The guidance button's shortcut: opens the relevant Settings spot. */
+function onChatGuidanceFix() {
+  const action = state.chatGuidanceAction;
+  const c = state.providers.get($("chatProvider").value);
+  if (action === "add-key" && c) {
+    openProviderConfig(c.id, { focusKey: true });
+  } else if (action === "add-model") {
+    if (c) {
+      // Preselect this provider in the Add Model form, then expand it
+      // afterwards via the form's own submit flow.
+      showAddForm("model");
+      $("amProvider").value = c.id;
+      $("amModel").focus();
+    } else {
+      showAddForm("model");
+    }
+  } else {
+    showAddForm("provider");
+  }
 }
 
 function updateCostLine() {
@@ -516,6 +947,7 @@ function wireComposer() {
     $("chatModel").value = modelForProviderChange($("chatModel").value, next ? next.defaultModel : "");
     syncModelDatalist();
     saveLastUsed($("chatProvider").value, $("chatModel").value.trim());
+    updateChatGuidance();
   });
   $("chatModel").addEventListener("input", () => {
     updateCostLine();
@@ -524,6 +956,14 @@ function wireComposer() {
   });
   $("promptInput").addEventListener("input", updateCostLine);
   $("maxTokens").addEventListener("input", updateCostLine);
+  // Clamp the token limit to 1..128000 when the user commits a value
+  // (validateMaxTokens); the live input handler above only re-prices.
+  $("maxTokens").addEventListener("change", () => {
+    const { value } = validateMaxTokens($("maxTokens").value);
+    $("maxTokens").value = String(value);
+    updateCostLine();
+  });
+  $("chatModelFixBtn").addEventListener("click", onChatGuidanceFix);
   $("sendBtn").addEventListener("click", sendPrompt);
   $("stopBtn").addEventListener("click", () => {
     if (state.aborter) state.aborter.abort();
@@ -633,15 +1073,21 @@ async function selectConversation(id) {
   await refreshConversations();
   renderMessages();
   if (rec.providerId && state.providers.get(rec.providerId)) {
-    $("chatProvider").value = rec.providerId;
-    // RC-4: reset to the conversation provider's default before applying
-    // the conversation's own saved model (if any) below.
-    const next = state.providers.get(rec.providerId);
-    $("chatModel").value = modelForProviderChange($("chatModel").value, next ? next.defaultModel : "");
-    syncModelDatalist();
+    // Only switch the selector when the conversation's provider is still
+    // usable (listed in the Chat Model select); otherwise keep the current
+    // provider and its model.
+    if (usableProviders(state.providers.list()).some((c) => c.id === rec.providerId)) {
+      $("chatProvider").value = rec.providerId;
+      // RC-4: reset to the conversation provider's default before applying
+      // the conversation's own saved model (if any) below.
+      const next = state.providers.get(rec.providerId);
+      $("chatModel").value = modelForProviderChange($("chatModel").value, next ? next.defaultModel : "");
+      syncModelDatalist();
+      updateChatGuidance();
+    }
   }
   if (rec.model) $("chatModel").value = rec.model;
-  if (rec.maxTokens) $("maxTokens").value = rec.maxTokens;
+  if (rec.maxTokens) $("maxTokens").value = String(validateMaxTokens(rec.maxTokens).value);
 }
 
 function renderEmptyState(box) {
@@ -810,7 +1256,8 @@ async function sendPrompt() {
     return;
   }
   saveLastUsed(providerId, model);
-  const maxTokens = Math.max(1, Math.min(128000, Number($("maxTokens").value) || 1024));
+  const { value: maxTokens } = validateMaxTokens($("maxTokens").value);
+  $("maxTokens").value = String(maxTokens);
 
   if (!state.conv) await newConversation();
   const msgs = state.conv.messages;

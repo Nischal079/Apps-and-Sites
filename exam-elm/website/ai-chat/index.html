@@ -82,27 +82,18 @@
     <button type="button" class="icon-btn" id="closeSettingsBtn" aria-label="Close settings">&times;</button>
   </div>
   <div class="settings-body">
-    <h3>Chat model</h3>
-    <div class="field">
-      <label for="chatProvider">Provider</label>
-      <select id="chatProvider"></select>
+    <div class="providers-head">
+      <h3 id="providersHeading">Providers</h3>
+      <button type="button" class="icon-btn add-menu-btn" id="addMenuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="addMenu" aria-label="Add provider or model">+</button>
+      <div class="add-menu" id="addMenu" role="menu" aria-label="Add" hidden>
+        <button type="button" role="menuitem" id="addProviderMenuItem">Add Provider</button>
+        <button type="button" role="menuitem" id="addModelMenuItem">Add Model</button>
+      </div>
     </div>
-    <div class="field">
-      <label for="chatModel">Model</label>
-      <input type="text" id="chatModel" list="modelDatalist" autocomplete="off" placeholder="e.g. gpt-4o-mini" />
-      <datalist id="modelDatalist"></datalist>
-      <p class="hint">Pick a discovered model or type any model ID your provider offers.</p>
-    </div>
-    <div class="field">
-      <label for="maxTokens">Max output tokens</label>
-      <input type="number" id="maxTokens" value="1024" min="1" max="128000" />
-    </div>
-
-    <h3>Providers</h3>
-    <p class="muted">Add one or more AI providers. Requests go directly from your browser to the provider · there is no middleman.</p>
+    <p class="muted">Add one or more AI providers. Requests go directly from your browser to the provider · there is no middleman. Select a provider to see its key and models.</p>
     <div id="providerList"></div>
 
-    <div class="card" style="margin-top: 1.2rem;">
+    <div class="card" id="addProviderCard" style="margin-top: 1.2rem;" hidden>
       <h3 style="margin-top: 0;">Add a provider</h3>
       <form id="addProviderForm">
         <div class="field">
@@ -123,10 +114,61 @@
           <label for="pvModel">Default model ID (optional)</label>
           <input type="text" id="pvModel" maxlength="120" autocomplete="off" placeholder="e.g. gpt-4o-mini" />
         </div>
+        <div class="field">
+          <label for="pvKey">API key (optional)</label>
+          <input type="password" id="pvKey" autocomplete="off" placeholder="Paste key · kept in memory only" />
+          <p class="hint">Stored in this tab's memory only, never on disk, unless you opt into encrypted storage below.</p>
+        </div>
         <div class="btn-row">
           <button type="submit" class="btn btn-primary">Add provider</button>
+          <button type="button" class="btn btn-ghost" id="addProviderCancelBtn">Cancel</button>
         </div>
       </form>
+    </div>
+
+    <div class="card" id="addModelCard" style="margin-top: 1.2rem;" hidden>
+      <h3 style="margin-top: 0;">Add a model</h3>
+      <form id="addModelForm">
+        <div class="field">
+          <label for="amProvider">Provider</label>
+          <select id="amProvider"></select>
+          <p class="hint">The model is added to this provider's list · never as a provider of its own.</p>
+        </div>
+        <div class="field">
+          <label for="amModel">Model ID</label>
+          <input type="text" id="amModel" maxlength="120" autocomplete="off" placeholder="e.g. gpt-4o" />
+          <p class="hint">Type any model ID your provider offers, or pick one from discovery below.</p>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-ghost" id="amDiscoverBtn">Discover models</button>
+        </div>
+        <div id="amDiscovered" aria-live="polite"></div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Add model</button>
+          <button type="button" class="btn btn-ghost" id="addModelCancelBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <h3>Chat model</h3>
+    <div class="field">
+      <label for="chatProvider">Provider</label>
+      <select id="chatProvider"></select>
+      <p class="hint">Only providers with at least one configured model are listed.</p>
+    </div>
+    <div class="field">
+      <label for="chatModel">Model</label>
+      <input type="text" id="chatModel" list="modelDatalist" autocomplete="off" placeholder="e.g. gpt-4o-mini" />
+      <datalist id="modelDatalist"></datalist>
+      <p class="hint">Pick a model from the list or type any model ID your provider offers.</p>
+    </div>
+    <div class="field">
+      <label for="maxTokens">Max output tokens</label>
+      <input type="number" id="maxTokens" value="1024" min="1" max="128000" />
+    </div>
+    <p class="hint" id="chatModelGuidance" aria-live="polite" hidden></p>
+    <div class="btn-row left" id="chatModelGuidanceActions" hidden>
+      <button type="button" class="btn btn-sm" id="chatModelFixBtn">Open provider settings</button>
     </div>
 
     <div class="card" style="margin-top: 1.2rem;">

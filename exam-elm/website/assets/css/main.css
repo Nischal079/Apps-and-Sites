@@ -698,3 +698,55 @@ body.chat-app { overflow: hidden; }
 @media (min-width: 900px) {
   #sidebarBtn { display: none; }
 }
+
+/* ---------- Step 3 Settings redesign: provider accordion + add menu (additive) ---------- */
+/* Providers head row: heading + "+" button with its dropdown menu. */
+.providers-head { position: relative; display: flex; align-items: center; gap: 0.6rem; margin: 1.4rem 0 0.6rem; }
+.providers-head h3 { margin: 0 !important; flex: 1; }
+.add-menu-btn { font-size: 1.35rem; font-weight: 700; line-height: 1; flex: none; }
+.add-menu {
+  position: absolute; top: calc(100% + 0.3rem); right: 0; z-index: 20;
+  display: flex; flex-direction: column; min-width: 180px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow-lg); padding: 0.3rem;
+}
+.add-menu button {
+  background: none; border: 0; cursor: pointer; text-align: left;
+  padding: 0.6rem 0.7rem; border-radius: 8px; font: inherit; font-weight: 600; color: var(--text);
+}
+.add-menu button:hover { background: var(--bg-soft); }
+
+/* Compact provider row: icon tile + name + status badges + chevron. */
+.provider-row { margin-bottom: 0.7rem; padding: 0; overflow: hidden; }
+.provider-row-head {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%;
+  background: none; border: 0; cursor: pointer; text-align: left;
+  padding: 0.7rem 0.9rem; font: inherit; color: var(--text);
+}
+.provider-row-head:hover { background: var(--bg-soft); }
+.provider-icon {
+  flex: none; width: 2rem; height: 2rem; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--indigo-100); color: var(--indigo-700);
+  font-weight: 800; font-size: 1rem;
+}
+:root[data-theme="dark"] .provider-icon { background: var(--surface); color: var(--primary); }
+.provider-row-name { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.provider-test { font-size: 0.8rem; font-weight: 700; }
+.provider-test.ok { color: #15803d; }
+.provider-test.bad { color: #b91c1c; }
+.provider-chevron { flex: none; color: var(--muted); font-size: 0.9rem; }
+.provider-row-body { padding: 0 0.9rem 0.9rem; }
+.provider-row-body:not([hidden]) { animation: prov-expand 0.18s ease; }
+@keyframes prov-expand { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.provider-subhead { margin: 1rem 0 0.5rem; font-size: 0.95rem; }
+
+/* Per-provider model list. */
+.model-list { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; }
+.model-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 9px; background: var(--bg-soft); }
+.model-row.editing input { flex: 1 1 160px; }
+.model-id { font-size: 0.9rem; overflow-wrap: anywhere; }
+.model-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.model-actions .btn { min-height: 0; padding: 0.35rem 0.7rem; }
+#amDiscovered { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.4rem 0 0.8rem; }
+#amDiscovered .btn { min-height: 0; padding: 0.35rem 0.7rem; }

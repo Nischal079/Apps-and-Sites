@@ -156,12 +156,87 @@ function publicConfig(c) {
     type: c.type,
     baseUrl: c.baseUrl,
     defaultModel: c.defaultModel || "",
+    // User-managed per-provider model list. Legacy configs (loaded before
+    // this field existed) are migrated in load(); the fallback here only
+    // covers an in-memory config that somehow lacks the field.
+    models: Array.isArray(c.models)
+      ? [...c.models]
+      : c.defaultModel
+        ? [c.defaultModel]
+        : [],
     modelsCache: c.modelsCache || [],
     modelsCachedAt: c.modelsCachedAt || null,
     lastTest: c.lastTest || null,
     isDefault: !!c.isDefault,
     updatedAt: c.updatedAt || new Date().toISOString(),
   };
+}
+
+/** Max length of one model ID (matches the defaultModel cap in add()). */
+export const MAX_MODEL_ID_LENGTH = 120;
+
+/**
+ * Validate + clean a model ID: non-empty after trimming, at most 120 chars.
+ * Returns the trimmed ID. Throws a plain-language Error otherwise.
+ */
+function cleanModelId(modelId) {
+  const clean = String(modelId || "").trim();
+  if (!clean) throw new Error("Model ID is empty.");
+  if (clean.length > MAX_MODEL_ID_LENGTH)
+    throw new Error("Model ID must be 120 characters or fewer.");
+  return clean;
+}
+
+/**
+ * Normalise a models value into a clean list: an array of trimmed,
+ * non-empty, at most 120-char IDs, exact-match deduped, order preserved.
+ * Non-array input becomes []. Throws on an over-long entry.
+ */
+function cleanModelList(models) {
+  if (!Array.isArray(models)) return [];
+  const out = [];
+  for (const m of models) {
+    const clean = String(m || "").trim();
+    if (!clean) continue;
+    if (clean.length > MAX_MODEL_ID_LENGTH)
+      throw new Error("Model ID must be 120 characters or fewer.");
+    if (!out.includes(clean)) out.push(clean);
+  }
+  return out;
+}
+
+/**
+ * Migration invariant for a loaded config (Step 3 data model):
+ * - no `models` array yet -> [defaultModel] when one is set, else []
+ * - defaultModel set but missing from `models` -> prepend it (the default
+ *   is the provider's selected model, so it leads the list)
+ * - defaultModel empty but `models` non-empty -> defaultModel = models[0]
+ * Mutates and returns the config. Does NOT save (persist on next save()).
+ */
+function migrateModels(c) {
+  if (!Array.isArray(c.models)) {
+    c.models = c.defaultModel ? [c.defaultModel] : [];
+  } else if (c.defaultModel && !c.models.includes(c.defaultModel)) {
+    c.models = [c.defaultModel, ...c.models];
+  }
+  if (!c.defaultModel && c.models.length) c.defaultModel = c.models[0];
+  return c;
+}
+
+/**
+ * Invariant enforced after any patch to a config (update()):
+ * - defaultModel, if non-empty, must be in `models` (appended if missing)
+ * - defaultModel empty and `models` non-empty -> defaultModel = models[0]
+ * Mutates and returns the config.
+ */
+function enforceModelInvariant(c) {
+  if (!Array.isArray(c.models)) c.models = [];
+  if (c.defaultModel && !c.models.includes(c.defaultModel)) {
+    c.models = [...c.models, c.defaultModel];
+  } else if (!c.defaultModel && c.models.length) {
+    c.defaultModel = c.models[0];
+  }
+  return c;
 }
 
 export class ProviderStore {
@@ -184,7 +259,11 @@ export class ProviderStore {
       rows = [];
     }
     for (const r of rows) {
-      if (r && r.id && r.type && r.baseUrl !== undefined) this.configs.set(r.id, { ...r });
+      if (r && r.id && r.type && r.baseUrl !== undefined) {
+        // Legacy configs have no `models` field · migrate in memory; the
+        // migrated shape is persisted on the next save(), not here.
+        this.configs.set(r.id, migrateModels({ ...r }));
+      }
     }
     // Encrypted-keys marker (presence only · never the keys).
     try {
@@ -231,6 +310,7 @@ export class ProviderStore {
       type: builtin.type,
       baseUrl: cleanBase,
       defaultModel: String(defaultModel || "").slice(0, 120),
+      models: defaultModel ? [String(defaultModel).slice(0, 120)] : [],
       modelsCache: [],
       modelsCachedAt: null,
       lastTest: null,
@@ -245,22 +325,90 @@ export class ProviderStore {
   async update(id, patch) {
     const c = this.get(id);
     if (!c) throw new Error("Provider not found.");
-    const allowed = ["name", "baseUrl", "defaultModel", "modelsCache", "modelsCachedAt", "lastTest"];
+    const allowed = ["name", "baseUrl", "defaultModel", "models", "modelsCache", "modelsCachedAt", "lastTest"];
     // Editing name, base URL or default model invalidates any earlier
     // verification: the stored test result no longer describes this config.
     // (A patch that itself carries a fresh lastTest wins over the clear.)
     if (["name", "baseUrl", "defaultModel"].some((k) => patch[k] !== undefined)) {
       c.lastTest = null;
     }
+    const prevDefaultModel = c.defaultModel || "";
+    const prevModels = JSON.stringify(Array.isArray(c.models) ? c.models : []);
     for (const k of allowed) {
       if (patch[k] !== undefined) {
         if (k === "baseUrl") {
           const v = String(patch[k]).replace(/\/+$/, "");
           if (!/^https?:\/\//i.test(v)) throw new Error("Base URL must start with http:// or https://");
           c[k] = v;
+        } else if (k === "models") {
+          c.models = cleanModelList(patch[k]);
         } else c[k] = patch[k];
       }
     }
+    // Invariant: a non-empty defaultModel must be in `models` (appended
+    // if missing); an empty defaultModel with models falls to models[0].
+    enforceModelInvariant(c);
+    // The models list changing also invalidates any earlier verification,
+    // unless the patch itself carries a fresh lastTest (applied above, so
+    // it survives this clear). Same for a defaultModel change that the
+    // pre-clear above did not already cover (e.g. via the invariant).
+    const modelsChanged = JSON.stringify(c.models) !== prevModels;
+    const defaultChanged = (c.defaultModel || "") !== prevDefaultModel;
+    if ((modelsChanged || defaultChanged) && patch.lastTest === undefined) {
+      c.lastTest = null;
+    }
+    c.updatedAt = new Date().toISOString();
+    await this.save();
+    return c;
+  }
+
+  /**
+   * Per-provider model management (Step 3 data model). All three persist
+   * via save() and return the updated config. None of them touches the
+   * provider config itself beyond the model list, its memory key, or its
+   * encrypted copy — removeModel() in particular never deletes those.
+   */
+
+  /** Add one model ID to the provider's list (exact-match deduped). */
+  async addModel(id, modelId) {
+    const c = this.get(id);
+    if (!c) throw new Error("Provider not found.");
+    const clean = cleanModelId(modelId);
+    if (!Array.isArray(c.models)) c.models = [];
+    if (c.models.includes(clean)) return c; // already listed · dedupe, no-op
+    c.models = [...c.models, clean];
+    if (!c.defaultModel) c.defaultModel = clean; // first model becomes default
+    c.updatedAt = new Date().toISOString();
+    await this.save();
+    return c;
+  }
+
+  /** Rename a model ID in place (order preserved); default follows. */
+  async editModel(id, oldId, newId) {
+    const c = this.get(id);
+    if (!c) throw new Error("Provider not found.");
+    const cleanNew = cleanModelId(newId);
+    const models = Array.isArray(c.models) ? c.models : [];
+    const idx = models.indexOf(String(oldId || "").trim());
+    if (idx === -1) throw new Error("Model not found.");
+    if (cleanNew !== models[idx] && models.includes(cleanNew))
+      throw new Error("A model with that ID already exists.");
+    c.models = models.map((m, i) => (i === idx ? cleanNew : m));
+    if (c.defaultModel === models[idx]) c.defaultModel = cleanNew;
+    c.updatedAt = new Date().toISOString();
+    await this.save();
+    return c;
+  }
+
+  /** Remove one model ID; default falls to the next model (or ""). */
+  async removeModel(id, modelId) {
+    const c = this.get(id);
+    if (!c) throw new Error("Provider not found.");
+    const clean = String(modelId || "").trim();
+    const models = Array.isArray(c.models) ? c.models : [];
+    if (!models.includes(clean)) throw new Error("Model not found.");
+    c.models = models.filter((m) => m !== clean);
+    if (c.defaultModel === clean) c.defaultModel = c.models[0] || "";
     c.updatedAt = new Date().toISOString();
     await this.save();
     return c;

@@ -17,7 +17,7 @@ import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
 import { ProviderStore } from "./ai/providers.js";
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
-import { modelForProviderChange, missingKeyMessage } from "./ai/chatui.js";
+import { modelForProviderChange, missingKeyMessage, modelSuggestions } from "./ai/chatui.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, estimateTokens, formatUsd } from "./ai/costs.js";
 import {
@@ -219,7 +219,9 @@ function syncModelList() {
   const c = state.providers.get($("provSelect").value);
   const dl = $("modelDatalist");
   dl.innerHTML = "";
-  for (const m of ((c && c.modelsCache) || []).slice(0, 200)) {
+  // Step 3: user-managed models first, then the discovered cache (union,
+  // deduped) — same list the AI Chat page shows for this provider.
+  for (const m of modelSuggestions(c)) {
     const o = document.createElement("option");
     o.value = m;
     dl.appendChild(o);
