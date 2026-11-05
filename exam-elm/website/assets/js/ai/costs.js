@@ -62,18 +62,25 @@ function priceFor(modelId) {
 
 /**
  * Estimate the cost of one request BEFORE sending.
- * Returns {known, promptTokens, maxOutputTokens, estCostUsd, label}.
+ * Returns {known, free, promptTokens, maxOutputTokens, estCostUsd, label}.
  * estCostUsd assumes the full output budget is used (worst case).
+ * OpenRouter free variants ("provider/model:free") cost $0 by definition:
+ * they return known:true, free:true, estCostUsd:0 so the UI shows $0
+ * instead of "Cost unknown". The estimate never blocks sending — it is
+ * display-only; the provider's own limits apply.
  */
 export function estimateCost(modelId, promptText, maxOutputTokens) {
-  const price = priceFor(modelId);
   const promptTokens = estimateTokens(promptText);
   const maxOut = Math.max(0, Number(maxOutputTokens) || 0);
+  if (String(modelId || "").toLowerCase().endsWith(":free")) {
+    return { known: true, free: true, promptTokens, maxOutputTokens: maxOut, estCostUsd: 0, label: "Free model" };
+  }
+  const price = priceFor(modelId);
   if (!price) {
-    return { known: false, promptTokens, maxOutputTokens: maxOut, estCostUsd: null, label: String(modelId || "unknown model") };
+    return { known: false, free: false, promptTokens, maxOutputTokens: maxOut, estCostUsd: null, label: String(modelId || "unknown model") };
   }
   const estCostUsd = (promptTokens / 1e6) * price.input + (maxOut / 1e6) * price.output;
-  return { known: true, promptTokens, maxOutputTokens: maxOut, estCostUsd, label: price.label };
+  return { known: true, free: false, promptTokens, maxOutputTokens: maxOut, estCostUsd, label: price.label };
 }
 
 /** Format $0.00042 as "$0.0004" / "$0.02" · never rounds to misleading $0.00. */

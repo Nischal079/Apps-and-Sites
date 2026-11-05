@@ -932,6 +932,8 @@ function updateCostLine() {
   const est = estimateCost(model, prompt, maxTokens);
   if (!est.known) {
     line.textContent = `Cost unknown for "${model}" · check your provider's pricing page. Nothing is sent until you press Send.`;
+  } else if (est.free) {
+    line.textContent = `Free model · estimated cost $0. Nothing is sent until you press Send.`;
   } else {
     line.textContent =
       `Estimated max cost ≈ ${formatUsd(est.estCostUsd)} (${est.promptTokens.toLocaleString()} prompt tokens est. + up to ${est.maxOutputTokens.toLocaleString()} output tokens) for ${est.label}. Prices are estimates · verify with your provider. Nothing is sent until you press Send.`;

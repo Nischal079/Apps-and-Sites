@@ -269,9 +269,11 @@ function setCost(elId, promptText, maxTokens) {
     return;
   }
   const est = estimateCost(model, promptText, maxTokens);
-  el.textContent = est.known
-    ? `Estimated max cost ≈ ${formatUsd(est.estCostUsd)} (estimate). Nothing is sent until you press Send.`
-    : `Cost unknown for this model · check your provider's pricing page. Nothing is sent until you press Send.`;
+  el.textContent = !est.known
+    ? `Cost unknown for this model · check your provider's pricing page. Nothing is sent until you press Send.`
+    : est.free
+      ? `Free model · estimated cost $0. Nothing is sent until you press Send.`
+      : `Estimated max cost ≈ ${formatUsd(est.estCostUsd)} (estimate). Nothing is sent until you press Send.`;
 }
 
 /* ==================== shared streaming send flow ==================== */

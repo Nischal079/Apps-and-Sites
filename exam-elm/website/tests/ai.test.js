@@ -431,6 +431,23 @@ test("estimateCost math (gpt-4o-mini)", () => {
 test("estimateCost: unknown model -> known:false, no invented price", () => {
   const r = estimateCost("future-model-9000", "hello", 100);
   assertEq(r.known, false);
+test("estimateCost: ':free' variant -> known, free, $0", () => {
+  const r = estimateCost("nvidia/nemotron-3-ultra-550b-a55b:free", "hello world", 100);
+  assertEq(r.known, true);
+  assertEq(r.free, true);
+  assertEq(r.estCostUsd, 0);
+});
+test("estimateCost: ':FREE' suffix is case-insensitive", () => {
+  const r = estimateCost("Some/Model:FREE", "hello", 100);
+  assertEq(r.known, true);
+  assertEq(r.free, true);
+  assertEq(r.estCostUsd, 0);
+});
+test("estimateCost: priced model is known and not free", () => {
+  const r = estimateCost("gpt-4o-mini", "hello", 100);
+  assertEq(r.known, true);
+  assertEq(r.free, false);
+});
   assertEq(r.estCostUsd, null);
 });
 
