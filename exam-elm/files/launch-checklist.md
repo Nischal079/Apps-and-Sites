@@ -21,6 +21,7 @@ Owner: Nischal. Budget: $0 — nothing here costs money.
 3. **Deploy to Cloudflare Pages** — connect the repo, confirm the custom domain/subdomain, verify `_headers`/redirects if needed
 4. **Rename decision** — DONE 2026-11-04: Nischal chose **ExamElm**. Applied via the rename checklist below.
 5. **Re-verify the AI cost table** (`assets/js/ai/costs.js`) — captured 2026-11-04, providers change prices
+   - RE-VERIFIED 2026-11-05 (Noor): retired IDs removed (deepseek-chat/deepseek-reasoner retired 2026-07-24; gemini-1.5-flash/1.5-pro retired 2025-09-29; gemini-2.0-flash retired 2026-06-01; o4-mini shut down 2026-10-23), current models added (deepseek-flash, deepseek-v4-pro at peak rates; gemini-2.5-flash/flash-lite/2.5-pro/3.5-flash/3.1-pro; claude-4.5 trio; gpt-6-luna as GPT-4o family's 2027-01-14 API-retirement replacement), sw.js cache bumped v8→v9, 261/261 tests green. Change prepared locally in working tree (NOT pushed) — GitHub push needs Nischal's approval.
 6. **Guides content** — guides page honestly shows "coming soon" cards (content backlog, NOT a tool gap; not a launch blocker)
 7. **iOS Safari + installed-PWA pass** and service-worker update flow in a real browser
 

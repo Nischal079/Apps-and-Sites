@@ -10,7 +10,7 @@
  * "check on load" banners (a service worker cannot wake itself without a
  * backend). See architecture review §4.
  */
-const CACHE = "studypilot-v10";
+const CACHE = "studypilot-v11";
 
 // Update this list on every release. Every tool page + its assets.
 const PRECACHE = [
@@ -31,6 +31,7 @@ const PRECACHE = [
   "/assets/js/docx.js",
   "/assets/js/aichat.js",
   "/assets/js/aiworkflows.js",
+  "/assets/js/ai/chatui.js",
   "/assets/js/site.js",
   "/assets/js/page-studyspace.js",
   "/assets/js/page-timetable.js",
