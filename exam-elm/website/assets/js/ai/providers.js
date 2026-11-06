@@ -525,11 +525,16 @@ export class ProviderStore {
    * - state "unavailable": memory only, no throw.
    * Plaintext keys NEVER touch storage · verified by save()'s assertion
    * and by tests that scan the raw kv record.
+   * Setting a different key clears any stored test result (lastTest):
+   * the old "Connected" verdict described the old key, not this one.
    */
   async setKey(id, key, passphrase) {
     if (!this.configs.has(id)) throw new Error("Provider not found.");
     const k = String(key || "").trim();
     if (!k) throw new Error("Key is empty.");
+    // A different key invalidates any earlier verification: the stored
+    // "Connected" result described the old key, not this one.
+    const prevKey = this.keys.get(id);
     // Validate the passphrase BEFORE mutating anything: a refused setKey
     // leaves no trace (no memory key, no device key, no blob).
     if (this.keyStoreState === "needs-passphrase") {
@@ -555,6 +560,7 @@ export class ProviderStore {
       await this.tryMigrateLegacy(p);
     }
     // "unavailable": memory only, nothing persisted.
+    if (prevKey !== k) await this.update(id, { lastTest: null });
   }
 
   getKey(id) {
@@ -596,6 +602,10 @@ export class ProviderStore {
       this._deviceKey = null;
       this.keyStoreState = "needs-passphrase";
     }
+    // No key, no verification: drop any stored "Connected" result, so
+    // the badge cannot outlive the key it described. (Skipped when the
+    // config itself is already gone — remove() deletes it first.)
+    if (this.configs.has(id)) await this.update(id, { lastTest: null });
   }
 
   forgetAllKeys() {

@@ -18,7 +18,7 @@ import { ProviderStore, BUILTINS, builtinById, formatTestResult } from "./ai/pro
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, formatUsd } from "./ai/costs.js";
-import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage, modelsForProvider, usableProviders, validateMaxTokens, accordionToggle, nextAddForm, providerReadiness, modelSuggestions, chatModelListScope } from "./ai/chatui.js";
+import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage, modelsForProvider, usableProviders, validateMaxTokens, accordionToggle, nextAddForm, providerReadiness, modelSuggestions, chatModelListScope, pickDiscoveredModel } from "./ai/chatui.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -634,16 +634,30 @@ function wireAddForm() {
       btn.textContent = "Discover models";
     }
   });
-  $("amDiscovered").addEventListener("click", (e) => {
+  $("amDiscovered").addEventListener("click", async (e) => {
     const pick = e.target.closest("[data-pick-model]");
     if (!pick) return;
-    $("amModel").value = pick.getAttribute("data-pick-model");
-    $("amModel").focus();
+    const providerId = $("amProvider").value;
+    const model = pick.getAttribute("data-pick-model");
+    try {
+      // One tap adds it: no extra submit step.
+      state.addModelDiscovered = await pickDiscoveredModel(
+        state.providers,
+        providerId,
+        model,
+        state.addModelDiscovered
+      );
+      renderAmDiscovered();
+      renderChatSelectors();
+      toast("Model added.");
+    } catch (err) {
+      toast(friendly(err));
+    }
   });
 }
 
 /** Discovered models for the Add Model form, as pick buttons (only those
- *  not already in the provider's list). Clicking one fills the input. */
+ *  not already in the provider's list). Clicking one adds it immediately. */
 function renderAmDiscovered() {
   const box = $("amDiscovered");
   box.innerHTML = "";

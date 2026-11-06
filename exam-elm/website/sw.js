@@ -10,7 +10,7 @@
  * "check on load" banners (a service worker cannot wake itself without a
  * backend). See architecture review §4.
  */
-const CACHE = "studypilot-v14";
+const CACHE = "studypilot-v16";
 
 // Update this list on every release. Every tool page + its assets.
 const PRECACHE = [

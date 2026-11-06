@@ -170,6 +170,17 @@ export function modelSuggestions(config) {
   return out.slice(0, 200);
 }
 
+/**
+ * One-tap add from the Add Model discovered list: adds the picked model
+ * to the provider immediately and returns the discovered list without
+ * it, so its button disappears. The old behaviour only filled the input
+ * and left the user to submit the form.
+ */
+export async function pickDiscoveredModel(providers, providerId, model, discovered) {
+  await providers.addModel(providerId, model);
+  return (Array.isArray(discovered) ? discovered : []).filter((m) => m !== model);
+}
+
 /** Display title for a conversation row (the store leaves new chats titled). */
 export function sessionTitle(row) {
   const t = row && typeof row.title === "string" ? row.title.trim() : "";

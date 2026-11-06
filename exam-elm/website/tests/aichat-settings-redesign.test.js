@@ -16,6 +16,7 @@ import {
   providerReadiness,
   modelSuggestions,
   modelsForProvider,
+  pickDiscoveredModel,
   usableProviders,
   modelForProviderChange,
   chatModelListScope,
@@ -158,6 +159,30 @@ test("addModel: never creates a provider entry per model", async () => {
   await ps.addModel(a.id, "gpt-4.1");
   assertEq(ps.list().length, 1, "still exactly one provider");
   assertEq(modelsForProvider(ps.get(a.id)), ["gpt-4o-mini", "gpt-4o", "gpt-4.1"]);
+});
+
+test("pickDiscoveredModel: one tap adds the model and drops it from the discovered list", async () => {
+  const { ps } = await freshStore();
+  const a = await ps.add({ name: "A", builtinId: "openai", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4o-mini" });
+  const remaining = await pickDiscoveredModel(ps, a.id, "gpt-4o", ["gpt-4o", "gpt-4.1"]);
+  assertEq(modelsForProvider(ps.get(a.id)), ["gpt-4o-mini", "gpt-4o"], "model is in the list immediately, no submit needed");
+  assertEq(remaining, ["gpt-4.1"], "picked model leaves the discovered list");
+});
+
+test("pickDiscoveredModel: picking an already-listed model adds no duplicate", async () => {
+  const { ps } = await freshStore();
+  const a = await ps.add({ name: "A", builtinId: "openai", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4o-mini" });
+  const remaining = await pickDiscoveredModel(ps, a.id, "gpt-4o-mini", ["gpt-4o-mini", "gpt-4o"]);
+  assertEq(modelsForProvider(ps.get(a.id)), ["gpt-4o-mini"], "no duplicate added");
+  assertEq(remaining, ["gpt-4o"], "already-known model still leaves the discovered list");
+});
+
+test("pickDiscoveredModel: a null discovered list is tolerated", async () => {
+  const { ps } = await freshStore();
+  const a = await ps.add({ name: "A", builtinId: "openai", baseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4o-mini" });
+  const remaining = await pickDiscoveredModel(ps, a.id, "gpt-4o", null);
+  assertEq(modelsForProvider(ps.get(a.id)), ["gpt-4o-mini", "gpt-4o"]);
+  assertEq(remaining, []);
 });
 
 test("removeModel: removing the selected model moves selection, never the provider/key", async () => {

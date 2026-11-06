@@ -319,6 +319,40 @@ test("RC-2: lastTest is cleared when the config is edited", async () => {
   assert(ps.get(c.id).lastTest && ps.get(c.id).lastTest.ok, "cache update keeps lastTest");
 });
 
+test("RC-2: setKey with a different key clears lastTest; same key keeps it", async () => {
+  const { ps } = await freshStore();
+  const c = await addProvider(ps);
+  const fakeFetch = async () => jsonResponse({ data: [{ id: "gpt-4o-mini" }] });
+  await ps.testConnection(c.id, fakeFetch);
+  assert(ps.get(c.id).lastTest && ps.get(c.id).lastTest.ok, "precondition: verified");
+  // Re-pasting the identical key changes nothing: the verdict still
+  // describes the key in use.
+  await ps.setKey(c.id, SECRET);
+  assert(ps.get(c.id).lastTest && ps.get(c.id).lastTest.ok, "same key keeps lastTest");
+  // A different key invalidates the old verdict.
+  await ps.setKey(c.id, "sk-a-different-key");
+  assertEq(ps.get(c.id).lastTest, null, "different key clears lastTest");
+  assertEq(ps.getKey(c.id), "sk-a-different-key", "the new key is actually stored");
+});
+
+test("RC-2: forgetKey clears lastTest; remove() never throws on the clear", async () => {
+  const { ps } = await freshStore();
+  const c = await addProvider(ps);
+  const fakeFetch = async () => jsonResponse({ data: [{ id: "gpt-4o-mini" }] });
+  await ps.testConnection(c.id, fakeFetch);
+  assert(ps.get(c.id).lastTest && ps.get(c.id).lastTest.ok, "precondition: verified");
+  await ps.forgetKey(c.id);
+  assertEq(ps.get(c.id).lastTest, null, "forgetting the key clears lastTest");
+  assert(!ps.hasKey(c.id), "key is gone too");
+  // Re-verify, then remove the whole provider: remove() deletes the
+  // config before forgetKey runs, so the clear must not throw.
+  await ps.setKey(c.id, SECRET);
+  await ps.testConnection(c.id, fakeFetch);
+  assert(ps.get(c.id).lastTest && ps.get(c.id).lastTest.ok, "precondition: verified again");
+  await ps.remove(c.id);
+  assertEq(ps.get(c.id), null, "provider is gone");
+});
+
 test("RC-2: formatTestResult renders every lastTest shape", () => {
   assertEq(formatTestResult(null), "");
   assertEq(formatTestResult(undefined), "");
