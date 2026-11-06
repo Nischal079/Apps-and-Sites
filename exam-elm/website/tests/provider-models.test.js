@@ -191,11 +191,14 @@ test("removeModel: removes from list; default falls to next; provider + key unto
   assertEq(ps.getKey(c.id), SECRET, "memory key still exists");
   const enc = await storage.get("kv", "ai_keys_enc");
   assert(enc === null, "no encrypted copy on the memory backend");
-  const last = await ps.removeModel(c.id, "gpt-4o");
-  assertEq(last.models, []);
-  assertEq(last.defaultModel, "", "no models left -> no default");
-  assert(ps.get(c.id) !== null, "provider still exists after its last model is removed");
-  assertEq(ps.getKey(c.id), SECRET, "key still exists after its last model is removed");
+  // Removing the LAST model is refused (2026-11-06 dead-end fix): a
+  // provider must keep at least one model to stay usable in the Chat
+  // Model dropdown. Add another model first, or remove the provider.
+  await assertThrowsAsync(() => ps.removeModel(c.id, "gpt-4o"), "only model");
+  assertEq(ps.get(c.id).models, ["gpt-4o"], "list unchanged after refused removal");
+  assertEq(ps.get(c.id).defaultModel, "gpt-4o", "default unchanged after refused removal");
+  assert(ps.get(c.id) !== null, "provider still exists after refused removal");
+  assertEq(ps.getKey(c.id), SECRET, "key still exists after refused removal");
 });
 
 test("removeModel: unknown model/provider rejected", async () => {

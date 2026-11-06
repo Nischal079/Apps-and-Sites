@@ -475,8 +475,26 @@ export class ProviderStore {
     const existing = this.get(EXAMELM_CONFIG_ID);
     const hasDefault = this.list().some((c) => c.isDefault);
     if (existing) {
+      // Repair (2026-11-06): an ExamElm config that lost its models (its
+      // only model was removed) is restored to the free default model,
+      // so the built-in provider is always usable. Without this a
+      // model-less ExamElm sat in storage forever and the Chat Model
+      // dropdown came up empty. Persist only when something changed.
+      let changed = false;
+      const hasModel =
+        (Array.isArray(existing.models) && existing.models.length > 0) ||
+        String(existing.defaultModel || "").trim() !== "";
+      if (!hasModel) {
+        existing.models = [EXAMELM_DEFAULT_MODEL];
+        existing.defaultModel = EXAMELM_DEFAULT_MODEL;
+        existing.updatedAt = new Date().toISOString();
+        changed = true;
+      }
       const order = this.list().map((c) => c.id);
-      if (order[0] === EXAMELM_CONFIG_ID) return existing;
+      if (order[0] === EXAMELM_CONFIG_ID) {
+        if (changed) await this.save();
+        return existing;
+      }
       const reordered = new Map();
       reordered.set(EXAMELM_CONFIG_ID, existing);
       for (const c of this.configs.values()) {
@@ -626,14 +644,31 @@ export class ProviderStore {
     return c;
   }
 
-  /** Remove one model ID; default falls to the next model (or ""). */
+  /**
+   * Remove one model ID; default falls to the next model.
+   * A provider must keep at least one model: removing the last one
+   * drops it out of the Chat Model dropdown (it is no longer usable)
+   * and, when it is the only provider, leaves the user with an empty
+   * provider select and no way forward except the Add Model form
+   * (2026-11-06 dead-end bug). Refuses with a plain error; add another
+   * model first, or remove the provider instead. The effective list is
+   * `models` when non-empty, else [defaultModel] (legacy stored shape).
+   */
   async removeModel(id, modelId) {
     const c = this.get(id);
     if (!c) throw new Error("Provider not found.");
     const clean = String(modelId || "").trim();
     const models = Array.isArray(c.models) ? c.models : [];
-    if (!models.includes(clean)) throw new Error("Model not found.");
-    c.models = models.filter((m) => m !== clean);
+    const effective = models.length
+      ? models
+      : String(c.defaultModel || "").trim()
+        ? [String(c.defaultModel).trim()]
+        : [];
+    if (!effective.includes(clean)) throw new Error("Model not found.");
+    if (effective.length <= 1) {
+      throw new Error("This is the provider's only model. Add another model first, or remove the provider instead.");
+    }
+    c.models = effective.filter((m) => m !== clean);
     if (c.defaultModel === clean) c.defaultModel = c.models[0] || "";
     c.updatedAt = new Date().toISOString();
     await this.save();

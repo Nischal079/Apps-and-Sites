@@ -14,11 +14,11 @@ import { esc, initTheme, injectBrand, toast } from "./ui.js";
 import { openStorage } from "./storage.js";
 import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
-import { ProviderStore, BUILTINS, builtinById, formatTestResult, EXAMELM_BUILTIN_ID, EXAMELM_FREE_HINT } from "./ai/providers.js";
+import { ProviderStore, BUILTINS, builtinById, formatTestResult, EXAMELM_BUILTIN_ID, EXAMELM_CONFIG_ID, EXAMELM_FREE_HINT } from "./ai/providers.js";
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, formatUsd } from "./ai/costs.js";
-import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage, modelsForProvider, usableProviders, validateMaxTokens, accordionToggle, nextAddForm, providerReadiness, modelSuggestions, chatModelListScope, pickDiscoveredModel, filterModelsForProvider } from "./ai/chatui.js";
+import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage, modelsForProvider, usableProviders, validateMaxTokens, accordionToggle, nextAddForm, providerReadiness, modelSuggestions, chatModelListScope, pickDiscoveredModel, filterModelsForProvider, resolveLastUsedRestore } from "./ai/chatui.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -319,7 +319,14 @@ function renderChatModelList() {
               ? ""
               : `<button type="button" class="btn btn-sm btn-ghost" data-act="model-select" data-id="${esc(c.id)}" data-model="${esc(m)}">Set selected</button>`) +
             `<button type="button" class="btn btn-sm btn-ghost" data-act="model-edit" data-id="${esc(c.id)}" data-model="${esc(m)}">Edit</button>` +
-            `<button type="button" class="btn btn-sm btn-ghost" data-act="model-remove" data-id="${esc(c.id)}" data-model="${esc(m)}">Remove</button>` +
+            // The last model cannot be removed: a model-less provider
+            // drops out of the Chat Model dropdown (2026-11-06 dead-end
+            // bug). The store refuses it too; the disabled button is the
+            // visible guard, since a refused click here would otherwise
+            // fail silently (this list is not inside a provider card).
+            (models.length <= 1
+              ? `<button type="button" class="btn btn-sm btn-ghost" disabled title="This is the provider's only model. Add another model first.">Remove</button>`
+              : `<button type="button" class="btn btn-sm btn-ghost" data-act="model-remove" data-id="${esc(c.id)}" data-model="${esc(m)}">Remove</button>`) +
             `</span></div>`
           );
         })
@@ -338,6 +345,9 @@ function renderChatModelList() {
   wrap.innerHTML =
     `<h4 class="provider-subhead">Models</h4>` +
     `<div class="model-list">${modelRows}</div>` +
+    (models.length === 1
+      ? `<p class="hint">The last model cannot be removed. Add another model first, or remove the provider.</p>`
+      : "") +
     `<div class="btn-row left"><button type="button" class="btn btn-sm btn-ghost" data-act="discover" data-id="${esc(c.id)}">Discover models</button></div>` +
     inlineAddHtml +
     (c.modelsCache && c.modelsCache.length
@@ -496,6 +506,10 @@ async function onProviderAction(e) {
     }
   } catch (err) {
     say(friendly(err), false);
+    // The Chat Model Models list is not inside a provider card, so say()
+    // has nowhere to write there: toast the error so a refused action
+    // (e.g. removing the last model) is never silent.
+    if (!resultEl) toast(friendly(err));
   } finally {
     btn.disabled = false;
   }
@@ -836,23 +850,31 @@ function renderChatSelectors() {
   // Keep the current selection when it is still usable; otherwise fall
   // back to the default (or first usable) provider.
   if (prev && usable.some((c) => c.id === prev)) sel.value = prev;
-  // First render only: restore the provider + model used last time, so the
-  // user doesn't re-pick them on every visit. Later re-renders (adding a
-  // provider, setting a new default) keep the current selection instead.
-  let saved = null;
+  // First render only: restore the provider + model used last time, so
+  // the user doesn't re-pick them on every visit. Later re-renders
+  // (adding a provider, setting a new default) keep the current
+  // selection instead. A stale saved provider (deleted, or model-less)
+  // never leaves its model in the field: the restore falls back to the
+  // selected provider's default model, and with nothing usable the
+  // field is cleared (2026-11-06 dead-end fix).
   if (!lastUsedApplied) {
     lastUsedApplied = true;
-    saved = loadLastUsed();
-    if (saved && saved.providerId) {
-      if (usable.some((c) => c.id === saved.providerId)) sel.value = saved.providerId;
-      else clearLastUsed(); // stale or model-less provider · fall back
+    const saved = loadLastUsed();
+    if (saved && saved.providerId && !usable.some((c) => c.id === saved.providerId)) clearLastUsed();
+    const restored = resolveLastUsedRestore(usable, saved);
+    if (restored) {
+      sel.value = restored.providerId;
+      $("chatModel").value = restored.model;
+    } else {
+      $("chatModel").value = "";
     }
-  }
-  syncModelDatalist();
-  if (saved && saved.model) {
-    $("chatModel").value = saved.model;
+    updateCostLine();
+  } else if (!usable.length) {
+    // Re-rendered into the empty state: never show a model with no provider.
+    $("chatModel").value = "";
     updateCostLine();
   }
+  syncModelDatalist();
   updateChatGuidance();
   updateActiveModelLine();
   renderChatModelList();
@@ -930,7 +952,11 @@ function onChatGuidanceFix() {
       $("amProvider").value = c.id;
       $("amModel").focus();
     } else {
+      // No provider is selected (nothing usable yet): preselect ExamElm,
+      // the built-in free provider, so the form is one step from working.
       showAddForm("model");
+      if (state.providers.get(EXAMELM_CONFIG_ID)) $("amProvider").value = EXAMELM_CONFIG_ID;
+      $("amModel").focus();
     }
   } else {
     showAddForm("provider");

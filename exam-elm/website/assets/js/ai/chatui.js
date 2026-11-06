@@ -52,6 +52,30 @@ export function modelForProviderChange(prevModel, newDefaultModel) {
 }
 
 /**
+ * First-render restore of the last-used provider/model, shared by AI Chat
+ * and AI Tools (2026-11-06 dead-end fix). `candidates` are the configs the
+ * page lists (usable providers on AI Chat, all configs on AI Tools);
+ * `saved` is loadLastUsed() or null. Returns { providerId, model } or
+ * null when nothing is listed. Rules:
+ * - saved provider still listed -> restore it and its saved model (or
+ *   that provider's default when the saved model is empty);
+ * - saved provider gone or not listed -> fall back to the default (or
+ *   first) listed provider and ITS default model — never the stale model
+ *   from a provider that can no longer be used;
+ * - nothing saved -> the default (or first) listed provider's default.
+ * Pure; see tests/chat-model-dead-end.test.js.
+ */
+export function resolveLastUsedRestore(candidates, saved) {
+  if (!Array.isArray(candidates) || !candidates.length) return null;
+  if (saved && saved.providerId) {
+    const c = candidates.find((x) => x.id === saved.providerId);
+    if (c) return { providerId: c.id, model: saved.model || c.defaultModel || "" };
+  }
+  const first = candidates.find((c) => c.isDefault) || candidates[0];
+  return { providerId: first.id, model: first.defaultModel || "" };
+}
+
+/**
  * Message for a send that fails because no key is set. Keys are now
  * auto-persisted encrypted in this browser, so a missing key simply means
  * none was ever entered for this provider — point at Settings. The flags

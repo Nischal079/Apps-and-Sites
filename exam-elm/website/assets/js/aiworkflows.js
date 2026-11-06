@@ -17,7 +17,7 @@ import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
 import { ProviderStore } from "./ai/providers.js";
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
-import { modelForProviderChange, missingKeyMessage, modelSuggestions } from "./ai/chatui.js";
+import { modelForProviderChange, missingKeyMessage, modelSuggestions, resolveLastUsedRestore } from "./ai/chatui.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, estimateTokens, formatUsd } from "./ai/costs.js";
 import {
@@ -184,21 +184,23 @@ function initProviders() {
     sel.appendChild(o);
   }
   // First render only: restore the provider + model used last time (shared
-  // with AI Chat, so the pair follows the user across both pages).
-  let saved = null;
+  // with AI Chat, so the pair follows the user across both pages). A stale
+  // saved provider never leaves its model in the field: the restore falls
+  // back to the selected provider's default model (2026-11-06 dead-end fix).
   if (!lastUsedApplied) {
     lastUsedApplied = true;
-    saved = loadLastUsed();
-    if (saved && saved.providerId) {
-      if (state.providers.get(saved.providerId)) sel.value = saved.providerId;
-      else clearLastUsed(); // stale provider · fall back to the default
+    const saved = loadLastUsed();
+    if (saved && saved.providerId && !state.providers.get(saved.providerId)) clearLastUsed();
+    const restored = resolveLastUsedRestore(configs, saved);
+    if (restored) {
+      sel.value = restored.providerId;
+      $("provModel").value = restored.model;
+      refreshAllCosts();
+    } else {
+      $("provModel").value = "";
     }
   }
   syncModelList();
-  if (saved && saved.model) {
-    $("provModel").value = saved.model;
-    refreshAllCosts();
-  }
 }
 
 function wireProviderBar() {
