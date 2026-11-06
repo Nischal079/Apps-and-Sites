@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <title>AI chat: keys, data sent, and limits · {{brand}} methodology</title>
 <meta name="description" content="How AI chat works: bring-your-own-key, what is sent to the provider on Send, what is never sent, per-provider direct browser access notes, cost estimates, timeouts and retries. No hype, plain language." />
-<link rel="canonical" href="https://studypilot.pages.dev/methodology/ai-chat/" />
+<link rel="canonical" href="https://apps-and-sites.pages.dev/methodology/ai-chat/" />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
 <link rel="manifest" href="/manifest.webmanifest" />
@@ -54,13 +54,12 @@
     <div class="wrap prose">
       <p class="eyebrow">Methodology</p>
       <h1>AI chat: keys, what&rsquo;s sent, and the limits</h1>
-      <p>This is the trust contract behind <a href="/ai-chat/">AI chat</a>. There is no AI built into this site · the chat page is a bring-your-own-key (BYOK) client: it calls the AI provider you choose with <em>your</em> key, directly from your browser. There is no <span data-brand="name"></span> server in the middle; there isn&rsquo;t one to put there.</p>
+      <p>This is the trust contract behind <a href="/ai-chat/">AI chat</a>. The chat page is a bring-your-own-key (BYOK) client: it calls the AI provider you choose with <em>your</em> key, directly from your browser. It also has one built-in free provider, ExamElm AI, which goes through this site&rsquo;s own proxy to OpenRouter using the site&rsquo;s key, so it needs no key from you.</p>
 
       <h2>Your key: where it lives</h2>
       <ul>
-        <li><strong>In memory, by default.</strong> Paste a key and it lives only in the page&rsquo;s memory. Close the tab and it&rsquo;s gone · it never touches disk.</li>
-        <li><strong>Optional encrypted storage.</strong> If you choose to save a key, it is encrypted with a key derived from <em>your passphrase</em> · PBKDF2 with 210,000 iterations and SHA-256, a random 16-byte salt, AES-GCM 256-bit with a random 12-byte IV · and only the encrypted blob is stored. The passphrase is never stored; a wrong passphrase fails closed with an error, and plaintext keys are never written to disk, logs, or URLs.</li>
-        <li><strong>Deletion purges both.</strong> Deleting a key removes it from memory and deletes any encrypted copy, with a confirmation step.</li>
+        <li><strong>Encrypted on this device, automatically.</strong> The first time you enter a key, you also enter an encryption passphrase (once, in the same form). It derives a device key (PBKDF2 with 210,000 iterations and SHA-256, a random salt, AES-GCM 256-bit, non-extractable) and only the encrypted blob is stored in your browser. On later visits your keys are decrypted automatically · you are never asked for the passphrase or the key again. The passphrase itself is never stored; a wrong passphrase fails closed, and plaintext keys are never written to disk, logs, or URLs.</li>
+        <li><strong>Deletion purges both.</strong> Deleting a key removes it and deletes its encrypted copy, with a confirmation step. Forgetting your last key also deletes the device key, so the passphrase is asked again the next time you enter a key.</li>
         <li><strong>Keys travel only in request headers</strong> (<code>Authorization: Bearer</code>, <code>x-api-key</code>, or <code>x-goog-api-key</code> depending on the provider) · never in URLs, never in logs.</li>
       </ul>
 
@@ -91,7 +90,7 @@
       <ul>
         <li>Before sending, the page shows an <strong>estimate</strong> of the request&rsquo;s cost: prompt tokens &approx; 4 characters per token, multiplied by the provider&rsquo;s published per-token price, plus the full output-token budget at the output price. It assumes you use the whole output budget · the worst case, not a promise.</li>
         <li>Prices are approximate public list prices (USD per million tokens) captured 2026-11-04; providers change them. Every figure is labeled an estimate and the page links the provider&rsquo;s pricing page.</li>
-        <li>Unknown models return &ldquo;unknown&rdquo; instead of an invented number · the page never guesses a price.</li>
+        <li>Models with no known price show no cost figure instead of an invented number, and free models (ids ending in :free) show $0 · the page never guesses a price.</li>
       </ul>
 
       <h2>Timeouts, retries, errors</h2>

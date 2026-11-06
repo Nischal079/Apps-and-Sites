@@ -16,6 +16,31 @@ export const SUGGESTION_CHIPS = [
 ];
 
 /**
+ * True when the model id is a free OpenRouter variant (":free" suffix).
+ * Pure.
+ */
+export function isFreeModelId(modelId) {
+  return typeof modelId === "string" && modelId.trim().toLowerCase().endsWith(":free");
+}
+
+/** True when the provider offers free models only (the ExamElm builtin). */
+export function freeModelsOnly(config) {
+  return !!config && config.builtinId === "examelm";
+}
+
+/**
+ * Filter a model list for a provider: ExamElm shows free (":free") models
+ * only; every other provider keeps the list unchanged. Returns a fresh
+ * array, never mutates the input. Pure; the server-side allowlist in
+ * functions/api/chat.js is the enforcement, this is the UX.
+ */
+export function filterModelsForProvider(config, models) {
+  const list = Array.isArray(models) ? [...models] : [];
+  if (!freeModelsOnly(config)) return list;
+  return list.filter((m) => isFreeModelId(m));
+}
+
+/**
  * Reset rule for switching providers: a model belongs to exactly one
  * provider, so the model field is always reset to the new provider's
  * default (or blank when it has none). The previous model is never
@@ -154,16 +179,17 @@ export function providerReadiness(config, hasKey) {
  * Model suggestions for a provider's model datalist (Step 3 UI): the
  * provider's user-managed models first, then its discovered cache, exact-
  * match deduped, order preserved, capped at 200. Pure; shared by the AI
- * Chat and AI Tools pages so both lists agree.
+ * Chat and AI Tools pages so both lists agree. For ExamElm both halves
+ * are filtered to ":free" models (filterModelsForProvider).
  */
 export function modelSuggestions(config) {
   if (!config) return [];
   const out = [];
-  for (const m of modelsForProvider(config)) {
+  for (const m of filterModelsForProvider(config, modelsForProvider(config))) {
     if (!out.includes(m)) out.push(m);
   }
   const cache = Array.isArray(config.modelsCache) ? config.modelsCache : [];
-  for (const m of cache) {
+  for (const m of filterModelsForProvider(config, cache)) {
     if (typeof m !== "string" || !m) continue;
     if (!out.includes(m)) out.push(m);
   }

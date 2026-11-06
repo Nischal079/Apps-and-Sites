@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <title>{{brand}} · Privacy Policy</title>
 <meta name="description" content="Privacy policy: your data never leaves your browser. No accounts, no analytics at launch, local storage only." />
-<link rel="canonical" href="https://studypilot.pages.dev/privacy/" />
+<link rel="canonical" href="https://apps-and-sites.pages.dev/privacy/" />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
 <link rel="manifest" href="/manifest.webmanifest" />
@@ -67,7 +67,7 @@
       <h2>Analytics</h2>
       <p>There are no analytics at launch. No tracking pixels, no third-party scripts, no fingerprinting. If a privacy-respecting analytics option is ever added, this page will say so first.</p>
       <h2>AI features (bring your own key)</h2>
-      <p>Optional AI features work on a bring-your-own-key basis: you supply your own API key for the AI provider you choose. Requests go <strong>directly from your browser to that provider</strong> · there is no <span data-brand="name">ExamElm</span> server in between. We never see your prompts, and we never see your key on any server. AI features are always opt-in, and <strong>nothing is transmitted anywhere until you press Send</strong>.</p>
+      <p>Optional AI features work on a bring-your-own-key basis: you supply your own API key for the AI provider you choose. Requests go <strong>directly from your browser to that provider</strong> · there is no <span data-brand="name">ExamElm</span> server in between. The exception is the built-in free ExamElm AI, which goes through this site's own proxy to OpenRouter (it needs no key from you). We never see your key on any server. AI features are always opt-in, and <strong>nothing is transmitted anywhere until you press Send</strong>.</p>
       <ul>
         <li><strong>What the provider receives:</strong> every prompt you submit, plus any text you paste into the chat. Providers do not receive the rest of your Study Space unless you explicitly include it.</li>
         <li><strong>Key storage:</strong> keys are kept in your browser's memory by default and vanish when the tab closes. You may optionally store them on your device encrypted with a passphrase you choose (PBKDF2 + AES-GCM); plaintext keys are never written to disk. If you forget the passphrase, the stored keys are unrecoverable.</li>

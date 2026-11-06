@@ -103,6 +103,8 @@ async function init() {
   state.storage = await openStorage();
   state.providers = new ProviderStore(state.storage);
   await state.providers.load();
+  // Built-in free provider: seeded for every user, first in every list.
+  await state.providers.ensureExamElmSeeded();
   initProviders();
   wireProviderBar();
   await loadMaterials();
@@ -174,7 +176,10 @@ function initProviders() {
   for (const c of configs) {
     const o = document.createElement("option");
     o.value = c.id;
-    o.textContent = c.name + (state.providers.hasKey(c.id) ? "" : " (no key)");
+    // ExamElm needs no key: label it free instead of "(no key)".
+    o.textContent =
+      c.name +
+      (!state.providers.needsKey(c) ? " (free)" : state.providers.hasKey(c.id) ? "" : " (no key)");
     if (c.isDefault) o.selected = true;
     sel.appendChild(o);
   }
@@ -239,7 +244,11 @@ function updateKeyBadge() {
   const id = $("provSelect").value;
   if (!id) return;
   const b = document.createElement("span");
-  if (state.providers.hasKey(id)) {
+  const c = state.providers.get(id);
+  if (c && !state.providers.needsKey(c)) {
+    b.className = "badge ok";
+    b.textContent = "Free · no key needed";
+  } else if (state.providers.hasKey(id)) {
     b.className = "badge ok";
     b.textContent = "Key saved";
   } else {
@@ -254,7 +263,9 @@ function resolveProvider() {
   const id = $("provSelect").value;
   const config = state.providers.get(id);
   if (!config) throw new Error("Choose a provider first (add one in AI Chat).");
-  const key = state.providers.getKey(id); // AIError with plain language when missing
+  // ExamElm needs no user key (the same-origin proxy carries the site's
+  // key); every other provider still requires one before sending.
+  const key = state.providers.needsKey(id) ? state.providers.getKey(id) : ""; // AIError with plain language when missing
   const model = $("provModel").value.trim();
   if (!model) throw new Error("Enter a model ID (or discover models in AI Chat).");
   return { config, key, model };

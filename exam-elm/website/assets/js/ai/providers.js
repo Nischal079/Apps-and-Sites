@@ -2,8 +2,14 @@
  * StudyPilot · BYOK provider registry and credential management.
  *
  * Security contract (non-negotiable):
- * - Requests go DIRECTLY from the browser to the provider. No proxy, no
- *   relay, no StudyPilot server (there isn't one).
+ * - BYOK requests go DIRECTLY from the browser to the provider. No proxy,
+ *   no relay, no StudyPilot server (there isn't one) — EXCEPT the built-in
+ *   "ExamElm" provider (builtinId "examelm", type "examelm-proxy"): it
+ *   posts to the same-origin Pages Function /api/chat, which forwards to
+ *   OpenRouter with the SITE's key (Cloudflare secret OPENROUTER_API_KEY,
+ *   never in client code or the repo). ExamElm needs no user key, offers
+ *   free (":free") models only, and is enforced server-side in
+ *   functions/api/chat.js. See files/examelm-ai-backend.md.
  * - API keys are stored ENCRYPTED in this browser (IndexedDB) by default.
  *   The first key entry asks for an encryption passphrase ONCE, in the
  *   same form as the key; the passphrase derives a non-extractable device
@@ -50,12 +56,61 @@ export const KV_PROVIDERS = "ai_providers"; // non-secret configs only
 export const KV_KEYS_ENC = "ai_keys_enc"; // encrypted blobs only (v:2; legacy v:1 may be embedded)
 
 /**
+ * Built-in free provider ("ExamElm", display model "Examelm AI").
+ * The real model behind the display name is EXAMELM_DEFAULT_MODEL:
+ * nvidia/nemotron-3-ultra-550b-a55b:free, verified still listed as a free
+ * OpenRouter model on 2026-11-06 (public /models list) and already
+ * proven to reply through this app on 2026-11-05 ("Hi! How can I help
+ * you today?"). The display name stays "Examelm AI"; the real model id
+ * is shown in the UI so it is transparent what runs underneath.
+ * Seeded for every user by ensureExamElmSeeded() (called by both AI
+ * pages after load(); load() itself never seeds, so it never forces a
+ * save and existing tests keep their empty-store expectations).
+ */
+export const EXAMELM_BUILTIN_ID = "examelm";
+export const EXAMELM_CONFIG_ID = "prv_examelm";
+export const EXAMELM_DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
+export const EXAMELM_DISPLAY_MODEL = "Examelm AI";
+export const EXAMELM_FREE_HINT = "Free · fair-use limits apply";
+
+/** True when the model id is a free OpenRouter variant (":free" suffix). */
+export function isFreeModelId(modelId) {
+  return typeof modelId === "string" && modelId.trim().toLowerCase().endsWith(":free");
+}
+
+/**
+ * True when a provider config needs a user API key. The ExamElm builtin
+ * is the only exception: it talks to the same-origin proxy with the
+ * site's key, so no user key is ever required (or accepted) for it.
+ */
+export function providerNeedsKey(config) {
+  if (!config) return true;
+  const b = builtinById(config.builtinId);
+  return b ? b.needsKey !== false : true;
+}
+
+/**
  * Built-in provider definitions. `cors` is one of:
  *  'blocked'   · provider sends no CORS headers; direct browser calls fail.
  *  'supported' · provider explicitly supports browser calls.
  *  'unverified'· unknown; the Test-connection button is the verification.
+ * ExamElm is FIRST: it is the default for new users and appears first in
+ * every provider list/selector. `needsKey: false` marks the no-key builtin.
  */
 export const BUILTINS = [
+  {
+    id: "examelm",
+    label: "ExamElm",
+    type: "examelm-proxy",
+    defaultBaseUrl: "",
+    cors: "supported",
+    corsNote:
+      "Built in and free. Your prompts go to ExamElm's own proxy on this site, which forwards them to OpenRouter using the site's key. No key needed. Free models only · fair-use limits apply.",
+    modelListing: false,
+    docsUrl: "",
+    keyHelp: "No key needed. ExamElm AI is free and built in.",
+    needsKey: false,
+  },
   {
     id: "openai",
     label: "OpenAI",
@@ -132,6 +187,32 @@ export const BUILTINS = [
 
 export function builtinById(id) {
   return BUILTINS.find((b) => b.id === id) || null;
+}
+
+/**
+ * The seeded ExamElm config (stable id, so lastUsed provider memory and
+ * stored conversations keep pointing at it across visits). It is the
+ * default only when no other provider is the default yet; existing
+ * users' saved lastUsed choices are respected by the pages, never
+ * overridden here. ExamElm cannot be removed from Settings (it is the
+ * built-in default); a store-level remove() lasts only until the next
+ * page load, when ensureExamElmSeeded() puts it back.
+ */
+export function examElmSeedConfig() {
+  return {
+    id: EXAMELM_CONFIG_ID,
+    name: "ExamElm",
+    builtinId: EXAMELM_BUILTIN_ID,
+    type: "examelm-proxy",
+    baseUrl: "",
+    defaultModel: EXAMELM_DEFAULT_MODEL,
+    models: [EXAMELM_DEFAULT_MODEL],
+    modelsCache: [],
+    modelsCachedAt: null,
+    lastTest: null,
+    isDefault: false,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 /**
@@ -375,9 +456,51 @@ export class ProviderStore {
     return this.list().find((c) => c.isDefault) || this.list()[0] || null;
   }
 
+  /** True when the provider with this id (or config) needs a user API key. */
+  needsKey(idOrConfig) {
+    const c = typeof idOrConfig === "string" ? this.get(idOrConfig) : idOrConfig;
+    return providerNeedsKey(c);
+  }
+
+  /**
+   * Seed the built-in ExamElm provider for every user (called by both AI
+   * pages right after load()). Idempotent: when an ExamElm config already
+   * exists it is moved FIRST in list order (it leads every provider list)
+   * and left otherwise untouched; when none exists one is created with
+   * the free default model and made the default only if no other provider
+   * is the default yet. Persists only when it adds or reorders. Returns
+   * the ExamElm config.
+   */
+  async ensureExamElmSeeded() {
+    const existing = this.get(EXAMELM_CONFIG_ID);
+    const hasDefault = this.list().some((c) => c.isDefault);
+    if (existing) {
+      const order = this.list().map((c) => c.id);
+      if (order[0] === EXAMELM_CONFIG_ID) return existing;
+      const reordered = new Map();
+      reordered.set(EXAMELM_CONFIG_ID, existing);
+      for (const c of this.configs.values()) {
+        if (c.id !== EXAMELM_CONFIG_ID) reordered.set(c.id, c);
+      }
+      this.configs = reordered;
+      await this.save();
+      return existing;
+    }
+    const seed = examElmSeedConfig();
+    seed.isDefault = !hasDefault;
+    const seeded = new Map();
+    seeded.set(EXAMELM_CONFIG_ID, seed);
+    for (const c of this.configs.values()) seeded.set(c.id, c);
+    this.configs = seeded;
+    await this.save();
+    return seed;
+  }
+
   async add({ name, builtinId, baseUrl, defaultModel }) {
     const builtin = builtinById(builtinId);
     if (!builtin) throw new Error("Unknown provider type.");
+    if (builtin.id === EXAMELM_BUILTIN_ID)
+      throw new Error("ExamElm is built in and already available.");
     const cleanBase = String(baseUrl || builtin.defaultBaseUrl).replace(/\/+$/, "");
     if (!/^https?:\/\//i.test(cleanBase))
       throw new Error("Base URL must start with http:// or https://");
@@ -404,6 +527,24 @@ export class ProviderStore {
   async update(id, patch) {
     const c = this.get(id);
     if (!c) throw new Error("Provider not found.");
+    // ExamElm offers free models only (enforced server-side too; this is
+    // the UI-level guard). Validate BEFORE mutating anything, so a
+    // refused patch leaves the config untouched.
+    if (c.builtinId === EXAMELM_BUILTIN_ID) {
+      if (
+        patch.defaultModel !== undefined &&
+        String(patch.defaultModel).trim() &&
+        !isFreeModelId(patch.defaultModel)
+      ) {
+        throw new Error("ExamElm only offers free models. Use a model ID ending in :free.");
+      }
+      if (patch.models !== undefined) {
+        const list = cleanModelList(patch.models);
+        if (list.some((m) => !isFreeModelId(m))) {
+          throw new Error("ExamElm only offers free models. Use model IDs ending in :free.");
+        }
+      }
+    }
     const allowed = ["name", "baseUrl", "defaultModel", "models", "modelsCache", "modelsCachedAt", "lastTest"];
     // Editing name, base URL or default model invalidates any earlier
     // verification: the stored test result no longer describes this config.
@@ -453,6 +594,9 @@ export class ProviderStore {
     const c = this.get(id);
     if (!c) throw new Error("Provider not found.");
     const clean = cleanModelId(modelId);
+    if (c.builtinId === EXAMELM_BUILTIN_ID && !isFreeModelId(clean)) {
+      throw new Error("ExamElm only offers free models. Use a model ID ending in :free.");
+    }
     if (!Array.isArray(c.models)) c.models = [];
     if (c.models.includes(clean)) return c; // already listed · dedupe, no-op
     c.models = [...c.models, clean];
@@ -467,6 +611,9 @@ export class ProviderStore {
     const c = this.get(id);
     if (!c) throw new Error("Provider not found.");
     const cleanNew = cleanModelId(newId);
+    if (c.builtinId === EXAMELM_BUILTIN_ID && !isFreeModelId(cleanNew)) {
+      throw new Error("ExamElm only offers free models. Use a model ID ending in :free.");
+    }
     const models = Array.isArray(c.models) ? c.models : [];
     const idx = models.indexOf(String(oldId || "").trim());
     if (idx === -1) throw new Error("Model not found.");
@@ -530,6 +677,7 @@ export class ProviderStore {
    */
   async setKey(id, key, passphrase) {
     if (!this.configs.has(id)) throw new Error("Provider not found.");
+    if (!this.needsKey(id)) throw new Error("ExamElm needs no API key.");
     const k = String(key || "").trim();
     if (!k) throw new Error("Key is empty.");
     // A different key invalidates any earlier verification: the stored
@@ -563,7 +711,14 @@ export class ProviderStore {
     if (prevKey !== k) await this.update(id, { lastTest: null });
   }
 
+  /**
+   * The key for a provider, or "" when it needs none (ExamElm talks to
+   * the same-origin proxy with the site's key). Throws the friendly
+   * no-key error for keyed providers with nothing stored.
+   */
   getKey(id) {
+    const c = this.get(id);
+    if (c && !providerNeedsKey(c)) return "";
     const k = this.keys.get(id);
     if (!k)
       throw new AIError(
@@ -789,6 +944,9 @@ export class ProviderStore {
    * unavailable)"). Any other non-OK list response throws the mapped error.
    * Every outcome (success or failure) is stored as config.lastTest and
    * persisted, so the UI can render it after a re-render.
+   * ExamElm (no user key): the key gate and key proof are skipped and
+   * keyVerified is null, so no "key verified" bit is ever rendered for
+   * it; the tiny completion proves the proxy end to end instead.
    */
   async testConnection(id, fetchImpl, model) {
     const config = this.get(id);
@@ -808,7 +966,12 @@ export class ProviderStore {
     };
 
     try {
-      const key = this.getKey(id); // friendly error when missing
+      // ExamElm needs no user key: the proxy carries the site's key, so
+      // the key gate (and the key proof below) is skipped for it and
+      // keyVerified stays null, which formatTestResult renders as no key
+      // bit at all (never a misleading "key verified").
+      const needs = this.needsKey(config);
+      const key = needs ? this.getKey(id) : ""; // friendly error when missing
       const adapter = this.adapterForConfig(config);
       const withKey = { ...config, apiKey: key };
 
@@ -828,11 +991,11 @@ export class ProviderStore {
               ok: true,
               models: null,
               modelVerified: modelToCheck ? true : null,
-              keyVerified: true,
+              keyVerified: needs ? true : null,
               listUnavailable: true,
               model: modelToCheck || null,
               message: modelToCheck
-                ? `Connected (model list unavailable) · model ${modelToCheck} verified · key verified`
+                ? `Connected (model list unavailable) · model ${modelToCheck} verified${needs ? " · key verified" : ""}`
                 : "Connected (model list unavailable)",
               at: Date.now(),
             };
@@ -843,8 +1006,14 @@ export class ProviderStore {
           throw adapter.mapHttpError(res.status, body);
         }
         const models = adapter.parseModelList(await res.json().catch(() => ({})));
+        // ExamElm offers free models only: a discovered list is filtered
+        // to ":free" before it is cached or shown anywhere.
+        const listed =
+          config.builtinId === EXAMELM_BUILTIN_ID
+            ? models.filter((m) => isFreeModelId(m))
+            : models;
         await this.update(id, {
-          modelsCache: models.slice(0, 200),
+          modelsCache: listed.slice(0, 200),
           modelsCachedAt: new Date().toISOString(),
         });
         if (modelToCheck) {
@@ -860,14 +1029,16 @@ export class ProviderStore {
         }
         const result = {
           ok: true,
-          models: models.length,
+          models: listed.length,
           modelVerified: modelToCheck ? true : null,
-          keyVerified: modelToCheck ? true : false,
+          keyVerified: needs ? (modelToCheck ? true : false) : null,
           listUnavailable: false,
           model: modelToCheck || null,
           message: modelToCheck
-            ? `Connected · ${models.length} models listed · model ${modelToCheck} verified · key verified`
-            : `Connected · ${models.length} models listed · key not verified (add a model to verify it)`,
+            ? `Connected · ${listed.length} models listed · model ${modelToCheck} verified${needs ? " · key verified" : ""}`
+            : needs
+              ? `Connected · ${listed.length} models listed · key not verified (add a model to verify it)`
+              : `Connected · ${listed.length} models listed`,
           at: Date.now(),
         };
         await record(result);
@@ -880,11 +1051,11 @@ export class ProviderStore {
         ok: true,
         models: null,
         modelVerified: modelToCheck ? true : null,
-        keyVerified: true,
+        keyVerified: needs ? true : null,
         listUnavailable: true,
         model: modelToCheck || null,
         message: modelToCheck
-          ? `Connected (model list unavailable) · model ${modelToCheck} verified · key verified`
+          ? `Connected (model list unavailable) · model ${modelToCheck} verified${needs ? " · key verified" : ""}`
           : "Connected (model list unavailable)",
         at: Date.now(),
       };

@@ -197,6 +197,69 @@ export class OpenAICompatibleAdapter extends BaseAdapter {
 }
 
 /* ------------------------------------------------------------------ */
+/* ExamElm built-in free provider: same-origin Pages Function proxy.   */
+/* The browser POSTs to /api/chat on this site (no Authorization       */
+/* header, no user key); the Function forwards to OpenRouter with the  */
+/* site's own key and only ever forwards ":free" models. The SSE and  */
+/* JSON parsing are the OpenAI-compatible ones: the proxy passes the   */
+/* upstream OpenRouter shape through unchanged.                        */
+/* ------------------------------------------------------------------ */
+export class ExamElmProxyAdapter extends OpenAICompatibleAdapter {
+  constructor() {
+    super("examelm-proxy", "ExamElm");
+    this.capabilities = { streaming: true, modelListing: false, maxTokens: true };
+  }
+
+  requestInfo(_config, { messages, model, maxTokens, stream }) {
+    const body = { model, messages: messages.map((m) => ({ role: m.role, content: m.content })) };
+    if (maxTokens) body.max_tokens = maxTokens;
+    if (stream) {
+      body.stream = true;
+      body.stream_options = { include_usage: true };
+    }
+    return {
+      url: "/api/chat",
+      headers: { "Content-Type": "application/json" },
+      body,
+    };
+  }
+
+  mapHttpError(status, bodyText) {
+    const body = String(bodyText || "").slice(0, 300);
+    if (status === 503)
+      return new AIError(
+        "not-configured",
+        "ExamElm AI is not configured yet. The site owner needs to add the OpenRouter key in Cloudflare Pages settings."
+      );
+    if (status === 429)
+      return new AIError(
+        "rate-limited",
+        `ExamElm AI is busy right now (fair-use limit). Wait a moment and retry · the app backs off automatically. ${body}`
+      );
+    if (status === 401 || status === 403)
+      return new AIError(
+        "unknown",
+        "ExamElm AI is temporarily unavailable. Try again in a moment."
+      );
+    if (status === 404)
+      return new AIError(
+        "model-not-found",
+        `Model not found on ExamElm AI (HTTP 404). Check the model ID. ${body}`
+      );
+    if (status === 400)
+      return new AIError("bad-request", `Request rejected by ExamElm AI (HTTP 400). ${body}`);
+    return super.mapHttpError(status, bodyText);
+  }
+
+  // The proxy has no model-list endpoint: discovery falls back to the
+  // tiny completion check in ProviderStore.testConnection, which proves
+  // the proxy end to end instead of listing.
+  listModelsRequest(/* config */) {
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Anthropic Claude (native messages API).                             */
 /* Direct browser access is supported by Anthropic when the             */
 /* `anthropic-dangerous-direct-browser-access: true` header is sent.    */
@@ -432,6 +495,8 @@ export class GeminiAdapter extends BaseAdapter {
 /** Factory: adapter instance for a provider type id. */
 export function adapterFor(type) {
   switch (type) {
+    case "examelm-proxy":
+      return new ExamElmProxyAdapter();
     case "anthropic":
       return new AnthropicAdapter();
     case "gemini":

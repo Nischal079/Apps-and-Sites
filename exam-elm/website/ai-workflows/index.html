@@ -6,11 +6,13 @@
 <!-- connect-src: explicit allowlist of built-in BYOK provider origins ONLY.
      No wildcards. Custom user endpoints are NOT covered by this static CSP and
      will be blocked by the browser · tracked as a known limitation in
-     KNOWN-ISSUES.md (a static page cannot grant per-user CSP exceptions). -->
+     KNOWN-ISSUES.md (a static page cannot grant per-user CSP exceptions).
+     The 'self' entry also covers the built-in ExamElm AI proxy at
+     same-origin /api/chat, so no new origin was added for it. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://openrouter.ai https://api.deepseek.com https://api.anthropic.com https://generativelanguage.googleapis.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <title>AI Study Tools · {{brand}}</title>
-<meta name="description" content="Turn your study notes into flashcards, quizzes, study plans and summaries with AI · using your own API key. Five private, bring-your-own-key workflows that run entirely in your browser: chat with your notes, generate flashcards, build quizzes, plan your study days, and rewrite notes." />
-<link rel="canonical" href="https://studypilot.pages.dev/ai-workflows/" />
+<meta name="description" content="Turn your study notes into flashcards, quizzes, study plans and summaries with AI · free built-in ExamElm AI, or your own API key. Five private workflows that run in your browser: chat with your notes, generate flashcards, build quizzes, plan your study days, and rewrite notes." />
+<link rel="canonical" href="https://apps-and-sites.pages.dev/ai-workflows/" />
 <meta name="theme-color" content="#312e81" />
 <link rel="stylesheet" href="/assets/css/main.css" />
 <link rel="manifest" href="/manifest.webmanifest" />
@@ -71,7 +73,7 @@
   <div class="banner warn" role="note" aria-label="Important disclosures">
     <strong>Before you use these tools, know this:</strong>
     <ul style="margin: 0.5rem 0 0; padding-left: 1.2rem;">
-      <li>Your prompts go <strong>directly from this browser to the provider you choose</strong>. There is no server in between · your prompts and your key are never seen by us.</li>
+      <li>Your prompts go <strong>directly from this browser to the provider you choose</strong>. ExamElm AI is the exception: it goes through this site's own proxy to OpenRouter. Your prompts and your key are never seen by us.</li>
       <li>The provider you choose <strong>receives everything you send</strong>, including your notes and files.</li>
       <li><strong>Nothing is sent anywhere until you press Send.</strong> Every tab shows you exactly what will be sent and an estimated cost first.</li>
       <li><strong>API billing is separate</strong> from any consumer AI subscription · you pay the provider's API rates.</li>
@@ -109,8 +111,8 @@
         <p class="hint">Pick a discovered model or type any model ID your provider offers.</p>
       </div>
       <p><span id="provKeyBadge"></span> <a href="/ai-chat/#providers">Manage providers &amp; keys →</a></p>
-      <p class="hint">Your messages are sent to the API provider you choose. Your API keys are stored encrypted in this browser.</p>
-      <p class="hint">Prompts go directly from your browser to your chosen provider; estimated cost shown before every send. <a href="/privacy/">Privacy details</a>.</p>
+      <p class="hint">Your messages are sent to the AI provider you choose (ExamElm AI goes through this site's own proxy to OpenRouter). Your API keys are stored encrypted in this browser.</p>
+      <p class="hint">Prompts go directly from your browser to your chosen provider (ExamElm AI goes through this site's own proxy); estimated cost shown before every send. <a href="/privacy/">Privacy details</a>.</p>
     </div>
   </section>
 

@@ -14,11 +14,11 @@ import { esc, initTheme, injectBrand, toast } from "./ui.js";
 import { openStorage } from "./storage.js";
 import { renderMarkdown } from "./markdown.js";
 import { AIError } from "./ai/adapters.js";
-import { ProviderStore, BUILTINS, builtinById, formatTestResult } from "./ai/providers.js";
+import { ProviderStore, BUILTINS, builtinById, formatTestResult, EXAMELM_BUILTIN_ID, EXAMELM_FREE_HINT } from "./ai/providers.js";
 import { loadLastUsed, saveLastUsed, clearLastUsed } from "./ai/lastused.js";
 import { streamChat } from "./ai/chat.js";
 import { estimateCost, formatUsd } from "./ai/costs.js";
-import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage, modelsForProvider, usableProviders, validateMaxTokens, accordionToggle, nextAddForm, providerReadiness, modelSuggestions, chatModelListScope, pickDiscoveredModel } from "./ai/chatui.js";
+import { SUGGESTION_CHIPS, sessionTitle, filterSessions, groupSessions, modelForProviderChange, missingKeyMessage, modelsForProvider, usableProviders, validateMaxTokens, accordionToggle, nextAddForm, providerReadiness, modelSuggestions, chatModelListScope, pickDiscoveredModel, filterModelsForProvider } from "./ai/chatui.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -76,6 +76,8 @@ async function init() {
   state.storage = await openStorage();
   state.providers = new ProviderStore(state.storage);
   await state.providers.load();
+  // Built-in free provider: seeded for every user, first in every list.
+  await state.providers.ensureExamElmSeeded();
   renderBuiltinSelect();
   renderProviders();
   await refreshConversations();
@@ -190,9 +192,14 @@ function renderProviders() {
     const card = document.createElement("div");
     card.className = "card provider-row";
     card.dataset.providerId = c.id;
-    const keyState = state.providers.hasKey(c.id)
-      ? '<span class="badge ok">Key saved</span>'
-      : '<span class="badge">No key set</span>';
+    // ExamElm is the built-in free provider: no key, no key form, no
+    // Remove button (it is re-seeded on the next load anyway).
+    const isExamElm = c.builtinId === EXAMELM_BUILTIN_ID;
+    const keyState = isExamElm
+      ? '<span class="badge ok">Free · no key needed</span>'
+      : state.providers.hasKey(c.id)
+        ? '<span class="badge ok">Key saved</span>'
+        : '<span class="badge">No key set</span>';
     // Compact status for the collapsed row: verified / failed / untested.
     const shortTest = !c.lastTest
       ? ""
@@ -225,6 +232,20 @@ function renderProviders() {
       keyStoreState === "unavailable"
         ? `<p class="hint">${esc(state.providers.keyStoreNote)}</p>`
         : `<p class="hint">Stored encrypted in this browser.</p>`;
+    // ExamElm needs no key at all: show the honest free hint instead of
+    // the key form (no Save/Forget key buttons, no passphrase field).
+    const keyAreaHtml = isExamElm
+      ? `<p class="hint">${esc(EXAMELM_FREE_HINT)}. No key needed.</p>`
+      : `<div class="field" style="max-width: 420px;">
+         <label for="key-${esc(c.id)}">API key</label>
+         <input type="password" id="key-${esc(c.id)}" autocomplete="off" placeholder="Paste key" />
+         ${keyHintHtml}
+       </div>` +
+        passFieldHtml +
+        `<div class="btn-row left">
+         <button type="button" class="btn btn-sm" data-act="keep-key" data-id="${esc(c.id)}">Save key</button>
+         <button type="button" class="btn btn-sm btn-ghost" data-act="forget-key" data-id="${esc(c.id)}">Forget key</button>
+       </div>`;
 
     card.innerHTML =
       `<button type="button" class="provider-row-head" data-act="toggle" data-id="${esc(c.id)}" aria-expanded="${expanded}" aria-controls="prov-body-${esc(c.id)}">` +
@@ -234,25 +255,18 @@ function renderProviders() {
       `<span class="provider-chevron" aria-hidden="true">${expanded ? "▴" : "▾"}</span>` +
       `</button>` +
       `<div class="provider-row-body" id="prov-body-${esc(c.id)}" ${expanded ? "" : "hidden"}>` +
-      `<div class="list-item-meta">${esc(b.label || c.type)} · <code>${esc(c.baseUrl)}</code></div>` +
+      `<div class="list-item-meta">${esc(b.label || c.type)} · <code>${esc(isExamElm ? "/api/chat · same origin" : c.baseUrl)}</code></div>` +
       `<p class="hint">${esc(b.corsNote || "")}</p>` +
-      `<div class="field" style="max-width: 420px;">
-         <label for="key-${esc(c.id)}">API key</label>
-         <input type="password" id="key-${esc(c.id)}" autocomplete="off" placeholder="Paste key" />
-         ${keyHintHtml}
-       </div>` +
-      passFieldHtml +
-      `<div class="btn-row left">
-         <button type="button" class="btn btn-sm" data-act="keep-key" data-id="${esc(c.id)}">Save key</button>
-         <button type="button" class="btn btn-sm btn-ghost" data-act="forget-key" data-id="${esc(c.id)}">Forget key</button>
-       </div>` +
+      keyAreaHtml +
       `<div class="btn-row left">
          <button type="button" class="btn btn-sm" data-act="test" data-id="${esc(c.id)}">Test connection</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="discover" data-id="${esc(c.id)}">Discover models</button>
          <button type="button" class="btn btn-sm btn-ghost" data-act="default" data-id="${esc(c.id)}">Set default</button>
-         <button type="button" class="btn btn-sm btn-ghost" data-act="edit" data-id="${esc(c.id)}">Edit</button>
-         <button type="button" class="btn btn-sm btn-ghost" data-act="remove" data-id="${esc(c.id)}">Remove</button>
-       </div>` +
+         <button type="button" class="btn btn-sm btn-ghost" data-act="edit" data-id="${esc(c.id)}">Edit</button>` +
+      (isExamElm
+        ? ""
+        : ` <button type="button" class="btn btn-sm btn-ghost" data-act="remove" data-id="${esc(c.id)}">Remove</button>`) +
+      `</div>` +
       testLineHtml +
       `<div data-role="edit-form" hidden></div>` +
       `</div>`;
@@ -491,20 +505,27 @@ function renderEditForm(card, id) {
   const c = state.providers.get(id);
   const host = card.querySelector('[data-role="edit-form"]');
   host.hidden = false;
+  // ExamElm has no base URL (it posts to the same-origin proxy), so the
+  // form omits that field for it; the save below skips it too.
+  const isExamElm = c.builtinId === EXAMELM_BUILTIN_ID;
   host.innerHTML =
     `<div class="field"><label>Display name</label><input type="text" data-f="name" maxlength="60" value="${esc(c.name)}" /></div>` +
-    `<div class="field"><label>Base URL</label><input type="url" data-f="baseUrl" value="${esc(c.baseUrl)}" /></div>` +
+    (isExamElm
+      ? ""
+      : `<div class="field"><label>Base URL</label><input type="url" data-f="baseUrl" value="${esc(c.baseUrl)}" /></div>`) +
     `<div class="field"><label>Default model ID</label><input type="text" data-f="defaultModel" maxlength="120" value="${esc(c.defaultModel || "")}" /></div>` +
     `<div class="btn-row"><button type="button" class="btn btn-sm btn-primary" data-save>Edit</button>
      <button type="button" class="btn btn-sm btn-ghost" data-cancel>Cancel</button></div>`;
   host.querySelector("[data-save]").textContent = "Save";
   host.querySelector("[data-save]").addEventListener("click", async () => {
     try {
-      await state.providers.update(id, {
+      const patch = {
         name: host.querySelector('[data-f="name"]').value,
-        baseUrl: host.querySelector('[data-f="baseUrl"]').value,
         defaultModel: host.querySelector('[data-f="defaultModel"]').value,
-      });
+      };
+      const baseInput = host.querySelector('[data-f="baseUrl"]');
+      if (baseInput) patch.baseUrl = baseInput.value;
+      await state.providers.update(id, patch);
       toast("Provider updated.");
       renderProviders();
       renderChatSelectors();
@@ -521,7 +542,8 @@ function renderEditForm(card, id) {
 function renderBuiltinSelect() {
   const sel = $("pvBuiltin");
   sel.innerHTML = "";
-  for (const b of BUILTINS) {
+  // ExamElm is built in and auto-seeded; it is never added by hand.
+  for (const b of BUILTINS.filter((x) => x.id !== EXAMELM_BUILTIN_ID)) {
     const o = document.createElement("option");
     o.value = b.id;
     o.textContent = b.label;
@@ -664,7 +686,8 @@ function renderAmDiscovered() {
   const c = state.providers.get($("amProvider").value);
   if (!c) return;
   const known = new Set(modelsForProvider(c));
-  const fresh = state.addModelDiscovered.filter((m) => !known.has(m));
+  // ExamElm shows free (":free") models only.
+  const fresh = filterModelsForProvider(c, state.addModelDiscovered).filter((m) => !known.has(m));
   if (state.addModelDiscovered.length && !fresh.length) {
     const p = document.createElement("p");
     p.className = "hint";
@@ -803,7 +826,10 @@ function renderChatSelectors() {
   for (const c of usable) {
     const o = document.createElement("option");
     o.value = c.id;
-    o.textContent = c.name + (state.providers.hasKey(c.id) ? "" : " (no key)");
+    // ExamElm needs no key: label it free instead of "(no key)".
+    o.textContent =
+      c.name +
+      (!state.providers.needsKey(c) ? " (free)" : state.providers.hasKey(c.id) ? "" : " (no key)");
     if (c.isDefault) o.selected = true;
     sel.appendChild(o);
   }
@@ -861,7 +887,9 @@ function updateChatGuidance() {
   const btn = $("chatModelFixBtn");
   const configs = state.providers.list();
   const c = state.providers.get($("chatProvider").value) || null;
-  const readiness = providerReadiness(c, c ? state.providers.hasKey(c.id) : false);
+  // ExamElm needs no key: a provider with models and no key is ready
+  // when it is ExamElm, not "no-key".
+  const readiness = providerReadiness(c, c ? (state.providers.hasKey(c.id) || !state.providers.needsKey(c)) : false);
   if (readiness.kind === "ready") {
     line.hidden = true;
     actions.hidden = true;
@@ -1100,7 +1128,13 @@ function renderEmptyState(box) {
   wrap.appendChild(chips);
   const note = document.createElement("p");
   note.className = "hint";
-  note.textContent = "Your prompts go directly to your chosen provider · nothing passes through our servers. ";
+  // The routing claim depends on the provider: BYOK prompts go direct,
+  // ExamElm AI prompts go through this site's own proxy to OpenRouter.
+  const active = state.providers ? state.providers.get($("chatProvider").value) : null;
+  note.textContent =
+    active && !state.providers.needsKey(active)
+      ? "Your prompts go to ExamElm's built-in proxy on this site, which forwards them to OpenRouter. "
+      : "Your prompts go directly to your chosen provider · nothing passes through our servers. ";
   const more = document.createElement("button");
   more.type = "button";
   more.className = "link-btn";
@@ -1225,15 +1259,19 @@ async function sendPrompt() {
     toast("Choose a provider first.");
     return;
   }
-  let key;
-  try {
-    key = state.providers.getKey(providerId);
-  } catch (err) {
-    // Keys auto-persist encrypted, so a missing key simply means none was
-    // ever entered for this provider — point at Settings.
-    toast(missingKeyMessage());
-    openSettings();
-    return;
+  let key = "";
+  // ExamElm needs no user key (the same-origin proxy carries the site's
+  // key); every other provider still requires one before sending.
+  if (state.providers.needsKey(providerId)) {
+    try {
+      key = state.providers.getKey(providerId);
+    } catch (err) {
+      // Keys auto-persist encrypted, so a missing key simply means none was
+      // ever entered for this provider — point at Settings.
+      toast(missingKeyMessage());
+      openSettings();
+      return;
+    }
   }
   const model = $("chatModel").value.trim();
   if (!model) {
